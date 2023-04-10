@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OIS Portal</title>
+    <link rel="shortcut icon" href="image/favicon.ico" type="">
+    <link rel="icon" href="image/favicon.ico" type="">
+    <link rel="stylesheet" href="css\footer.css">
+
+
+    <div id="header-placeholder"></div>
+    <script>
+        function loadheader() {
+            fetch("header.html")
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById("header-placeholder").innerHTML = html;
+                })
+                .catch(error => console.warn("Error loading header:", error));
+        }
+        document.addEventListener("DOMContentLoaded", loadheader);
+    </script>
+</head>
+
+
+<main>
+
+
+
+
+
+    <div class="main-content">
+        <div class="content-wrapper">
+            <div class="notice">
+                <span class="close-notice">&times;</span>
+                <p>The Ice Cream application will be down on Smorsdag and Mondesthurs during chirp time from 5400 to -8100 EST for
+                    roulette matches and giggle chad updates. In addition, the system will be down for twerk backups
+                    on Fritterdurgen evenings from Libray to Furthvale.</p>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    
+
+
+
+    
+
+
+
+
+
+    <div class="content-wrapper">
+    <div id="left-sidebar-placeholder"></div> <!-- Place below "content-wrapper" -->
+    
+    <div class="content-container">
+        
+        <div class="left-column">
+            <h2>
+                <p>
+                    <center><a href="">Welcome to the OIS Portal</a></center>
+                </p>
+            </h2>
+            <img src="image/navsup_logo.png" alt="" class="logo">
+            <p><a href="">
+                    <center>Ordnance Information System <br><br><i>Connected. Reloaded. Armed
+                            and Ready.</i>
+                </a></p>
+            </center>
+            <h2>NAVY RESOURCES THAT WILL SAVE YOUR LIFE</h2>
+            <ul>
+                <li>U.S. Navy website: <a href="http://www.navy.mil" target="_blank">www.navy.mil</a></li>
+                <li>Navy recruiting website: <a href="http://www.navyjobs.com" target="_blank\">www.navyjobs.com</a></li>
+                <li>NAVSUP Applications: <a href="https://applications.ahf.nmci.navy.mil/sdr/" target="_blank">Navy SDR
+                        System</a></li>
+            </ul>
+            <hr>
+            <h2>THIS PORTAL WILL WITHSTAND THE TEST OF TIME</h2>
+            <p>Are you curious about the rich history of Portal messages? 
+                Do you need more evidence that this Portal is the best thing since sliced bread? 
+                Of course you do. Click <a href="" target="_self">here</a> to see all the messages that have
+                ever graced the OIS Portal with their presence.</p>
+        </div>
+        <div class="right-column">
+            <h2>SERIOUSLY IMPORTANT NEWS</h2>
+            <div class="news-item">
+                <a href="">SUPREME COMMANDER OF THE UNIVERSE ANNOUNCES PIV AUTHENTICATION REQUIREMENT</a>
+                <p>Effective immediately, all beings accessing the OIS Portal must provide proof of identity
+                     with a Personal Identity Verification (PIV) card. Failure to comply will result in immediate termination.</p>
+            </div>
+            <div class="news-item">
+                <a href="">YOU BETTER USE THE OIS PORTAL OR WE'LL HUNT YOU DOWN</a>
+                <p>Listen, we poured our blood, sweat, and tears into creating the OIS Portal so that you have the
+                     rules and tools to get your job done. So use it or else...</p>
+            </div>
+            <div class="news-item">
+                <a href="">WE WILL ROB YOU IF YOU DON'T FOLLOW THESE RULES</a>
+                <p>Attention, OIS users: you better read and comply with the OIS Rules of Behavior or
+                     we'll come for you in the middle of the night. Protect the information, 
+                     software, hardware, and all items that you work with daily. We're watching you.</p>
+            </div>
+            <hr>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+</main>
+
+
+
+
+
+
+
+<div id="footer-placeholder"></div>
+<script>
+    function loadFooter() {
+        fetch("footer.html")
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById("footer-placeholder").innerHTML = html;
+            })
+            .catch(error => console.warn("Error loading footer:", error));
+    }
+
+    document.addEventListener("DOMContentLoaded", loadFooter);
+</script>
+
+
+<script>
+function loadLeftSideBar() {
+    fetch("left-sidebar.html")
+        .then(response => response.text())
+        .then(html => {
+            setTimeout(() => {
+                document.getElementById("left-sidebar-placeholder").innerHTML = html;
+            }, 100);
+        })
+        .catch(error => console.warn("Error loading left-sidebar:", error));
+}
+
+window.onload = loadLeftSideBar;
+</script>
+
+
+
+
+
+</body>
+
+<script>
+    document.querySelector('.close-notice').addEventListener('click', function () {
+        document.querySelector('.notice').style.display = 'none';
+    });
+</script>
+
+
+
+
+</html>

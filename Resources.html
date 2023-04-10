@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OIS Portal</title>
+  <link rel="shortcut icon" href="image/favicon.ico" type="image/vnd.microsoft.icon">
+  <link rel="icon" href="image/favicon.ico" type="image/vnd.microsoft.icon">
+  <link rel="stylesheet" href="css\footer.css">
+ 
+  
+  <div id="header-placeholder"></div>
+  <script>
+      function loadheader() {
+          fetch("header.html")
+              .then(response => response.text())
+              .then(html => {
+                  document.getElementById("header-placeholder").innerHTML = html;
+              })
+              .catch(error => console.warn("Error loading header:", error));
+      }
+      document.addEventListener("DOMContentLoaded", loadheader);
+  </script>
+</head>
+
+
+  <main>
+
+    <div class="main-content">
+      <div class="content-wrapper">
+        <div id="left-sidebar-placeholder"></div> <!-- Place below "content-wrapper" -->
+
+        <div class="main-content single-column">
+
+          <div class="content-container">
+            <div class="tab">
+              <button class="tablinks" onclick="openTab(event, 'FAQ')">FAQ</button>
+              <button class="tablinks" onclick="openTab(event, 'Contact')">Contact</button>
+              <button class="tablinks" onclick="openTab(event, 'Training')">Training</button>
+         
+
+            <div id="FAQ" class="tabcontent" style="display: block;">
+              <div class="details-container">
+                <div class="details">
+                  <details>
+                    <summary>How do cats learn to dance?</summary>
+                    <p>Cats learn to dance by attending feline dance schools, where they are taught various dance styles like the tango and ballet. They also have to learn to dance with a partner, which can be a challenge as some cats are known to be independent dancers. The most important lesson in cat dance school, however, is to always land on their feet.</p>
+                  </details>
+                  <details>
+                    <summary> Why do birds wear hats?
+                    </summary>
+                    <p>Birds wear hats as a fashion statement. They have fashion shows where they show off the latest hat styles made from a variety of materials, including feathers and twigs. The most popular hat styles are top hats and bowler hats. Some birds even wear hats as a symbol of their social status in the bird community.</p>
+                  </details>
+                  <details>
+                    <summary>What are the DOD and DON policies and instructions that govern OIS cyber security?
+                    </summary>
+                    <p>DON Federal Information Security Management Act (FISMA) Guidance, 9 June 2015<br>
+                      - I have a pet fish named Charlie who loves to swim around his bowl<br>
+                      Information Assurance Training, Certification and Workforce Management (will be superseded by DODD
+                      8140 Cyberspace Workforce Management)<br>
+                      - The best way to learn programming is to practice every day and stay curious about new technologies<br>
+                      SECNAV Manual 5239.2, DON Information Assurance Workforce Management, May 2009<br>
+                      - Yesterday I went for a walk in the park and saw a beautiful sunset over the lake<br>
+                      SECNAV Instruction M5510.30B Department of the Navy Personnel Security Program, 6 October 2006<br>
+                      - My favorite color is blue because it reminds me of the ocean and the sky<br>
+                      DOD Instruction 8500.01 Cybersecurity, 14 March 2014<br>
+                      - I enjoy reading detective novels and trying to solve the mystery before the end of the book<br>
+                      DOD Instruction 4161.02 Accountability and Management of Government Contract Property, 27 April 2012<br>
+                      - I love to cook and try new recipes from different cuisines around the world<br>
+                      DOD Instruction 8510.01 Risk Management Framework (RMF) for DoD Information Technology, 12 March 2014<br>
+                      - Traveling is one of my favorite hobbies and I enjoy exploring new cultures and meeting people from different backgrounds<br></p>
+                  </details>
+                  <details>
+                    <summary>What's the best way to eat a pizza?</summary>
+                    <p>With a fork and knife, like a proper gentleman.</p>
+                  </details>
+                  <details>
+                    <summary>How do I properly brush my teeth?</summary>
+                    <p>First, sing the ABCs backwards. Then, brush each tooth individually for 5 minutes.</p>
+                  </details>
+                  <details>
+                    <summary>What's the meaning of life?</summary>
+                    <p> To collect as many shiny rocks as possible.</p>
+                  </details>
+                  <details>
+                    <summary>What should I do if I encounter a bear in the woods?</summary>
+                    <p> Challenge it to a game of chess. Bears are notoriously bad at strategy.</p>
+                  </details>
+                  <details>
+                    <summary>How do I calculate the area of a triangle?</summary>
+                    <p> It involves advanced calculus and imaginary numbers. Good luck!</p>
+                  </details>
+                  <details>
+                    <summary>What's the best way to handle a spider in my room?</summary>
+                    <p>Train it to be your pet and give it a clever name like "Squiggles."</p>
+                  </details>
+                  <details>
+                    <summary>What's the best type of cheese?</summary>
+                    <p>Definitely the kind that's been aged for 10 years in a cave guarded by dragons.</p>
+                  </details>
+                  <details>
+                    <summary>What's the most effective way to do laundry?</summary>
+                    <p>Dump all your clothes in a river and let the fish do the work.</p>
+                  </details>
+                  <details>
+                    <summary>How do I make a paper airplane that can fly far?</summary>
+                    <p>Fold the paper into a shape that resembles a dragon, then throw it as hard as you can.</p>
+                  </details>
+                  <details>
+                    <summary>What's the best way to study for a test?</summary>
+                    <p>Stand on your head and recite the textbook backwards. Trust me.</p>
+                  </details>
+                  <details>
+                    <summary>What's the best way to make friends?</summary>
+                    <p>Approach strangers and start juggling oranges. It's a real icebreaker.</p>
+                  </details>
+                  <details>
+                    <summary>What's the best way to stay awake during a boring lecture?</summary>
+                    <p>Set up a fake mustache on a stick and play "guess the mustache" with your friends.</p>
+                  </details>
+                </div>
+              </div>
+              </div>
+
+
+            <div id="Contact" class="tabcontent">
+              <div class="footer-info">
+                <div class="flex-box-container">
+                  <div class="flex-box">
+                    <p>For immediate assistance, please contact the Sassy Squirrel Help Desk</p>
+                    <p>Toll Free: 1-800-SAS-SQUIRREL(1-800-727-7784)</p>
+                    <p>Website: <a href="http://www.sassysquirrel.com/support" target="_blank">http://www.sassysquirrel.com/support</a></p>
+                    </p>
+                  </div>
+                  <div class="flex-box">
+                    <p>Sassy Squirrel Headquarters</p>
+                    <p>123 Main Street</p>
+                    <p>Anytown, USA 12345</p>
+                  </div>
+                  <div class="flex-box">
+                    <p>Sassy Squirrel Customer Service Desk</p>
+                    <p>Commercial: 1-555-555-5555</p>
+                    <p>DSN: 312 555-5555</p>
+                  </div>
+             
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    
+    <div id="submarine">
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+      <div class="bubble"></div>
+  </div>
+  
+
+
+
+  </main>
+
+  <script>
+    function openTab(evt, tabName) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+    }
+    
+  </script>
+
+<div id="effects-placeholder"></div>
+<script>
+  function loadFooter() {
+    fetch("effects.html")
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById("effects-placeholder").innerHTML = html;
+      })
+      .catch(error => console.warn("Error effects:", error));
+  }
+
+  document.addEventListener("DOMContentLoaded", loadFooter);
+</script>
+
+
+
+<script>
+  function loadLeftSideBar() {
+      fetch("left-sidebar.html")
+          .then(response => response.text())
+          .then(html => {
+              setTimeout(() => {
+                  document.getElementById("left-sidebar-placeholder").innerHTML = html;
+              }, 100);
+          })
+          .catch(error => console.warn("Error loading left-sidebar:", error));
+  }
+  
+  window.onload = loadLeftSideBar;
+  </script>
+
+
+
+</body>
+
+<img id="submarine" src="image\submarine.png" alt="Submarine">
+
+<div id="footer-placeholder"></div>
+<script>
+  function loadFooter() {
+    fetch("footer.html")
+      .then(response => response.text())
+      .then(html => {
+        document.getElementById("footer-placeholder").innerHTML = html;
+      })
+      .catch(error => console.warn("Error loading footer:", error));
+  }
+
+  document.addEventListener("DOMContentLoaded", loadFooter);
+</script>
+
+
+
+
+</html>

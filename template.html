@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OIS Portal</title>
+    <link rel="shortcut icon" href="image/favicon.ico" type="image/vnd.microsoft.icon">
+    <link rel="icon" href="image/favicon.ico" type="image/vnd.microsoft.icon">
+    <link rel="stylesheet" href="css\footer.css">
+    
+</head>
+<body>
+    <main>
+        <div id="header-placeholder"></div>
+        <div class="content-wrapper">
+            <div id="left-sidebar-placeholder"></div>
+            <div class="content-container">
+                <!-- ... -->
+            </div>
+        </div>
+    </main>
+    <div id="footer-placeholder"></div>
+    <!-- ... -->
+</body>
+
+<script>
+    const componentsToLoad = [
+        { id: "header-placeholder", url: "header.html" },
+        { id: "left-sidebar-placeholder", url: "left-sidebar.html" },
+        { id: "footer-placeholder", url: "footer.html" },
+        // Add more components here if needed
+    ];
+
+    function loadComponent(index) {
+        if (index >= componentsToLoad.length) return;
+
+        const component = componentsToLoad[index];
+        fetch(component.url)
+            .then(response => response.text())
+            .then(html => {
+                const placeholder = document.getElementById(component.id);
+                placeholder.outerHTML = html;
+                loadComponent(index + 1);
+            })
+            .catch(error => console.warn(`Error loading ${component.url}:`, error));
+    }
+
+    document.addEventListener("DOMContentLoaded", () => loadComponent(0));
+</script>
+
+</html>

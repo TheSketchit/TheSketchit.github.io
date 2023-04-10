@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- ... -->
+</head>
+<body>
+    <div id="template-placeholder"></div>
+    <script>
+        function loadTemplate() {
+            fetch("template.html")
+                .then(response => response.text())
+                .then(html => {
+                    const templatePlaceholder = document.getElementById("template-placeholder");
+                    templatePlaceholder.outerHTML = html;
+                })
+                .catch(error => console.warn("Error loading template:", error));
+        }
+
+        document.addEventListener("DOMContentLoaded", loadTemplate);
+    </script>
+</body>
+
+</html>
