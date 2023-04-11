@@ -166,7 +166,7 @@
 
 
 
-    .top-banner {
+    .bottom-banner {
         background-color: #212f3c;
         font-size: .7em;
         
@@ -192,29 +192,29 @@
         color: ffffff;
     }
 
-    .top-banner p {
+    .bottom-banner p {
         color: #ffffff;
     }
 
-    .top-banner img {
+    .bottom-banner img {
         margin: 15px 20px;
         width: 100px;
         height: 100px;
     }
 
-    .top-banner .info-wrapper {
+    .bottom-banner .info-wrapper {
         display: inline-block;
         justify-content: center;
         align-items: center;
         z-index: 100;
     }
 
-    .top-banner a {
+    .bottom-banner a {
         color: #ffd400;
         text-decoration: none;
     }
 
-    .top-banner a:hover {
+    .bottom-banner a:hover {
         text-decoration: underline;
     }
 
@@ -718,4 +718,51 @@
             transform: translateY(-100%);
         }
     }
+
+    .tab-container {
+    width: 100%;
+}
+
+.tab-nav {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+}
+
+.tab-nav li {
+    margin-bottom: -1px;
+}
+
+.tab-nav a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    background-color: #f1f1f1;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    color: #333;
+    transition: background-color 0.3s;
+}
+
+.tab-nav a:hover,
+.tab-nav a.active {
+    background-color: #fff;
+}
+
+.tab-content {
+    padding: 15px;
+    border: 1px solid #ccc;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+
     
