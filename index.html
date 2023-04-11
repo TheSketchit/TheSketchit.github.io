@@ -33,7 +33,7 @@
 
     <div class="main-content">
         <div class="content-wrapper">
-            <div class="notice">
+            <div class="notice"><!-- This serves as a popup for things like system outages" -->
                 <span class="close-notice">&times;</span>
                 <p>The Ice Cream application will be down on Smorsdag and Mondesthurs during chirp time from 5400 to -8100 EST for
                     roulette matches and giggle chad updates. In addition, the system will be down for twerk backups
@@ -58,7 +58,7 @@
     <div class="content-wrapper">
     <div id="left-sidebar-placeholder"></div> <!-- Place below "content-wrapper" -->
     
-    <div class="content-container">
+    <div class="content-container"> <!-- This is the a part of the main content of the page-->
         
         <div class="left-column">
             <h2>
@@ -122,48 +122,29 @@
 
 
 </main>
+<script src="js/loadLeftSidebar.js"></script>
 
 
 
 
-
+</body>
 
 
 <div id="footer-placeholder"></div>
-<script>
-    function loadFooter() {
-        fetch("footer.html")
-            .then(response => response.text())
-            .then(html => {
-                document.getElementById("footer-placeholder").innerHTML = html;
-            })
-            .catch(error => console.warn("Error loading footer:", error));
-    }
-
-    document.addEventListener("DOMContentLoaded", loadFooter);
-</script>
+<script src="js/loadFooter.js"></script>
 
 
-<script>
-function loadLeftSideBar() {
-    fetch("left-sidebar.html")
-        .then(response => response.text())
-        .then(html => {
-            setTimeout(() => {
-                document.getElementById("left-sidebar-placeholder").innerHTML = html;
-            }, 100);
-        })
-        .catch(error => console.warn("Error loading left-sidebar:", error));
-}
 
-window.onload = loadLeftSideBar;
-</script>
+
 
 
 
 
 
 </body>
+
+
+
 
 <script>
     document.querySelector('.close-notice').addEventListener('click', function () {
