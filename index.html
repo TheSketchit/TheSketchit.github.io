@@ -43,34 +43,38 @@
     <tbody>
     </tbody>
   </table>
-  <!-- Include AWS Amplify Script -->
+
+  <!-- Include AWS Amplify Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/aws-amplify@4.3.21/dist/aws-amplify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@aws-amplify/ui@3.0.10/dist/aws-amplify-ui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script>
     // Ensure AWS Amplify is loaded before configuring it
     document.addEventListener("DOMContentLoaded", function() {
-      Amplify.configure({
-        Auth: {
-          // Amazon Cognito Identity Pool ID
-          identityPoolId: 'us-east-1:3d88b553-f1a9-4227-9ec7-c7f9b9d2e46b', // e.g. us-east-1:xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx
-          // Amazon Cognito Region
-          region: 'us-east-1', // e.g. us-east-1
-        },
-        API: {
-          endpoints: [
-            {
-              name: "SketchitsSRPointsAPI",
-              endpoint: "https://5ds23tj4p2.execute-api.us-east-1.amazonaws.com/prod", // e.g. https://api-id.execute-api.region.amazonaws.com/prod
-              region: "us-east-1"
-            }
-          ]
-        }
-      });
+      try {
+        Amplify.configure({
+          Auth: {
+            identityPoolId: 'us-east-1:3d88b553-f1a9-4227-9ec7-c7f9b9d2e46b', 
+            region: 'us-east-1',
+          },
+          API: {
+            endpoints: [
+              {
+                name: "SketchitsSRPointsAPI",
+                endpoint: "https://5ds23tj4p2.execute-api.us-east-1.amazonaws.com/prod",
+                region: "us-east-1"
+              }
+            ]
+          }
+        });
+        console.log("Amplify configured successfully");
+      } catch (error) {
+        console.error("Error configuring Amplify:", error);
+      }
     });
 
     const apiName = 'SketchitsSRPointsAPI';
-    const path = '/save'; // Define your API path
+    const path = '/save'; 
 
     async function saveLootToDynamoDB(data) {
       for (const item of data) {
@@ -86,7 +90,7 @@
     }
 
     async function getLootFromDynamoDB() {
-      const path = '/items'; // Define your GET API path
+      const path = '/items';
       try {
         const response = await Amplify.API.get(apiName, path);
         console.log("Get response:", response);
@@ -161,15 +165,12 @@
       const storedData = await getLootFromDynamoDB();
       let playerItemModifiers = {};
 
-      // Reset SR Points for all stored data
       storedData.forEach(row => {
         row['SRPoints'] = 1;
       });
 
-      // Sort stored data by RaidDate in ascending order for calculation
       storedData.sort((a, b) => new Date(a.RaidDate) - new Date(b.RaidDate));
 
-      // Recalculate SR Points
       storedData.forEach(row => {
         const playerName = row.Name.toLowerCase().trim();
         const itemKey = playerName + '_' + row.Item;
@@ -180,10 +181,8 @@
         playerItemModifiers[itemKey] = row['SRPoints'];
       });
 
-      // Sort stored data by RaidDate in descending order for display
       storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
 
-      // Save updated SR points back to DynamoDB
       await saveLootToDynamoDB(storedData);
 
       alert('SR Points recalculated successfully!');
