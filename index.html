@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoW Soft Reserve Loot Tracker</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>WoW Soft Reserve Loot Tracker</h1>
+  <label for="raidDate">Raid Date:</label>
+  <input type="date" id="raidDate"><br><br>
+  <textarea id="csvInput" rows="10" cols="100"></textarea><br>
+  <button onclick="processCSV()">Save Loot</button>
+  <button onclick="displayStoredData()">Display Loot</button>
+  <button onclick="calculateSRs()">Calculate SRs</button>
+  <table id="lootTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable('Item')">Item</th>
+        <th onclick="sortTable('From')">From</th>
+        <th onclick="sortTable('Name')">Name</th>
+        <th onclick="sortTable('Class')">Class</th>
+        <th onclick="sortTable('Spec')">Spec</th>
+        <th onclick="sortTable('RaidDate')">Raid Date</th>
+        <th onclick="sortTable('SRPoints')">SR Points</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    function processCSV() {
+      const csvInput = document.getElementById('csvInput').value;
+      const raidDate = document.getElementById('raidDate').value;
+
+      if (!raidDate) {
+        alert('Please select a raid date.');
+        return;
+      }
+
+      Papa.parse(csvInput, {
+        header: true,
+        complete: function(results) {
+          const data = results.data;
+          data.forEach(row => {
+            row.RaidDate = raidDate;
+            row['SRPoints'] = 1;
+          });
+          saveToFirebase(data);
+        }
+      });
+    }
+
+    function saveToFirebase(data) {
+      const db = firebase.database();
+      const lootRef = db.ref('raidLootData');
+      data.forEach(row => {
+        lootRef.push(row);
+      });
+      alert('Data saved successfully!');
+    }
+
+    function displayStoredData() {
+      const db = firebase.database();
+      const lootRef = db.ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const dataArray = data ? Object.values(data) : [];
+        displayData(dataArray);
+      });
+    }
+
+    function displayData(data) {
+      const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
+      tableBody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        for (const key in row) {
+          if (key === 'ItemId') {
+            continue;
+          }
+          const td = document.createElement('td');
+          if (key === 'Item') {
+            const a = document.createElement('a');
+            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
+            a.target = '_blank';
+            a.className = 'item-row notranslate d-block q1 q3';
+            a.innerHTML = `<ins></ins><del></del></span><span class="itemlink-text">${row[key]}</span></a>`;
+            td.appendChild(a);
+          } else {
+            td.textContent = row[key];
+          }
+          td.style.cursor = 'pointer';
+          td.onclick = () => filterByColumn(key, row[key]);
+          tr.appendChild(td);
+        }
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function calculateSRs() {
+      const db = firebase.database();
+      const lootRef = db.ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
+        let playerItemModifiers = {};
+
+        // Reset SR Points for all stored data
+        storedData.forEach(row => {
+          row['SRPoints'] = 1;
+        });
+
+        // Sort stored data by RaidDate in ascending order for calculation
+        storedData.sort((a, b) => new Date(a.RaidDate) - new Date(b.RaidDate));
+
+        // Recalculate SR Points
+        storedData.forEach(row => {
+          const playerName = row.Name.toLowerCase().trim();
+          const itemKey = playerName + '_' + row.Item;
+
+          if (playerItemModifiers[itemKey]) {
+            row['SRPoints'] = playerItemModifiers[itemKey] + 1;
+          }
+          playerItemModifiers[itemKey] = row['SRPoints'];
+        });
+
+        // Sort stored data by RaidDate in descending order for display
+        storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
+
+        // Update Firebase with recalculated SR Points
+        lootRef.set(storedData);
+
+        alert('SR Points recalculated successfully!');
+        displayStoredData();
+      });
+    }
+
+    function filterByColumn(column, value) {
+      const db = firebase.database();
+      const lootRef = db.ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
+        const filteredData = storedData.filter(row => row[column] === value);
+        displayData(filteredData);
+      });
+    }
+
+    function sortTable(column) {
+      const db = firebase.database();
+      const lootRef = db.ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
+        storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
+        displayData(storedData);
+      });
+    }
+  </script>
+  <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
+  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
+</body>
+</html>
