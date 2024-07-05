@@ -75,6 +75,9 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
+    // Get a reference to the database service
+    const db = firebase.database();
+
     // Handle user authentication state
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
@@ -135,10 +138,9 @@
     function saveToFirebase(data) {
       const user = firebase.auth().currentUser;
       if (user) {
-        const db = firebase.database();
-        const lootRef = ref(db, 'raidLootData');
+        const lootRef = firebase.database().ref('raidLootData');
         data.forEach(row => {
-          push(lootRef, row)
+          lootRef.push(row)
             .then(() => {
               console.log('Document successfully written!');
             })
@@ -153,9 +155,8 @@
     }
 
     function displayStoredData() {
-      const db = firebase.database();
-      const lootRef = ref(db, 'raidLootData');
-      onValue(lootRef, (snapshot) => {
+      const lootRef = firebase.database().ref('raidLootData');
+      lootRef.on('value', (snapshot) => {
         const data = snapshot.val();
         const dataArray = data ? Object.values(data) : [];
         displayData(dataArray);
@@ -191,9 +192,8 @@
     }
 
     function calculateSRs() {
-      const db = firebase.database();
-      const lootRef = ref(db, 'raidLootData');
-      onValue(lootRef, (snapshot) => {
+      const lootRef = firebase.database().ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         let playerItemModifiers = {};
@@ -223,10 +223,10 @@
         // Update Firebase with recalculated SR Points
         const updates = {};
         storedData.forEach(row => {
-          const newPostKey = push(child(ref(db), 'raidLootData')).key;
+          const newPostKey = firebase.database().ref('raidLootData').push().key;
           updates['/raidLootData/' + newPostKey] = row;
         });
-        update(ref(db), updates);
+        firebase.database().ref().update(updates);
 
         alert('SR Points recalculated successfully!');
         displayStoredData();
@@ -234,9 +234,8 @@
     }
 
     function filterByColumn(column, value) {
-      const db = firebase.database();
-      const lootRef = ref(db, 'raidLootData');
-      onValue(lootRef, (snapshot) => {
+      const lootRef = firebase.database().ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         const filteredData = storedData.filter(row => row[column] === value);
@@ -245,9 +244,8 @@
     }
 
     function sortTable(column) {
-      const db = firebase.database();
-      const lootRef = ref(db, 'raidLootData');
-      onValue(lootRef, (snapshot) => {
+      const lootRef = firebase.database().ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
