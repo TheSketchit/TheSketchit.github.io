@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoW Soft Reserve Loot Tracker</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>WoW Soft Reserve Loot Tracker</h1>
+  <label for="raidDate">Raid Date:</label>
+  <input type="date" id="raidDate"><br><br>
+  <textarea id="csvInput" rows="10" cols="100"></textarea><br>
+  <button onclick="processCSV()">Save Loot</button>
+  <button onclick="displayStoredData()">Display Loot</button>
+  <button onclick="calculateSRs()">Calculate SRs</button>
+  <table id="lootTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable('Item')">Item</th>
+        <th onclick="sortTable('From')">From</th>
+        <th onclick="sortTable('Name')">Name</th>
+        <th onclick="sortTable('Class')">Class</th>
+        <th onclick="sortTable('Spec')">Spec</th>
+        <th onclick="sortTable('RaidDate')">Raid Date</th>
+        <th onclick="sortTable('SRPoints')">SR Points</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script>
+    function processCSV() {
+      const csvInput = document.getElementById('csvInput').value;
+      const raidDate = document.getElementById('raidDate').value;
+
+      if (!raidDate) {
+        alert('Please select a raid date.');
+        return;
+      }
+
+      Papa.parse(csvInput, {
+        header: true,
+        complete: function(results) {
+          const data = results.data;
+          data.forEach(row => {
+            row.RaidDate = raidDate;
+            row['SRPoints'] = 1;
+          });
+          saveToLocalStorage(data);
+        }
+      });
+    }
+
+    function saveToLocalStorage(data) {
+      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+      storedData = storedData.concat(data);
+      localStorage.setItem('raidLootData', JSON.stringify(storedData));
+      alert('Data saved successfully!');
+    }
+
+    function displayStoredData() {
+      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+      displayData(storedData);
+    }
+
+    function displayData(data) {
+      const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
+      tableBody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        for (const key in row) {
+          if (key === 'ItemId') {
+            continue;
+          }
+          const td = document.createElement('td');
+          if (key === 'Item') {
+            const a = document.createElement('a');
+            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
+            a.target = '_blank';
+            a.className = 'item-row notranslate d-block q1 q3';
+            a.innerHTML = `<ins></ins><del></del></span><span class="itemlink-text">${row[key]}</span></a>`;
+            td.appendChild(a);
+          } else {
+            td.textContent = row[key];
+          }
+          td.style.cursor = 'pointer';
+          td.onclick = () => filterByColumn(key, row[key]);
+          tr.appendChild(td);
+        }
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function calculateSRs() {
+      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+      let playerItemModifiers = {};
+
+      // Reset SR Points for all stored data
+      storedData.forEach(row => {
+        row['SRPoints'] = 1;
+      });
+
+      // Sort stored data by RaidDate in ascending order for calculation
+      storedData.sort((a, b) => new Date(a.RaidDate) - new Date(b.RaidDate));
+
+      // Recalculate SR Points
+      storedData.forEach(row => {
+        const playerName = row.Name.toLowerCase().trim();
+        const itemKey = playerName + '_' + row.Item;
+
+        if (playerItemModifiers[itemKey]) {
+          row['SRPoints'] = playerItemModifiers[itemKey] + 1;
+        }
+        playerItemModifiers[itemKey] = row['SRPoints'];
+      });
+
+      // Sort stored data by RaidDate in descending order for display
+      storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
+
+      localStorage.setItem('raidLootData', JSON.stringify(storedData));
+      alert('SR Points recalculated successfully!');
+      displayStoredData();
+    }
+
+    function filterByColumn(column, value) {
+      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+      const filteredData = storedData.filter(row => row[column] === value);
+      displayData(filteredData);
+    }
+
+    function sortTable(column) {
+      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+      storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
+      displayData(storedData);
+    }
+  </script>
+</body>
+<script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
+<script src="https://wow.zamimg.com/js/tooltips.js"></script>
+</html>
