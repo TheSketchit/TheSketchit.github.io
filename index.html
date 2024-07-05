@@ -19,6 +19,10 @@
       cursor: pointer;
     }
   </style>
+  <!-- Add Firebase SDK -->
+  <script defer src="/__/firebase/10.12.3/firebase-app-compat.js"></script>
+  <script defer src="/__/firebase/10.12.3/firebase-firestore-compat.js"></script>
+  <script defer src="/__/firebase/init.js"></script>
 </head>
 <body>
   <h1>WoW Soft Reserve Loot Tracker</h1>
@@ -44,162 +48,119 @@
     </tbody>
   </table>
 
-  <!-- Include AWS Amplify Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/aws-amplify@4.3.21/dist/aws-amplify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@aws-amplify/ui@3.0.10/dist/aws-amplify-ui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script>
-    // Ensure AWS Amplify is loaded before configuring it
-    document.addEventListener("DOMContentLoaded", function() {
-      try {
-        Amplify.configure({
-          Auth: {
-            identityPoolId: 'us-east-1:3d88b553-f1a9-4227-9ec7-c7f9b9d2e46b', 
-            region: 'us-east-1',
-          },
-          API: {
-            endpoints: [
-              {
-                name: "SketchitsSRPointsAPI",
-                endpoint: "https://5ds23tj4p2.execute-api.us-east-1.amazonaws.com/prod",
-                region: "us-east-1"
-              }
-            ]
+    // Initialize Firestore
+    document.addEventListener('DOMContentLoaded', function() {
+      const db = firebase.firestore();
+
+      async function saveLootToDatabase(data) {
+        try {
+          for (const item of data) {
+            await db.collection('loot').add(item);
+          }
+          alert('Data saved successfully!');
+        } catch (error) {
+          console.error('Error saving data:', error);
+        }
+      }
+
+      async function getLootFromDatabase() {
+        try {
+          const snapshot = await db.collection('loot').get();
+          return snapshot.docs.map(doc => doc.data());
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          return [];
+        }
+      }
+
+      function processCSV() {
+        const csvInput = document.getElementById('csvInput').value;
+        const raidDate = document.getElementById('raidDate').value;
+
+        if (!raidDate) {
+          alert('Please select a raid date.');
+          return;
+        }
+
+        Papa.parse(csvInput, {
+          header: true,
+          complete: function(results) {
+            const data = results.data.map(row => ({
+              Name: row.Name,
+              RaidDate: raidDate,
+              Item: row.Item,
+              From: row.From,
+              Class: row.Class,
+              Spec: row.Spec,
+              SRPoints: 1
+            }));
+            saveLootToDatabase(data);
           }
         });
-        console.log("Amplify configured successfully");
-      } catch (error) {
-        console.error("Error configuring Amplify:", error);
-      }
-    });
-
-    const apiName = 'SketchitsSRPointsAPI';
-    const path = '/save'; 
-
-    async function saveLootToDynamoDB(data) {
-      for (const item of data) {
-        try {
-          console.log("Saving item:", item);
-          const response = await Amplify.API.post(apiName, path, { body: item });
-          console.log("Save response:", response);
-        } catch (err) {
-          console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
-        }
-      }
-      alert('Data saved successfully!');
-    }
-
-    async function getLootFromDynamoDB() {
-      const path = '/items';
-      try {
-        const response = await Amplify.API.get(apiName, path);
-        console.log("Get response:", response);
-        return response.Items;
-      } catch (err) {
-        console.error("Unable to scan the table. Error JSON:", JSON.stringify(err, null, 2));
-        return [];
-      }
-    }
-
-    function processCSV() {
-      const csvInput = document.getElementById('csvInput').value;
-      const raidDate = document.getElementById('raidDate').value;
-
-      if (!raidDate) {
-        alert('Please select a raid date.');
-        return;
       }
 
-      Papa.parse(csvInput, {
-        header: true,
-        complete: function(results) {
-          const data = results.data.map(row => ({
-            Name: row.Name,
-            RaidDate: raidDate,
-            Item: row.Item,
-            From: row.From,
-            Class: row.Class,
-            Spec: row.Spec,
-            SRPoints: 1
-          }));
-          saveLootToDynamoDB(data);
-        }
-      });
-    }
+      async function displayStoredData() {
+        const data = await getLootFromDatabase();
+        console.log('Data to display:', data);
+        displayData(data);
+      }
 
-    async function displayStoredData() {
-      const data = await getLootFromDynamoDB();
-      console.log("Data to display:", data);
-      displayData(data);
-    }
-
-    function displayData(data) {
-      const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
-      tableBody.innerHTML = '';
-      data.forEach(row => {
-        const tr = document.createElement('tr');
-        for (const key in row) {
-          if (key === 'ItemId') {
-            continue;
-          }
-          const td = document.createElement('td');
-          if (key === 'Item') {
-            const a = document.createElement('a');
-            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
-            a.target = '_blank';
-            a.className = 'item-row notranslate d-block q1 q3';
-            a.innerHTML = `<ins></ins><del></del></span><span class="itemlink-text">${row[key]}</span></a>`;
-            td.appendChild(a);
-          } else {
+      function displayData(data) {
+        const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
+        tableBody.innerHTML = '';
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          for (const key in row) {
+            const td = document.createElement('td');
             td.textContent = row[key];
+            tr.appendChild(td);
           }
-          td.style.cursor = 'pointer';
-          td.onclick = () => filterByColumn(key, row[key]);
-          tr.appendChild(td);
-        }
-        tableBody.appendChild(tr);
-      });
-    }
+          tableBody.appendChild(tr);
+        });
+      }
 
-    async function calculateSRs() {
-      const storedData = await getLootFromDynamoDB();
-      let playerItemModifiers = {};
+      async function calculateSRs() {
+        const storedData = await getLootFromDatabase();
+        let playerItemModifiers = {};
 
-      storedData.forEach(row => {
-        row['SRPoints'] = 1;
-      });
+        storedData.forEach(row => {
+          row.SRPoints = 1;
+        });
 
-      storedData.sort((a, b) => new Date(a.RaidDate) - new Date(b.RaidDate));
+        storedData.sort((a, b) => new Date(a.RaidDate) - new Date(b.RaidDate));
 
-      storedData.forEach(row => {
-        const playerName = row.Name.toLowerCase().trim();
-        const itemKey = playerName + '_' + row.Item;
+        storedData.forEach(row => {
+          const playerName = row.Name.toLowerCase().trim();
+          const itemKey = playerName + '_' + row.Item;
 
-        if (playerItemModifiers[itemKey]) {
-          row['SRPoints'] = playerItemModifiers[itemKey] + 1;
-        }
-        playerItemModifiers[itemKey] = row['SRPoints'];
-      });
+          if (playerItemModifiers[itemKey]) {
+            row.SRPoints = playerItemModifiers[itemKey] + 1;
+          }
+          playerItemModifiers[itemKey] = row.SRPoints;
+        });
 
-      storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
+        storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
 
-      await saveLootToDynamoDB(storedData);
+        await saveLootToDatabase(storedData);
 
-      alert('SR Points recalculated successfully!');
-      displayStoredData();
-    }
+        alert('SR Points recalculated successfully!');
+        displayStoredData();
+      }
 
-    async function filterByColumn(column, value) {
-      const storedData = await getLootFromDynamoDB();
-      const filteredData = storedData.filter(row => row[column] === value);
-      displayData(filteredData);
-    }
+      async function sortTable(column) {
+        const storedData = await getLootFromDatabase();
+        storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
+        displayData(storedData);
+      }
 
-    async function sortTable(column) {
-      const storedData = await getLootFromDynamoDB();
-      storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
-      displayData(storedData);
-    }
+      // Expose functions to global scope
+      window.processCSV = processCSV;
+      window.displayStoredData = displayStoredData;
+      window.calculateSRs = calculateSRs;
+      window.sortTable = sortTable;
+    });
   </script>
 </body>
 </html>
