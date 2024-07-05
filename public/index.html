@@ -22,30 +22,43 @@
 </head>
 <body>
   <h1>WoW Soft Reserve Loot Tracker</h1>
-  <label for="raidDate">Raid Date:</label>
-  <input type="date" id="raidDate"><br><br>
-  <textarea id="csvInput" rows="10" cols="100"></textarea><br>
-  <button onclick="processCSV()">Save Loot</button>
-  <button onclick="displayStoredData()">Display Loot</button>
-  <button onclick="calculateSRs()">Calculate SRs</button>
-  <table id="lootTable">
-    <thead>
-      <tr>
-        <th onclick="sortTable('Item')">Item</th>
-        <th onclick="sortTable('From')">From</th>
-        <th onclick="sortTable('Name')">Name</th>
-        <th onclick="sortTable('Class')">Class</th>
-        <th onclick="sortTable('Spec')">Spec</th>
-        <th onclick="sortTable('RaidDate')">Raid Date</th>
-        <th onclick="sortTable('SRPoints')">SR Points</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
+
+  <div id="auth-container">
+    <h2>Sign In</h2>
+    <label for="email">Email:</label>
+    <input type="email" id="email" required><br><br>
+    <label for="password">Password:</label>
+    <input type="password" id="password" required><br><br>
+    <button onclick="signIn()">Sign In</button>
+    <button onclick="signOut()">Sign Out</button>
+  </div>
+
+  <div id="tracker-container" style="display:none;">
+    <label for="raidDate">Raid Date:</label>
+    <input type="date" id="raidDate"><br><br>
+    <textarea id="csvInput" rows="10" cols="100"></textarea><br>
+    <button onclick="processCSV()">Save Loot</button>
+    <button onclick="displayStoredData()">Display Loot</button>
+    <button onclick="calculateSRs()">Calculate SRs</button>
+    <table id="lootTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('Item')">Item</th>
+          <th onclick="sortTable('From')">From</th>
+          <th onclick="sortTable('Name')">Name</th>
+          <th onclick="sortTable('Class')">Class</th>
+          <th onclick="sortTable('Spec')">Spec</th>
+          <th onclick="sortTable('RaidDate')">Raid Date</th>
+          <th onclick="sortTable('SRPoints')">SR Points</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-firestore.js"></script>
   <script>
@@ -61,19 +74,21 @@
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-  
-    // Handle user authentication
+
+    // Handle user authentication state
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        console.log('User is signed in:', user);
+        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('tracker-container').style.display = 'block';
       } else {
-        console.log('No user is signed in');
+        document.getElementById('auth-container').style.display = 'block';
+        document.getElementById('tracker-container').style.display = 'none';
       }
     });
 
     function signIn() {
-      var email = "user@example.com"; // replace with user input
-      var password = "password"; // replace with user input
+      var email = document.getElementById('email').value;
+      var password = document.getElementById('password').value;
       firebase.auth().signInWithEmailAndPassword(email, password)
         .then(userCredential => {
           var user = userCredential.user;
@@ -81,20 +96,20 @@
         })
         .catch(error => {
           console.error('Error signing in:', error);
+          alert('Error signing in: ' + error.message);
         });
-  }
+    }
 
-  function signOut() {
-    firebase.auth().signOut()
-      .then(() => {
-        console.log('User signed out');
-      })
-      .catch(error => {
-        console.error('Error signing out:', error);
-      });
-  }
+    function signOut() {
+      firebase.auth().signOut()
+        .then(() => {
+          console.log('User signed out');
+        })
+        .catch(error => {
+          console.error('Error signing out:', error);
+        });
+    }
 
-    
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
@@ -137,6 +152,15 @@
       }
     }
 
+    function displayStoredData() {
+      const db = firebase.firestore();
+      const lootRef = db.collection('raidLootData');
+      lootRef.get().then((querySnapshot) => {
+        const data = querySnapshot.docs.map(doc => doc.data());
+        displayData(data);
+      });
+    }
+
     function displayData(data) {
       const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
       tableBody.innerHTML = '';
@@ -166,11 +190,11 @@
     }
 
     function calculateSRs() {
-      const db = firebase.database();
-      const lootRef = db.ref('raidLootData');
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        let storedData = data ? Object.values(data) : [];
+      const db = firebase.firestore();
+      const lootRef = db.collection('raidLootData');
+      lootRef.get().then((querySnapshot) => {
+        const data = querySnapshot.docs.map(doc => doc.data());
+        let storedData = data;
         let playerItemModifiers = {};
 
         // Reset SR Points for all stored data
@@ -196,7 +220,15 @@
         storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
 
         // Update Firebase with recalculated SR Points
-        lootRef.set(storedData);
+        storedData.forEach(row => {
+          lootRef.add(row)
+            .then(() => {
+              console.log('SR Points successfully updated!');
+            })
+            .catch(error => {
+              console.error('Error updating SR Points: ', error);
+            });
+        });
 
         alert('SR Points recalculated successfully!');
         displayStoredData();
@@ -204,22 +236,22 @@
     }
 
     function filterByColumn(column, value) {
-      const db = firebase.database();
-      const lootRef = db.ref('raidLootData');
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        let storedData = data ? Object.values(data) : [];
+      const db = firebase.firestore();
+      const lootRef = db.collection('raidLootData');
+      lootRef.get().then((querySnapshot) => {
+        const data = querySnapshot.docs.map(doc => doc.data());
+        let storedData = data;
         const filteredData = storedData.filter(row => row[column] === value);
         displayData(filteredData);
       });
     }
 
     function sortTable(column) {
-      const db = firebase.database();
-      const lootRef = db.ref('raidLootData');
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        let storedData = data ? Object.values(data) : [];
+      const db = firebase.firestore();
+      const lootRef = db.collection('raidLootData');
+      lootRef.get().then((querySnapshot) => {
+        const data = querySnapshot.docs.map(doc => doc.data());
+        let storedData = data;
         storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
         displayData(storedData);
       });
