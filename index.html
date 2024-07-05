@@ -43,8 +43,55 @@
     <tbody>
     </tbody>
   </table>
+  <!-- Include AWS Amplify Script -->
+  <script src="https://cdn.jsdelivr.net/npm/aws-amplify"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aws-amplify-ui/dist/aws-amplify-ui.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script>
+    // Configure Amplify
+    Amplify.configure({
+      Auth: {
+        // Amazon Cognito Identity Pool ID
+        identityPoolId: 'us-east-1:3d88b553-f1a9-4227-9ec7-c7f9b9d2e46b', // e.g. us-east-1:xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx
+        // Amazon Cognito Region
+        region: 'us-east-1', // e.g. us-east-1
+      },
+      API: {
+        endpoints: [
+          {
+            name: "SketchitsSRPointsAPI",
+            endpoint: "https://5ds23tj4p2.execute-api.us-east-1.amazonaws.com/prod/", // e.g. https://api-id.execute-api.region.amazonaws.com/prod
+            region: "us-east-1"
+          }
+        ]
+      }
+    });
+
+    const apiName = 'SketchitsSRPointsAPI';
+    const path = '/save'; // Define your API path
+
+    async function saveLootToDynamoDB(data) {
+      for (const item of data) {
+        try {
+          await Amplify.API.post(apiName, path, { body: item });
+        } catch (err) {
+          console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
+        }
+      }
+      alert('Data saved successfully!');
+    }
+
+    async function getLootFromDynamoDB() {
+      const path = '/items'; // Define your GET API path
+      try {
+        const data = await Amplify.API.get(apiName, path);
+        return data.Items;
+      } catch (err) {
+        console.error("Unable to scan the table. Error JSON:", JSON.stringify(err, null, 2));
+        return [];
+      }
+    }
+
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
@@ -57,26 +104,23 @@
       Papa.parse(csvInput, {
         header: true,
         complete: function(results) {
-          const data = results.data;
-          data.forEach(row => {
-            row.RaidDate = raidDate;
-            row['SRPoints'] = 1;
-          });
-          saveToLocalStorage(data);
+          const data = results.data.map(row => ({
+            Name: row.Name,
+            RaidDate: raidDate,
+            Item: row.Item,
+            From: row.From,
+            Class: row.Class,
+            Spec: row.Spec,
+            SRPoints: 1
+          }));
+          saveLootToDynamoDB(data);
         }
       });
     }
 
-    function saveToLocalStorage(data) {
-      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
-      storedData = storedData.concat(data);
-      localStorage.setItem('raidLootData', JSON.stringify(storedData));
-      alert('Data saved successfully!');
-    }
-
-    function displayStoredData() {
-      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
-      displayData(storedData);
+    async function displayStoredData() {
+      const data = await getLootFromDynamoDB();
+      displayData(data);
     }
 
     function displayData(data) {
@@ -107,8 +151,8 @@
       });
     }
 
-    function calculateSRs() {
-      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+    async function calculateSRs() {
+      const storedData = await getLootFromDynamoDB();
       let playerItemModifiers = {};
 
       // Reset SR Points for all stored data
@@ -133,24 +177,24 @@
       // Sort stored data by RaidDate in descending order for display
       storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
 
-      localStorage.setItem('raidLootData', JSON.stringify(storedData));
+      // Save updated SR points back to DynamoDB
+      await saveLootToDynamoDB(storedData);
+
       alert('SR Points recalculated successfully!');
       displayStoredData();
     }
 
-    function filterByColumn(column, value) {
-      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+    async function filterByColumn(column, value) {
+      const storedData = await getLootFromDynamoDB();
       const filteredData = storedData.filter(row => row[column] === value);
       displayData(filteredData);
     }
 
-    function sortTable(column) {
-      let storedData = JSON.parse(localStorage.getItem('raidLootData')) || [];
+    async function sortTable(column) {
+      const storedData = await getLootFromDynamoDB();
       storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
       displayData(storedData);
     }
   </script>
 </body>
-<script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
-<script src="https://wow.zamimg.com/js/tooltips.js"></script>
 </html>
