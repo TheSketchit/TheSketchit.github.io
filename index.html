@@ -195,3 +195,10 @@
     }
 
     async function sortTable(column) {
+      const storedData = await getLootFromDynamoDB();
+      storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
+      displayData(storedData);
+    }
+  </script>
+</body>
+</html>
