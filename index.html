@@ -73,7 +73,9 @@
     async function saveLootToDynamoDB(data) {
       for (const item of data) {
         try {
-          await Amplify.API.post(apiName, path, { body: item });
+          console.log("Saving item:", item);
+          const response = await Amplify.API.post(apiName, path, { body: item });
+          console.log("Save response:", response);
         } catch (err) {
           console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
         }
@@ -84,8 +86,9 @@
     async function getLootFromDynamoDB() {
       const path = '/items'; // Define your GET API path
       try {
-        const data = await Amplify.API.get(apiName, path);
-        return data.Items;
+        const response = await Amplify.API.get(apiName, path);
+        console.log("Get response:", response);
+        return response.Items;
       } catch (err) {
         console.error("Unable to scan the table. Error JSON:", JSON.stringify(err, null, 2));
         return [];
@@ -120,6 +123,7 @@
 
     async function displayStoredData() {
       const data = await getLootFromDynamoDB();
+      console.log("Data to display:", data);
       displayData(data);
     }
 
@@ -191,10 +195,3 @@
     }
 
     async function sortTable(column) {
-      const storedData = await getLootFromDynamoDB();
-      storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
-      displayData(storedData);
-    }
-  </script>
-</body>
-</html>
