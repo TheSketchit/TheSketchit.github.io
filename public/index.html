@@ -60,17 +60,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
   <script>
     // Your web app's Firebase configuration
     var firebaseConfig = {
       apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
       authDomain: "wowsr-9ec27.firebaseapp.com",
-      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com",
       projectId: "wowsr-9ec27",
       storageBucket: "wowsr-9ec27.appspot.com",
       messagingSenderId: "1037521583710",
-      appId: "1037521583710:web:290e85c6bde4e047337ecf"
+      appId: "1037521583710:web:290e85c6bde4e047337ecf",
+      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -135,10 +135,10 @@
     function saveToFirebase(data) {
       const user = firebase.auth().currentUser;
       if (user) {
-        const db = firebase.firestore();
-        const lootRef = db.collection('raidLootData');
+        const db = firebase.database();
+        const lootRef = ref(db, 'raidLootData');
         data.forEach(row => {
-          lootRef.add(row)
+          push(lootRef, row)
             .then(() => {
               console.log('Document successfully written!');
             })
@@ -153,11 +153,12 @@
     }
 
     function displayStoredData() {
-      const db = firebase.firestore();
-      const lootRef = db.collection('raidLootData');
-      lootRef.get().then((querySnapshot) => {
-        const data = querySnapshot.docs.map(doc => doc.data());
-        displayData(data);
+      const db = firebase.database();
+      const lootRef = ref(db, 'raidLootData');
+      onValue(lootRef, (snapshot) => {
+        const data = snapshot.val();
+        const dataArray = data ? Object.values(data) : [];
+        displayData(dataArray);
       });
     }
 
@@ -190,11 +191,11 @@
     }
 
     function calculateSRs() {
-      const db = firebase.firestore();
-      const lootRef = db.collection('raidLootData');
-      lootRef.get().then((querySnapshot) => {
-        const data = querySnapshot.docs.map(doc => doc.data());
-        let storedData = data;
+      const db = firebase.database();
+      const lootRef = ref(db, 'raidLootData');
+      onValue(lootRef, (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
         let playerItemModifiers = {};
 
         // Reset SR Points for all stored data
@@ -220,15 +221,12 @@
         storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate));
 
         // Update Firebase with recalculated SR Points
+        const updates = {};
         storedData.forEach(row => {
-          lootRef.add(row)
-            .then(() => {
-              console.log('SR Points successfully updated!');
-            })
-            .catch(error => {
-              console.error('Error updating SR Points: ', error);
-            });
+          const newPostKey = push(child(ref(db), 'raidLootData')).key;
+          updates['/raidLootData/' + newPostKey] = row;
         });
+        update(ref(db), updates);
 
         alert('SR Points recalculated successfully!');
         displayStoredData();
@@ -236,22 +234,22 @@
     }
 
     function filterByColumn(column, value) {
-      const db = firebase.firestore();
-      const lootRef = db.collection('raidLootData');
-      lootRef.get().then((querySnapshot) => {
-        const data = querySnapshot.docs.map(doc => doc.data());
-        let storedData = data;
+      const db = firebase.database();
+      const lootRef = ref(db, 'raidLootData');
+      onValue(lootRef, (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
         const filteredData = storedData.filter(row => row[column] === value);
         displayData(filteredData);
       });
     }
 
     function sortTable(column) {
-      const db = firebase.firestore();
-      const lootRef = db.collection('raidLootData');
-      lootRef.get().then((querySnapshot) => {
-        const data = querySnapshot.docs.map(doc => doc.data());
-        let storedData = data;
+      const db = firebase.database();
+      const lootRef = ref(db, 'raidLootData');
+      onValue(lootRef, (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
         storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
         displayData(storedData);
       });
