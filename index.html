@@ -59,7 +59,40 @@
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
+  
+    // Handle user authentication
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        console.log('User is signed in:', user);
+      } else {
+        console.log('No user is signed in');
+      }
+    });
 
+    function signIn() {
+      var email = "user@example.com"; // replace with user input
+      var password = "password"; // replace with user input
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+          var user = userCredential.user;
+          console.log('Signed in:', user);
+        })
+        .catch(error => {
+          console.error('Error signing in:', error);
+        });
+  }
+
+  function signOut() {
+    firebase.auth().signOut()
+      .then(() => {
+        console.log('User signed out');
+      })
+      .catch(error => {
+        console.error('Error signing out:', error);
+      });
+  }
+
+    
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
@@ -83,22 +116,23 @@
     }
 
     function saveToFirebase(data) {
-      const db = firebase.database();
-      const lootRef = db.ref('raidLootData');
-      data.forEach(row => {
-        lootRef.push(row);
-      });
-      alert('Data saved successfully!');
-    }
-
-    function displayStoredData() {
-      const db = firebase.database();
-      const lootRef = db.ref('raidLootData');
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        const dataArray = data ? Object.values(data) : [];
-        displayData(dataArray);
-      });
+      const user = firebase.auth().currentUser;
+      if (user) {
+        const db = firebase.firestore();
+        const lootRef = db.collection('raidLootData');
+        data.forEach(row => {
+          lootRef.add(row)
+            .then(() => {
+              console.log('Document successfully written!');
+            })
+            .catch(error => {
+              console.error('Error writing document: ', error);
+            });
+        });
+        alert('Data saved successfully!');
+      } else {
+        alert('You must be signed in to save data.');
+      }
     }
 
     function displayData(data) {
