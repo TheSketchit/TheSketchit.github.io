@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoW Soft Reserve Loot Tracker</title>
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <h1>WoW Soft Reserve Loot Tracker</h1>
@@ -30,6 +30,7 @@
     <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
     <label for="viewRaidDate">View Soft-Reserves Raid Date:</label>
     <select id="viewRaidDate" onchange="displaySRsByRaidDate()">
+      <!-- Options will be populated dynamically -->
     </select>
     <table id="lootTable">
       <thead>
@@ -73,9 +74,14 @@
 
     // Handle user authentication state
     firebase.auth().onAuthStateChanged(user => {
-      if (user || isGuest) {
+      onLogin();
+    });
+
+    function onLogin() {
+      if (isGuest || firebase.auth().currentUser) {
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('tracker-container').style.display = 'block';
+        populateRaidDateDropdown();
         if (isGuest) {
           document.getElementById('raidDateLabel').style.display = 'none';
           document.getElementById('raidDate').style.display = 'none';
@@ -87,7 +93,7 @@
         document.getElementById('auth-container').style.display = 'block';
         document.getElementById('tracker-container').style.display = 'none';
       }
-    });
+    }
 
     function signIn() {
       var email = document.getElementById('email').value;
@@ -105,13 +111,7 @@
 
     function guestLogin() {
       isGuest = true;
-      document.getElementById('auth-container').style.display = 'none';
-      document.getElementById('tracker-container').style.display = 'block';
-      document.getElementById('raidDateLabel').style.display = 'none';
-      document.getElementById('raidDate').style.display = 'none';
-      document.getElementById('csvInput').style.display = 'none';
-      document.getElementById('saveLootButton').style.display = 'none';
-      document.getElementById('calculateSRsButton').style.display = 'none';
+      onLogin();
     }
 
     function signOut() {
@@ -255,45 +255,7 @@
         tableBody.appendChild(tr);
       });
     }
-    
-    function populateRaidDateDropdown() {
-      const lootRef = firebase.database().ref('raidLootData');
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        const raidDates = new Set();
-        if (data) {
-          Object.values(data).forEach(row => {
-            raidDates.add(row.RaidDate);
-          });
-        }
-        const raidDateDropdown = document.getElementById('viewRaidDate');
-        raidDateDropdown.innerHTML = '<option value="">Select Raid Date</option>'; // Clear existing options
-        raidDates.forEach(date => {
-          const option = document.createElement('option');
-          option.value = date;
-          option.textContent = date;
-          raidDateDropdown.appendChild(option);
-        });
-      }).catch(error => {
-        console.error('Error fetching raid dates: ', error);
-      });
-    }
 
-    // Display SRs by selected raid date
-    function displaySRsByRaidDate() {
-      const selectedDate = document.getElementById('viewRaidDate').value;
-      if (selectedDate) {
-        const lootRef = firebase.database().ref('raidLootData');
-        lootRef.once('value', (snapshot) => {
-          const data = snapshot.val();
-          const filteredData = data ? Object.values(data).filter(row => row.RaidDate === selectedDate) : [];
-          displayData(filteredData);
-        }).catch(error => {
-          console.error('Error fetching data: ', error);
-        });
-      }
-    }
-    
     function calculateSRs() {
       const lootRef = firebase.database().ref('raidLootData');
       lootRef.once('value', (snapshot) => {
@@ -358,6 +320,45 @@
             console.error('Error updating SR Points: ', error);
           });
       });
+    }
+
+    // Populate the dropdown menu with raid dates
+    function populateRaidDateDropdown() {
+      const lootRef = firebase.database().ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const raidDates = new Set();
+        if (data) {
+          Object.values(data).forEach(row => {
+            raidDates.add(row.RaidDate);
+          });
+        }
+        const raidDateDropdown = document.getElementById('viewRaidDate');
+        raidDateDropdown.innerHTML = '<option value="">Select Raid Date</option>'; // Clear existing options
+        raidDates.forEach(date => {
+          const option = document.createElement('option');
+          option.value = date;
+          option.textContent = date;
+          raidDateDropdown.appendChild(option);
+        });
+      }).catch(error => {
+        console.error('Error fetching raid dates: ', error);
+      });
+    }
+
+    // Display SRs by selected raid date
+    function displaySRsByRaidDate() {
+      const selectedDate = document.getElementById('viewRaidDate').value;
+      if (selectedDate) {
+        const lootRef = firebase.database().ref('raidLootData');
+        lootRef.once('value', (snapshot) => {
+          const data = snapshot.val();
+          const filteredData = data ? Object.values(data).filter(row => row.RaidDate === selectedDate) : [];
+          displayData(filteredData);
+        }).catch(error => {
+          console.error('Error fetching data: ', error);
+        });
+      }
     }
 
     function filterByColumn(column, value) {
