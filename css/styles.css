@@ -5,17 +5,18 @@ body {
   text-align: center;
   margin: 0;
   padding: 20px;
+  cursor: url('/images/custom-cursor.png'), auto;
 }
 
 h1 {
   color: #ffd700;
   font-size: 3em;
   margin-bottom: 20px;
+  cursor: url('/images/custom-cursor-click.png'), pointer;
 }
 
-label {
-  font-size: 1.2em;
-  color: #ffd700;
+label, input, textarea, button, th, td, .dropbtn, .dropdown-item {
+  cursor: url('/images/custom-cursor-click.png'), pointer;
 }
 
 input, textarea, button {
@@ -35,7 +36,6 @@ input[type="date"], textarea {
 button {
   background-color: #555;
   color: #ffd700;
-  cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
@@ -60,7 +60,6 @@ th, td {
 
 th {
   background-color: #444;
-  cursor: pointer;
 }
 
 th:hover {
@@ -95,7 +94,7 @@ td:hover {
   float: right;
   font-size: 22px;
   line-height: 20px;
-  cursor: pointer;
+  cursor: url('/images/custom-cursor-click.png'), pointer;
   transition: 0.3s;
 }
 
@@ -123,7 +122,6 @@ td:hover {
   padding: 10px 20px;
   font-size: 16px;
   border: none;
-  cursor: pointer;
   border-radius: 5px;
   margin-top: 10px;
 }
@@ -157,4 +155,9 @@ td:hover {
 
 .dropdown:hover .dropbtn {
   background-color: #777;
+}
+
+/* Ensuring interactable elements use the click cursor */
+a, button, input[type="button"], input[type="submit"], input[type="reset"], label, select, textarea, .dropdown-item {
+  cursor: url('/images/custom-cursor-click.png'), pointer;
 }
