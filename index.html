@@ -6,7 +6,9 @@
   <title>WoW Soft Reserve Loot Tracker</title>
   <link href="https://fonts.googleapis.com/css2?family=Uncial+Antiqua&display=swap" rel="stylesheet">
   <style>
+    html, body, * {
     cursor: url('/images/custom-cursor.png'), auto;
+    }  
     body {
       font-family: Semplicita Pro,Open Sans,Arial,Helvetica,sans-serif;
       background-color: #1c1c1c;
@@ -263,9 +265,21 @@
 
       // Add rows
       storedData.forEach(row => {
-        const rowData = Object.keys(row).filter(key => key !== 'SRPoints').map(key => row[key]).join(",");
+        const rowData = Object.keys(row).filter(key => key !== 'SRPoints').map(key => {
+          const cellData = row[key];
+          return cellData && cellData.toString().includes(' ') ? `"${cellData}"` : cellData;
+        }).join(",");
         csvContent += rowData + "\r\n";
       });
+
+      // Copy to clipboard
+      const copyText = csvContent.replace(/^data:text\/csv;charset=utf-8,/, '');
+      const textArea = document.createElement("textarea");
+      textArea.value = copyText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
 
       // Create download link
       const encodedUri = encodeURI(csvContent);
@@ -275,6 +289,8 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      alert('Data has been copied to clipboard and ready for download.');
     }
   </script>
 <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
