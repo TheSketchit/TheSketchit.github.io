@@ -5,18 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoW Soft Reserve Loot Tracker</title>
   <style>
+    html, body, * {
+    cursor: url('/images/custom-cursor.png'), auto;
+    }  
+    body {
+      font-family: Semplicita Pro,Open Sans,Arial,Helvetica,sans-serif;
+      background-color: #1c1c1c;
+      color: #e2e2e2;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    h1 {
+      color: #ffd700;
+      font-size: 3em;
+      margin-bottom: 20px;
+    }
+    label {
+      font-size: 1.2em;
+      color: #ffd700;
+    }
+    input, textarea, button {
+      font-size: 1em;
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    input[type="date"], textarea {
+      width: 80%;
+      background-color: #333;
+      color: #fff;
+    }
+    button {
+      background-color: #555;
+      color: #ffd700;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    button:hover {
+      background-color: #777;
+    }
     table {
       width: 100%;
+      margin-top: 20px;
       border-collapse: collapse;
+      background-color: #2c2c2c;
     }
     th, td {
-      border: 1px solid black;
+      border: 1px solid #444;
       padding: 8px;
       text-align: left;
+      color: #e2e2e2;
+      cursor: url('/images/custom-cursor.png'), auto;
     }
     th {
-      background-color: #f2f2f2;
+      background-color: #444;
       cursor: pointer;
+    }
+    th:hover {
+      background-color: #555;
+    }
+    a {
+      color: #ffd700;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .edit-mode .delete-icon {
+      display: inline-block;
+      cursor: pointer;
+      margin-left: 10px;
+      color: red;
+      cursor: url('/images/custom-cursor.png'), auto;
     }
   </style>
 </head>
@@ -72,7 +137,7 @@
       appId: "1037521583710:web:290e85c6bde4e047337ecf",
       databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
     };
-    // Initialize Firebase
+     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
     // Get a reference to the database service
@@ -168,10 +233,7 @@
       tableBody.innerHTML = '';
       data.forEach(row => {
         const tr = document.createElement('tr');
-        for (const key in row) {
-          if (key === 'ItemId') {
-            continue;
-          }
+        ['Item', 'From', 'Name', 'Class', 'Spec', 'RaidDate', 'SRPoints'].forEach(key => {
           const td = document.createElement('td');
           if (key === 'Item') {
             const a = document.createElement('a');
@@ -186,7 +248,7 @@
           td.style.cursor = 'pointer';
           td.onclick = () => filterByColumn(key, row[key]);
           tr.appendChild(td);
-        }
+        });
         tableBody.appendChild(tr);
       });
     }
