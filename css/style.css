@@ -1,1 +1,101 @@
-
+    html, body, * {
+    cursor: url('/images/custom-cursor.png'), auto;
+    }
+    .notice {
+      padding: 20px;
+      background-color: #f44336;
+      color: white;
+      margin-bottom: 15px;
+    }   
+    .notice p {
+      margin: 0;
+    }    
+    .notice .closebtn {
+      margin-left: 15px;
+      color: white;
+      font-weight: bold;
+      float: right;
+      font-size: 22px;
+      line-height: 20px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .notice .closebtn:hover {
+      color: black;
+    }
+    
+    body {
+      font-family: Semplicita Pro,Open Sans,Arial,Helvetica,sans-serif;
+      background-color: #1c1c1c;
+      color: #e2e2e2;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    h1 {
+      color: #ffd700;
+      font-size: 3em;
+      margin-bottom: 20px;
+    }
+    label {
+      font-size: 1.2em;
+      color: #ffd700;
+    }
+    input, textarea, button {
+      font-size: 1em;
+      padding: 10px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    input[type="date"], textarea {
+      width: 80%;
+      background-color: #333;
+      color: #fff;
+    }
+    button {
+      background-color: #555;
+      color: #ffd700;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    button:hover {
+      background-color: #777;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      background-color: #2c2c2c;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: left;
+      color: #e2e2e2;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
+    th {
+      background-color: #444;
+      cursor: pointer;
+    }
+    th:hover {
+      background-color: #555;
+    }
+    a {
+      color: #ffd700;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .edit-mode .delete-icon {
+      display: inline-block;
+      cursor: pointer;
+      margin-left: 10px;
+      color: red;
+      cursor: url('/images/custom-cursor.png'), auto;
+    }
