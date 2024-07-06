@@ -16,17 +16,18 @@
     <label for="password">Password:</label>
     <input type="password" id="password" required><br><br>
     <button onclick="signIn()">Sign In</button>
+    <button onclick="guestLogin()">Guest Login</button>
     <button onclick="signOut()">Sign Out</button>
   </div>
 
   <div id="tracker-container" style="display:none;">
     <div id="duplicate-message-container"></div> <!-- Container for warning message -->
-    <label for="raidDate">Raid Date:</label>
+    <label for="raidDate" id="raidDateLabel">Raid Date:</label>
     <input type="date" id="raidDate"><br><br>
     <textarea id="csvInput" rows="10" cols="100"></textarea><br>
-    <button onclick="processCSV()">Save Loot</button>
+    <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
     <button onclick="displayStoredData()">Display Loot</button>
-    <button onclick="calculateSRs()">Calculate SRs</button>
+    <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
     <table id="lootTable">
       <thead>
         <tr>
@@ -65,11 +66,20 @@
     // Get a reference to the database service
     const db = firebase.database();
 
+    let isGuest = false;
+
     // Handle user authentication state
     firebase.auth().onAuthStateChanged(user => {
-      if (user) {
+      if (user || isGuest) {
         document.getElementById('auth-container').style.display = 'none';
         document.getElementById('tracker-container').style.display = 'block';
+        if (isGuest) {
+          document.getElementById('raidDateLabel').style.display = 'none';
+          document.getElementById('raidDate').style.display = 'none';
+          document.getElementById('csvInput').style.display = 'none';
+          document.getElementById('saveLootButton').style.display = 'none';
+          document.getElementById('calculateSRsButton').style.display = 'none';
+        }
       } else {
         document.getElementById('auth-container').style.display = 'block';
         document.getElementById('tracker-container').style.display = 'none';
@@ -90,7 +100,19 @@
         });
     }
 
+    function guestLogin() {
+      isGuest = true;
+      document.getElementById('auth-container').style.display = 'none';
+      document.getElementById('tracker-container').style.display = 'block';
+      document.getElementById('raidDateLabel').style.display = 'none';
+      document.getElementById('raidDate').style.display = 'none';
+      document.getElementById('csvInput').style.display = 'none';
+      document.getElementById('saveLootButton').style.display = 'none';
+      document.getElementById('calculateSRsButton').style.display = 'none';
+    }
+
     function signOut() {
+      isGuest = false;
       firebase.auth().signOut()
         .then(() => {
           console.log('User signed out');
