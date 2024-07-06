@@ -28,10 +28,14 @@
     <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
     <button onclick="displayStoredData()">Display Loot</button>
     <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
-    <label for="viewRaidDate">View Soft-Reserves Raid Date:</label>
-    <select id="viewRaidDate" onchange="displaySRsByRaidDate()">
-      <!-- Options will be populated dynamically -->
-    </select>
+
+    <div class="dropdown">
+      <button class="dropbtn">Soft-Reserves Raid Dates</button>
+      <div class="dropdown-content" id="viewRaidDate">
+        <!-- Options will be populated dynamically -->
+      </div>
+    </div>
+
     <table id="lootTable">
       <thead>
         <tr>
@@ -334,11 +338,12 @@
           });
         }
         const raidDateDropdown = document.getElementById('viewRaidDate');
-        raidDateDropdown.innerHTML = '<option value="">Select Raid Date</option>'; // Clear existing options
+        raidDateDropdown.innerHTML = ''; // Clear existing options
         raidDates.forEach(date => {
-          const option = document.createElement('option');
-          option.value = date;
+          const option = document.createElement('div');
+          option.className = 'dropdown-item';
           option.textContent = date;
+          option.onclick = () => displaySRsByRaidDate(date);
           raidDateDropdown.appendChild(option);
         });
       }).catch(error => {
@@ -347,18 +352,15 @@
     }
 
     // Display SRs by selected raid date
-    function displaySRsByRaidDate() {
-      const selectedDate = document.getElementById('viewRaidDate').value;
-      if (selectedDate) {
-        const lootRef = firebase.database().ref('raidLootData');
-        lootRef.once('value', (snapshot) => {
-          const data = snapshot.val();
-          const filteredData = data ? Object.values(data).filter(row => row.RaidDate === selectedDate) : [];
-          displayData(filteredData);
-        }).catch(error => {
-          console.error('Error fetching data: ', error);
-        });
-      }
+    function displaySRsByRaidDate(date) {
+      const lootRef = firebase.database().ref('raidLootData');
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const filteredData = data ? Object.values(data).filter(row => row.RaidDate === date) : [];
+        displayData(filteredData);
+      }).catch(error => {
+        console.error('Error fetching data: ', error);
+      });
     }
 
     function filterByColumn(column, value) {
