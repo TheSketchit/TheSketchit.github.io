@@ -282,19 +282,16 @@
     
       const scrollBox = document.createElement('div');
       scrollBox.style.maxHeight = '150px'; // Limit height to 150px
-      scrollBox.style.overflowY = 'scroll'; // Enable vertical scroll
-      duplicateEntries.slice(0, 5).forEach(entry => { // Show only the first 5 entries
+      scrollBox.style.overflowY = 'auto'; // Enable vertical scroll
+      scrollBox.style.border = '1px solid #444'; // Add border to scroll box
+      scrollBox.style.padding = '10px'; // Add padding to scroll box
+      scrollBox.style.backgroundColor = '#2c2c2c'; // Match the background color to the table
+    
+      duplicateEntries.forEach(entry => { // Show all entries
         const row = document.createElement('p');
         row.textContent = `Name: ${entry.Name}, Item: ${entry.Item}, RaidDate: ${entry.RaidDate}`;
         scrollBox.appendChild(row);
       });
-    
-      // If there are more than 5 entries, indicate that
-      if (duplicateEntries.length > 5) {
-        const additionalEntries = document.createElement('p');
-        additionalEntries.textContent = `...and ${duplicateEntries.length - 5} more.`;
-        scrollBox.appendChild(additionalEntries);
-      }
     
       noticeDiv.appendChild(message);
       noticeDiv.appendChild(scrollBox);
