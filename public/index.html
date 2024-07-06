@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoW Soft Reserve Loot Tracker</title>
-  <link href="/css/styles.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <h1>WoW Soft Reserve Loot Tracker</h1>
@@ -179,11 +179,7 @@
       message.innerHTML = '<strong>The following rows were not submitted due to duplicate data being found:</strong>';
     
       const scrollBox = document.createElement('div');
-      scrollBox.style.maxHeight = '150px'; // Limit height to 150px
-      scrollBox.style.overflowY = 'auto'; // Enable vertical scroll
-      scrollBox.style.border = '1px solid #444'; // Add border to scroll box
-      scrollBox.style.padding = '10px'; // Add padding to scroll box
-      scrollBox.style.backgroundColor = '#2c2c2c'; // Match the background color to the table
+      scrollBox.className = 'scroll-box';
     
       duplicateEntries.forEach(entry => { // Show all entries
         const row = document.createElement('p');
