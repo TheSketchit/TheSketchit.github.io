@@ -333,7 +333,7 @@
         storedData.forEach(([key, row]) => {
           const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate;
           if (uniqueData[uniqueKey]) {
-            duplicateEntries.push(row);
+            duplicateEntries.push({ key, row });
           } else {
             uniqueData[uniqueKey] = { key, row };
           }
@@ -368,21 +368,15 @@
         });
     
         // Remove duplicates from Firebase
-        duplicateEntries.forEach(row => {
-          const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate;
-          const duplicateKey = Object.keys(data).find(key => 
-            data[key].Name === row.Name && data[key].RaidDate === row.RaidDate && !uniqueData[uniqueKey]
-          );
-          if (duplicateKey) {
-            updates[`/raidLootData/${duplicateKey}`] = null;
-          }
+        duplicateEntries.forEach(({ key }) => {
+          updates[`/raidLootData/${key}`] = null;
         });
     
         firebase.database().ref().update(updates)
           .then(() => {
             alert('SR Points recalculated successfully!');
             if (duplicateEntries.length > 0) {
-              displayDuplicateMessage(duplicateEntries);
+              displayDuplicateMessage(duplicateEntries.map(({ row }) => row));
             }
             displayStoredData();
           })
@@ -391,6 +385,7 @@
           });
       });
     }
+
 
     function filterByColumn(column, value) {
       const lootRef = firebase.database().ref('raidLootData');
