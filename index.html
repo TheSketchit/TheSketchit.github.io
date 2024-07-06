@@ -83,6 +83,7 @@
     }
   </style>
 </head>
+</head>
 <body>
   <h1>WoW Soft Reserve Loot Tracker</h1>
   <label for="raidDate">Raid Date:</label>
@@ -93,6 +94,7 @@
   <button onclick="calculateSRs()">Calculate SRs</button>
   <button onclick="toggleEditMode()">Edit Mode</button>
   <button id="saveButton" onclick="saveEdits()" style="display: none;">Save Edits</button>
+  <button onclick="eraseAllData()">Erase All Data</button>
   <table id="lootTable">
     <thead>
       <tr>
@@ -239,6 +241,12 @@
       document.body.classList.remove('edit-mode');
       document.getElementById('saveButton').style.display = 'none';
       alert('Edits saved successfully!');
+    }
+
+    function eraseAllData() {
+      localStorage.removeItem('raidLootData');
+      displayStoredData();
+      alert('All data has been erased.');
     }
   </script>
 <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
