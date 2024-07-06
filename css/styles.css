@@ -1,3 +1,7 @@
+:root {
+  cursor: url('/images/custom-cursor.png'), auto;
+}
+
 body {
   font-family: Semplicita Pro, Open Sans, Arial, Helvetica, sans-serif;
   background-color: #1c1c1c;
@@ -5,18 +9,16 @@ body {
   text-align: center;
   margin: 0;
   padding: 20px;
-  cursor: url('/images/custom-cursor.png'), auto;
 }
 
 h1 {
   color: #ffd700;
   font-size: 3em;
   margin-bottom: 20px;
-  cursor: url('/images/custom-cursor-click.png'), pointer;
 }
 
 label, input, textarea, button, th, td, .dropbtn, .dropdown-item {
-  cursor: url('/images/custom-cursor-click.png'), pointer;
+  cursor: url('/images/custom-cursor-click.png'), auto;
 }
 
 input, textarea, button {
@@ -94,7 +96,7 @@ td:hover {
   float: right;
   font-size: 22px;
   line-height: 20px;
-  cursor: url('/images/custom-cursor-click.png'), pointer;
+  cursor: url('/images/custom-cursor-click.png'), auto;
   transition: 0.3s;
 }
 
@@ -159,5 +161,5 @@ td:hover {
 
 /* Ensuring interactable elements use the click cursor */
 a, button, input[type="button"], input[type="submit"], input[type="reset"], label, select, textarea, .dropdown-item {
-  cursor: url('/images/custom-cursor-click.png'), pointer;
+  cursor: url('/images/custom-cursor-click.png'), auto;
 }
