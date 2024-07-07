@@ -194,11 +194,3 @@ td:hover {
   background-color: #cc0000;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
-
-.chevron:after {
-  content: "";
-  height: 100%;
-  width: 100%;
-  padding: 4px;
-  position: absolute;
-}
