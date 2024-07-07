@@ -24,6 +24,14 @@
     <div id="duplicate-message-container"></div> <!-- Container for warning message -->
     <label for="raidDate" id="raidDateLabel">Raid Date:</label>
     <input type="date" id="raidDate"><br><br>
+    <label for="raid">Raid:</label>
+      <select id="raid">
+        <option value="Sunken Temple">Sunken Temple</option>
+        <option value="Molten Core">Molten Core</option>
+        <option value="Azuregos">Azuregos</option>
+        <option value="Kazzak">Kazzak</option>
+        <!-- Add more raid options as needed -->
+      </select>
     <textarea id="csvInput" rows="10" cols="100"></textarea><br>
     <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
     <button onclick="displayStoredData()">Display Loot</button>
@@ -132,12 +140,13 @@
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
-
-      if (!raidDate) {
-        alert('Please select a raid date.');
+      const raid = document.getElementById('raid').value;
+    
+      if (!raidDate || !raid) {
+        alert('Please select a raid and a raid date.');
         return;
       }
-
+    
       Papa.parse(csvInput, {
         header: true,
         complete: function(results) {
@@ -146,15 +155,15 @@
             row.RaidDate = raidDate;
             row['SRPoints'] = 1;
           });
-          saveToFirebase(data);
+          saveToFirebase(data, raid);
         }
       });
     }
-
-    function saveToFirebase(data) {
+    
+    function saveToFirebase(data, raid) {
       const user = firebase.auth().currentUser;
       if (user) {
-        const lootRef = firebase.database().ref('raidLootData');
+        const lootRef = firebase.database().ref(`raidLootData/${raid}`);
         let duplicateEntries = [];
     
         lootRef.once('value').then(snapshot => {
@@ -268,32 +277,38 @@
         let playerItemModifiers = {};
         let uniqueData = {};
         let duplicateEntries = [];
+        
+        let updates = {};
     
-        // Remove duplicates and collect unique entries
+        // One-time data migration to set Raid to "Sunken Temple" for entries without Raid and RaidDate < 2024-07-11
         storedData.forEach(([key, row]) => {
-          const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate;
-          if (uniqueData[uniqueKey]) {
-            duplicateEntries.push({ key, row });
+          if (!row.Raid && new Date(row.RaidDate) < new Date("2024-07-11")) {
+            row.Raid = "Sunken Temple";
+            updates[`/raidLootData/${key}`] = null; // Mark the old entry for deletion
+            const newKey = firebase.database().ref(`raidLootData/Sunken Temple`).push().key;
+            updates[`/raidLootData/Sunken Temple/${newKey}`] = row; // Add the updated entry to "Sunken Temple"
           } else {
-            uniqueData[uniqueKey] = { key, row };
+            const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate + '_' + row.Raid;
+            if (uniqueData[uniqueKey]) {
+              duplicateEntries.push({ key, row });
+            } else {
+              uniqueData[uniqueKey] = { key, row };
+            }
           }
         });
     
-        // Convert back to array
-        storedData = Object.values(uniqueData);
-    
         // Reset SR Points for all stored data
-        storedData.forEach(({ row }) => {
+        Object.values(uniqueData).forEach(({ row }) => {
           row['SRPoints'] = 1;
         });
     
         // Sort stored data by RaidDate in ascending order for calculation
-        storedData.sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
+        Object.values(uniqueData).sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
     
         // Recalculate SR Points
-        storedData.forEach(({ row }) => {
+        Object.values(uniqueData).forEach(({ row }) => {
           const playerName = row.Name.toLowerCase().trim();
-          const itemKey = playerName + '_' + row.Item;
+          const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
     
           if (playerItemModifiers[itemKey]) {
             row['SRPoints'] = playerItemModifiers[itemKey] + 1;
@@ -301,10 +316,9 @@
           playerItemModifiers[itemKey] = row['SRPoints'];
         });
     
-        // Update Firebase with recalculated SR Points
-        const updates = {};
-        storedData.forEach(({ key, row }) => {
-          updates[`/raidLootData/${key}`] = row;
+        // Update Firebase with recalculated SR Points and migrate entries to "Sunken Temple"
+        Object.values(uniqueData).forEach(({ key, row }) => {
+          updates[`/raidLootData/${row.Raid}/${key}`] = row;
         });
     
         // Remove duplicates from Firebase
@@ -326,9 +340,11 @@
       });
     }
 
+
     // Populate the dropdown menu with raid dates
     function populateRaidDateDropdown() {
-      const lootRef = firebase.database().ref('raidLootData');
+      const raid = document.getElementById('raid').value;
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         const raidDates = new Set();
@@ -343,7 +359,7 @@
           const option = document.createElement('div');
           option.className = 'dropdown-item';
           option.textContent = date;
-          option.onclick = () => displaySRsByRaidDate(date);
+          option.onclick = () => displaySRsByRaidDate(date, raid);
           raidDateDropdown.appendChild(option);
         });
       }).catch(error => {
@@ -352,8 +368,8 @@
     }
 
     // Display SRs by selected raid date
-    function displaySRsByRaidDate(date) {
-      const lootRef = firebase.database().ref('raidLootData');
+    function displaySRsByRaidDate(date, raid) {
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         const filteredData = data ? Object.values(data).filter(row => row.RaidDate === date) : [];
