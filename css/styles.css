@@ -170,19 +170,35 @@ td:hover {
 .chevron {
   padding: 10px 20px;
   margin: 0 5px;
-  background-color: #444;
+  background-color: #0044cc;
   color: #ffd700;
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  display: inline-block;
+  text-align: center;
+}
+
+.chevron:active {
+  background-color: #002288;
+  top: 2px;
+  box-shadow: inset 0 1px 0 #FFE5C4, inset 0 -3px 0 #915100;
 }
 
 .chevron:hover {
-  background-color: #555;
+  background-color: #0033aa;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .chevron.active {
-  background-color: #555;
+  background-color: #cc0000;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.chevron:after {
+  content: "";
+  height: 100%;
+  width: 100%;
+  padding: 4px;
+  position: absolute;
 }
