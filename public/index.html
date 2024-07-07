@@ -278,53 +278,31 @@
         let duplicateEntries = [];
     
         let updates = {};
-
-        // One-time data migration to set Raid to "Sunken Temple" for entries without Raid and RaidDate < 2024-07-11
-        storedData.forEach(([key, row]) => {
-          if (!row.Raid && new Date(row.RaidDate) < new Date("2024-07-11")) {
-            row.Raid = "Sunken Temple";
-            updates[`/raidLootData/${key}`] = null; // Mark the old entry for deletion
-            const newKey = firebase.database().ref(`raidLootData/Sunken Temple`).push().key;
-            updates[`/raidLootData/Sunken Temple/${newKey}`] = row; // Add the updated entry to "Sunken Temple"
-          } else {
-            const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate + '_' + row.Raid;
-            if (uniqueData[uniqueKey]) {
-              duplicateEntries.push({ key, row });
-            } else {
-              uniqueData[uniqueKey] = { key, row };
-            }
-          }
-        });
-
+    
         // Reset SR Points for all stored data
         Object.values(uniqueData).forEach(({ row }) => {
           row['SRPoints'] = 1;
         });
-
-        // Sort stored data by RaidDate in ascending order for calculation
-        Object.values(uniqueData).sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
-
+    
+        // Sort stored data by RaidDate in descending order for calculation
+        Object.values(uniqueData).sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
+    
         // Recalculate SR Points
         Object.values(uniqueData).forEach(({ row }) => {
           const playerName = row.Name.toLowerCase().trim();
           const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
-
+    
           if (playerItemModifiers[itemKey]) {
             row['SRPoints'] = playerItemModifiers[itemKey] + 1;
           }
           playerItemModifiers[itemKey] = row['SRPoints'];
         });
-
-        // Update Firebase with recalculated SR Points and migrate entries to "Sunken Temple"
-        Object.values(uniqueData).forEach(({ key, row }) => {
-          updates[`/raidLootData/${row.Raid}/${key}`] = row;
-        });
-
+    
         // Remove duplicates from Firebase
         duplicateEntries.forEach(({ key }) => {
           updates[`/raidLootData/${key}`] = null;
         });
-
+    
         firebase.database().ref().update(updates)
           .then(() => {
             alert('SR Points recalculated successfully!');
