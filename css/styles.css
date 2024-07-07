@@ -192,6 +192,27 @@ td:hover {
 }
 
 .chevron.active {
-  background-color: #cc0000;
+  background-color: #850404;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  animation: glow 1.5s infinite alternate, hover 1s infinite ease-in-out;
+}
+
+/* Keyframes for glowing border animation */
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px #ffd700, 0 0 10px #ffd700, 0 0 15px #ffd700, 0 0 20px #ffd700;
+  }
+  100% {
+    box-shadow: 0 0 10px #ff4500, 0 0 20px #ff4500, 0 0 30px #ff4500, 0 0 40px #ff4500;
+  }
+}
+
+/* Keyframes for hovering up and down animation */
+@keyframes hover {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
