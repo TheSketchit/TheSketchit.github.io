@@ -24,18 +24,16 @@
     <div id="duplicate-message-container"></div> <!-- Container for warning message -->
     <label for="raidDate" id="raidDateLabel">Raid Date:</label>
     <input type="date" id="raidDate"><br><br>
-    <label for="raid">Raid:</label>
-      <select id="raid">
-        <option value="Sunken Temple">Sunken Temple</option>
-        <option value="Molten Core">Molten Core</option>
-        <option value="Azuregos">Azuregos</option>
-        <option value="Kazzak">Kazzak</option>
-        <!-- Add more raid options as needed -->
-      </select>
     <textarea id="csvInput" rows="10" cols="100"></textarea><br>
     <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
     <button onclick="displayStoredData()">Display Loot</button>
     <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
+
+    <div class="chevron-navigation">
+      <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
+      <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
+      <!-- Add more raids as needed -->
+    </div>
 
     <div class="dropdown">
       <button class="dropbtn">Soft-Reserves Raid Dates</button>
@@ -83,6 +81,7 @@
     const db = firebase.database();
 
     let isGuest = false;
+    let selectedRaid = 'Sunken Temple'; // Default selected raid
 
     // Handle user authentication state
     firebase.auth().onAuthStateChanged(user => {
@@ -140,13 +139,13 @@
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
-      const raid = document.getElementById('raid').value;
-    
+      const raid = selectedRaid;
+
       if (!raidDate || !raid) {
         alert('Please select a raid and a raid date.');
         return;
       }
-    
+
       Papa.parse(csvInput, {
         header: true,
         complete: function(results) {
@@ -159,22 +158,22 @@
         }
       });
     }
-    
+
     function saveToFirebase(data, raid) {
       const user = firebase.auth().currentUser;
       if (user) {
         const lootRef = firebase.database().ref(`raidLootData/${raid}`);
         let duplicateEntries = [];
-    
+
         lootRef.once('value').then(snapshot => {
           const existingData = snapshot.val() || {};
           const existingEntries = Object.values(existingData);
-    
+
           data.forEach(row => {
             const duplicate = existingEntries.some(existing => 
               existing.Name === row.Name && existing.RaidDate === row.RaidDate
             );
-    
+
             if (!duplicate) {
               lootRef.push(row)
                 .then(() => {
@@ -187,7 +186,7 @@
               duplicateEntries.push(row);
             }
           });
-    
+
           if (duplicateEntries.length > 0) {
             displayDuplicateMessage(duplicateEntries);
           } else {
@@ -231,7 +230,7 @@
     }
 
     function displayStoredData() {
-      const lootRef = firebase.database().ref('raidLootData');
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         console.log("Fetched data from Firebase:", data); // Debugging line
@@ -270,16 +269,16 @@
     }
 
     function calculateSRs() {
-      const lootRef = firebase.database().ref('raidLootData');
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.entries(data) : [];
         let playerItemModifiers = {};
         let uniqueData = {};
         let duplicateEntries = [];
-        
-        let updates = {};
     
+        let updates = {};
+
         // One-time data migration to set Raid to "Sunken Temple" for entries without Raid and RaidDate < 2024-07-11
         storedData.forEach(([key, row]) => {
           if (!row.Raid && new Date(row.RaidDate) < new Date("2024-07-11")) {
@@ -296,36 +295,36 @@
             }
           }
         });
-    
+
         // Reset SR Points for all stored data
         Object.values(uniqueData).forEach(({ row }) => {
           row['SRPoints'] = 1;
         });
-    
+
         // Sort stored data by RaidDate in ascending order for calculation
         Object.values(uniqueData).sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
-    
+
         // Recalculate SR Points
         Object.values(uniqueData).forEach(({ row }) => {
           const playerName = row.Name.toLowerCase().trim();
           const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
-    
+
           if (playerItemModifiers[itemKey]) {
             row['SRPoints'] = playerItemModifiers[itemKey] + 1;
           }
           playerItemModifiers[itemKey] = row['SRPoints'];
         });
-    
+
         // Update Firebase with recalculated SR Points and migrate entries to "Sunken Temple"
         Object.values(uniqueData).forEach(({ key, row }) => {
           updates[`/raidLootData/${row.Raid}/${key}`] = row;
         });
-    
+
         // Remove duplicates from Firebase
         duplicateEntries.forEach(({ key }) => {
           updates[`/raidLootData/${key}`] = null;
         });
-    
+
         firebase.database().ref().update(updates)
           .then(() => {
             alert('SR Points recalculated successfully!');
@@ -340,11 +339,9 @@
       });
     }
 
-
     // Populate the dropdown menu with raid dates
     function populateRaidDateDropdown() {
-      const raid = document.getElementById('raid').value;
-      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         const raidDates = new Set();
@@ -359,7 +356,7 @@
           const option = document.createElement('div');
           option.className = 'dropdown-item';
           option.textContent = date;
-          option.onclick = () => displaySRsByRaidDate(date, raid);
+          option.onclick = () => displaySRsByRaidDate(date, selectedRaid);
           raidDateDropdown.appendChild(option);
         });
       }).catch(error => {
@@ -380,7 +377,7 @@
     }
 
     function filterByColumn(column, value) {
-      const lootRef = firebase.database().ref('raidLootData');
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
@@ -390,13 +387,23 @@
     }
 
     function sortTable(column) {
-      const lootRef = firebase.database().ref('raidLootData');
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         storedData.sort((a, b) => (a[column] > b[column]) ? 1 : ((b[column] > a[column]) ? -1 : 0));
         displayData(storedData);
       });
+    }
+
+    function selectRaid(raid) {
+      selectedRaid = raid;
+      document.querySelectorAll('.chevron').forEach(chevron => {
+        chevron.classList.remove('active');
+      });
+      document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`).classList.add('active');
+      populateRaidDateDropdown();
+      displayStoredData();
     }
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
