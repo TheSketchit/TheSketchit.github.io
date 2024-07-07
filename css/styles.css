@@ -179,6 +179,7 @@ td:hover {
   text-align: center;
   position: relative;
   z-index: 1; /* Ensure clickable area */
+  box-shadow: inset 1px 1px 5px #fff, inset -1px -1px 5px #000;
 }
 
 .chevron:active {
@@ -194,7 +195,7 @@ td:hover {
 .chevron.active {
   background-color: #850404;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-  animation: glow 1.5s infinite alternate, hover 1s infinite ease-in-out;
+  animation: glow 3s infinite alternate, hover 2s infinite ease-in-out;
 }
 
 /* Keyframes for glowing border animation */
@@ -216,3 +217,4 @@ td:hover {
     transform: translateY(-5px);
   }
 }
+
