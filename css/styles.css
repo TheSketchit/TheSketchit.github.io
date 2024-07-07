@@ -159,3 +159,30 @@ td:hover {
 .dropdown:hover .dropbtn {
   background-color: #777;
 }
+
+/* Chevron navigation styles */
+.chevron-navigation {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.chevron {
+  padding: 10px 20px;
+  margin: 0 5px;
+  background-color: #444;
+  color: #ffd700;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chevron:hover {
+  background-color: #555;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.chevron.active {
+  background-color: #555;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
