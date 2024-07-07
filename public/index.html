@@ -279,36 +279,32 @@
     
         let updates = {};
     
-        // Reset SR Points for all stored data
-        Object.values(uniqueData).forEach(({ row }) => {
-          row['SRPoints'] = 1;
-        });
-    
-        // Sort stored data by RaidDate in descending order for calculation
-        Object.values(uniqueData).sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
-    
-        // Recalculate SR Points
-        Object.values(uniqueData).forEach(({ row }) => {
-          const playerName = row.Name.toLowerCase().trim();
-          const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
-    
-          if (playerItemModifiers[itemKey]) {
-            row['SRPoints'] = playerItemModifiers[itemKey] + 1;
+        // Process stored data and organize it for SR calculation
+        storedData.forEach(([key, row]) => {
+          const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.Item + '_' + row.Raid;
+          if (uniqueData[uniqueKey]) {
+            uniqueData[uniqueKey].push({ key, row });
+          } else {
+            uniqueData[uniqueKey] = [{ key, row }];
           }
-          playerItemModifiers[itemKey] = row['SRPoints'];
         });
     
-        // Remove duplicates from Firebase
-        duplicateEntries.forEach(({ key }) => {
-          updates[`/raidLootData/${key}`] = null;
+        // Calculate SR Points for each unique entry
+        Object.values(uniqueData).forEach(entries => {
+          // Sort entries by RaidDate in ascending order
+          entries.sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
+    
+          // Assign SR points based on sorted order
+          entries.forEach((entry, index) => {
+            entry.row['SRPoints'] = index + 1;
+            updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
+          });
         });
     
+        // Update Firebase with recalculated SR Points
         firebase.database().ref().update(updates)
           .then(() => {
             alert('SR Points recalculated successfully!');
-            if (duplicateEntries.length > 0) {
-              displayDuplicateMessage(duplicateEntries.map(({ row }) => row));
-            }
             displayStoredData();
           })
           .catch(error => {
@@ -316,6 +312,7 @@
           });
       });
     }
+
 
     // Populate the dropdown menu with raid dates
     function populateRaidDateDropdown() {
