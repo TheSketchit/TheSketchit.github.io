@@ -79,15 +79,16 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
-    // Get a reference to the database service
-    const db = firebase.database();
-
     let isGuest = false;
-    let selectedRaid = 'Sunken Temple'; // Default selected raid
+    let selectedRaid = 'Sunken Temple';
 
-    // Handle user authentication state
     firebase.auth().onAuthStateChanged(user => {
-      onLogin();
+      if (user) {
+        onLogin();
+      } else {
+        document.getElementById('auth-container').style.display = 'block';
+        document.getElementById('tracker-container').style.display = 'none';
+      }
     });
 
     function onLogin() {
@@ -113,8 +114,7 @@
       var password = document.getElementById('password').value;
       firebase.auth().signInWithEmailAndPassword(email, password)
         .then(userCredential => {
-          var user = userCredential.user;
-          console.log('Signed in:', user);
+          console.log('Signed in:', userCredential.user);
         })
         .catch(error => {
           console.error('Error signing in:', error);
@@ -138,7 +138,7 @@
         });
     }
 
-      function processCSV() {
+    function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
       const raid = selectedRaid;
@@ -243,9 +243,9 @@
           let playerItemModifiers = {};
           let uniqueData = {};
           let duplicateEntries = [];
-    
+
           let updates = {};
-    
+
           // Process stored data and organize it for SR calculation
           storedData.forEach(([key, row]) => {
             const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.Item + '_' + row.Raid;
@@ -255,19 +255,19 @@
               uniqueData[uniqueKey] = [{ key, row }];
             }
           });
-    
+
           // Calculate SR Points for each unique entry
           Object.values(uniqueData).forEach(entries => {
             // Sort entries by RaidDate in descending order
             entries.sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
-    
+
             // Assign SR points based on sorted order
             entries.forEach((entry, index) => {
               entry.row['SRPoints'] = index + 1;
               updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
             });
           });
-    
+
           // Update Firebase with recalculated SR Points
           firebase.database().ref().update(updates)
             .then(() => {
@@ -282,7 +282,6 @@
         });
       });
     }
-
 
     function populateRaidDateDropdown() {
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
@@ -348,7 +347,6 @@
       populateRaidDateDropdown();
       displayStoredData();
     }
-    
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
