@@ -138,7 +138,7 @@
         });
     }
 
-    function processCSV() {
+      function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
       const raid = selectedRaid;
@@ -155,57 +155,33 @@
           data.forEach(row => {
             row.RaidDate = raidDate;
             row['SRPoints'] = 1;
+            row['Raid'] = raid;
           });
           saveToFirebase(data, raid);
         }
       });
     }
 
-    function saveToFirebase(data, raid) {
-      const user = firebase.auth().currentUser;
-      if (user) {
-        const lootRef = firebase.database().ref(`raidLootData/${raid}`);
-        let duplicateEntries = [];
+    async function saveToFirebase(data, raid) {
+      const response = await fetch('/api/saveData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ data, raid })
+      });
 
-        lootRef.once('value').then(snapshot => {
-          const existingData = snapshot.val() || {};
-          const existingEntries = Object.values(existingData);
-
-          data.forEach(row => {
-            const duplicate = existingEntries.some(existing => 
-              existing.Name === row.Name && existing.RaidDate === row.RaidDate
-            );
-
-            if (!duplicate) {
-              lootRef.push(row)
-                .then(() => {
-                  console.log('Document successfully written!');
-                })
-                .catch(error => {
-                  console.error('Error writing document: ', error);
-                });
-            } else {
-              duplicateEntries.push(row);
-            }
-          });
-
-          if (duplicateEntries.length > 0) {
-            displayDuplicateMessage(duplicateEntries);
-          } else {
-            alert('Data saved successfully!');
-          }
-        }).catch(error => {
-          console.error('Error reading existing data: ', error);
-        });
+      if (response.ok) {
+        console.log('Data saved successfully!');
       } else {
-        alert('You must be signed in to save data.');
+        console.error('Error saving data');
       }
     }
 
     function displayDuplicateMessage(duplicateEntries) {
       const container = document.getElementById('duplicate-message-container');
       container.innerHTML = ''; // Clear previous messages
-    
+
       const noticeDiv = document.createElement('div');
       noticeDiv.className = 'notice';
       const closeButton = document.createElement('span');
@@ -213,42 +189,28 @@
       closeButton.innerHTML = '&times;';
       closeButton.onclick = () => noticeDiv.style.display = 'none';
       noticeDiv.appendChild(closeButton);
-    
+
       const message = document.createElement('p');
       message.innerHTML = '<strong>The following rows were not submitted due to duplicate data being found:</strong>';
-    
+
       const scrollBox = document.createElement('div');
       scrollBox.className = 'scroll-box';
-    
-      duplicateEntries.forEach(entry => { // Show all entries
+
+      duplicateEntries.forEach(entry => {
         const row = document.createElement('p');
         row.textContent = `Name: ${entry.Name}, Item: ${entry.Item}, RaidDate: ${entry.RaidDate}`;
         scrollBox.appendChild(row);
       });
-    
+
       noticeDiv.appendChild(message);
       noticeDiv.appendChild(scrollBox);
       container.appendChild(noticeDiv);
-    }
-
-    function displayStoredData() {
-      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        console.log("Fetched data from Firebase:", data); // Debugging line
-        const dataArray = data ? Object.values(data) : [];
-        console.log("Data array to be displayed:", dataArray); // Debugging line
-        displayData(dataArray);
-      }).catch(error => {
-        console.error('Error fetching data: ', error); // Debugging line
-      });
     }
 
     function displayData(data) {
       const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
       tableBody.innerHTML = '';
       data.forEach(row => {
-        console.log("Displaying row:", row); // Debugging line
         const tr = document.createElement('tr');
         ['Item', 'From', 'Name', 'Class', 'Spec', 'RaidDate', 'SRPoints'].forEach(key => {
           const td = document.createElement('td');
@@ -271,16 +233,17 @@
     }
 
     function calculateSRs() {
-      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
+      const raid = selectedRaid;
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.entries(data) : [];
         let playerItemModifiers = {};
         let uniqueData = {};
         let duplicateEntries = [];
-    
+
         let updates = {};
-    
+
         // Process stored data and organize it for SR calculation
         storedData.forEach(([key, row]) => {
           const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.Item + '_' + row.Raid;
@@ -290,19 +253,19 @@
             uniqueData[uniqueKey] = [{ key, row }];
           }
         });
-    
+
         // Calculate SR Points for each unique entry
         Object.values(uniqueData).forEach(entries => {
-          // Sort entries by RaidDate in ascending order
-          entries.sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
-    
+          // Sort entries by RaidDate in descending order
+          entries.sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
+
           // Assign SR points based on sorted order
           entries.forEach((entry, index) => {
             entry.row['SRPoints'] = index + 1;
             updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
           });
         });
-    
+
         // Update Firebase with recalculated SR Points
         firebase.database().ref().update(updates)
           .then(() => {
@@ -315,8 +278,6 @@
       });
     }
 
-
-    // Populate the dropdown menu with raid dates
     function populateRaidDateDropdown() {
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
@@ -341,7 +302,6 @@
       });
     }
 
-    // Display SRs by selected raid date
     function displaySRsByRaidDate(date, raid) {
       const lootRef = firebase.database().ref(`raidLootData/${raid}`);
       lootRef.once('value', (snapshot) => {
@@ -382,7 +342,6 @@
       populateRaidDateDropdown();
       displayStoredData();
     }
-
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
