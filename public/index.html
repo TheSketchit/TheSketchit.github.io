@@ -233,50 +233,56 @@
     }
 
     function calculateSRs() {
-      const raid = selectedRaid;
-      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        let storedData = data ? Object.entries(data) : [];
-        let playerItemModifiers = {};
-        let uniqueData = {};
-        let duplicateEntries = [];
-
-        let updates = {};
-
-        // Process stored data and organize it for SR calculation
-        storedData.forEach(([key, row]) => {
-          const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.Item + '_' + row.Raid;
-          if (uniqueData[uniqueKey]) {
-            uniqueData[uniqueKey].push({ key, row });
-          } else {
-            uniqueData[uniqueKey] = [{ key, row }];
-          }
-        });
-
-        // Calculate SR Points for each unique entry
-        Object.values(uniqueData).forEach(entries => {
-          // Sort entries by RaidDate in descending order
-          entries.sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
-
-          // Assign SR points based on sorted order
-          entries.forEach((entry, index) => {
-            entry.row['SRPoints'] = index + 1;
-            updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
+      const chevrons = document.querySelectorAll('.chevron');
+      chevrons.forEach(chevron => {
+        const raid = chevron.textContent.trim();
+        const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+        lootRef.once('value', (snapshot) => {
+          const data = snapshot.val();
+          let storedData = data ? Object.entries(data) : [];
+          let playerItemModifiers = {};
+          let uniqueData = {};
+          let duplicateEntries = [];
+    
+          let updates = {};
+    
+          // Process stored data and organize it for SR calculation
+          storedData.forEach(([key, row]) => {
+            const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.Item + '_' + row.Raid;
+            if (uniqueData[uniqueKey]) {
+              uniqueData[uniqueKey].push({ key, row });
+            } else {
+              uniqueData[uniqueKey] = [{ key, row }];
+            }
           });
-        });
-
-        // Update Firebase with recalculated SR Points
-        firebase.database().ref().update(updates)
-          .then(() => {
-            alert('SR Points recalculated successfully!');
-            displayStoredData();
-          })
-          .catch(error => {
-            console.error('Error updating SR Points: ', error);
+    
+          // Calculate SR Points for each unique entry
+          Object.values(uniqueData).forEach(entries => {
+            // Sort entries by RaidDate in descending order
+            entries.sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
+    
+            // Assign SR points based on sorted order
+            entries.forEach((entry, index) => {
+              entry.row['SRPoints'] = index + 1;
+              updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
+            });
           });
+    
+          // Update Firebase with recalculated SR Points
+          firebase.database().ref().update(updates)
+            .then(() => {
+              console.log(`SR Points recalculated successfully for ${raid}!`);
+              if (raid === selectedRaid) {
+                displayStoredData(); // Refresh data for the currently selected raid
+              }
+            })
+            .catch(error => {
+              console.error(`Error updating SR Points for ${raid}: `, error);
+            });
+        });
       });
     }
+
 
     function populateRaidDateDropdown() {
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
@@ -342,6 +348,7 @@
       populateRaidDateDropdown();
       displayStoredData();
     }
+    
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
