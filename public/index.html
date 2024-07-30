@@ -159,18 +159,35 @@
     }
 
     async function saveToFirebase(data, raid) {
-      const response = await fetch('/api/saveData', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ data, raid })
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+      let duplicateEntries = [];
+
+      const snapshot = await lootRef.once('value');
+      const existingData = snapshot.val() || {};
+      const existingEntries = Object.values(existingData);
+
+      data.forEach(row => {
+        const duplicate = existingEntries.some(existing => 
+          existing.Name === row.Name && existing.RaidDate === row.RaidDate
+        );
+
+        if (!duplicate) {
+          lootRef.push(row)
+            .then(() => {
+              console.log('Document successfully written!');
+            })
+            .catch(error => {
+              console.error('Error writing document: ', error);
+            });
+        } else {
+          duplicateEntries.push(row);
+        }
       });
 
-      if (response.ok) {
-        console.log('Data saved successfully!');
+      if (duplicateEntries.length > 0) {
+        displayDuplicateMessage(duplicateEntries);
       } else {
-        console.error('Error saving data');
+        alert('Data saved successfully!');
       }
     }
 
@@ -236,41 +253,40 @@
         lootRef.once('value', (snapshot) => {
           const data = snapshot.val();
           let storedData = data ? Object.entries(data) : [];
-          let playerItemTracking = {};
+          let playerItemModifiers = {};
+          let uniqueData = {};
+          let duplicateEntries = [];
+
           let updates = {};
 
-          // Sort all entries by RaidDate in ascending order
-          storedData.sort((a, b) => new Date(a[1].RaidDate) - new Date(b[1].RaidDate));
-
-          // Process stored data and calculate SR points
+          // Process stored data and organize it for SR calculation
           storedData.forEach(([key, row]) => {
-            const playerItemKey = `${row.Name.toLowerCase().trim()}_${row.Item}`;
-            
-            if (!playerItemTracking[playerItemKey]) {
-              playerItemTracking[playerItemKey] = { 
-                srPoints: 1, 
-                lastWinDate: null 
-              };
-            }
-
-            if (row.SRPoints > 0) { // This item was soft reserved
-              if (playerItemTracking[playerItemKey].lastWinDate === null || 
-                  new Date(row.RaidDate) > new Date(playerItemTracking[playerItemKey].lastWinDate)) {
-                // Increment SR points if it's a new raid date
-                row.SRPoints = playerItemTracking[playerItemKey].srPoints;
-                playerItemTracking[playerItemKey].srPoints++;
-              } else {
-                // Reset SR points if the item was won
-                row.SRPoints = 1;
-                playerItemTracking[playerItemKey].srPoints = 1;
-                playerItemTracking[playerItemKey].lastWinDate = row.RaidDate;
-              }
+            const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate;
+            if (uniqueData[uniqueKey]) {
+              duplicateEntries.push(row);
             } else {
-              // If SRPoints is 0, it means the item wasn't soft reserved
-              row.SRPoints = 0;
+              uniqueData[uniqueKey] = { key, row };
             }
+          });
 
-            updates[`/raidLootData/${raid}/${key}`] = row;
+          // Calculate SR Points for each unique entry
+          Object.values(uniqueData).forEach(({ key, row }) => {
+            const playerName = row.Name.toLowerCase().trim();
+            const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
+
+            if (playerItemModifiers[itemKey]) {
+              row['SRPoints'] = playerItemModifiers[itemKey] + 1;
+            } else {
+              row['SRPoints'] = 1;
+            }
+            playerItemModifiers[itemKey] = row['SRPoints'];
+
+            updates[`/raidLootData/${row.Raid}/${key}`] = row;
+          });
+
+          // Remove duplicates from Firebase
+          duplicateEntries.forEach(({ key }) => {
+            updates[`/raidLootData/${key}`] = null;
           });
 
           // Update Firebase with recalculated SR Points
@@ -279,6 +295,9 @@
               console.log(`SR Points recalculated successfully for ${raid}!`);
               if (raid === selectedRaid) {
                 displayStoredData(); // Refresh data for the currently selected raid
+              }
+              if (duplicateEntries.length > 0) {
+                displayDuplicateMessage(duplicateEntries.map(({ row }) => row));
               }
             })
             .catch(error => {
