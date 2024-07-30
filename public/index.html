@@ -239,7 +239,6 @@
           let storedData = data ? Object.entries(data) : [];
           let playerItemModifiers = {};
           let uniqueData = {};
-          let duplicateEntries = [];
 
           let updates = {};
 
@@ -255,12 +254,12 @@
 
           // Calculate SR Points for each unique entry
           Object.values(uniqueData).forEach(entries => {
-            // Sort entries by RaidDate in descending order
-            entries.sort((a, b) => new Date(b.row.RaidDate) - new Date(a.row.RaidDate));
+            // Sort entries by RaidDate in ascending order (newest first)
+            entries.sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
 
             // Assign SR points based on sorted order
             entries.forEach((entry, index) => {
-              entry.row['SRPoints'] = index + 1;
+              entry.row['SRPoints'] = entries.length - index;
               updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
             });
           });
