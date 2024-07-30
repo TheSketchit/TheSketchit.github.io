@@ -21,7 +21,7 @@
   </div>
 
   <div id="tracker-container" style="display:none;">
-    <div id="duplicate-message-container"></div> <!-- Container for warning message -->
+    <div id="duplicate-message-container"></div>
     <label for="raidDate" id="raidDateLabel">Raid Date:</label>
     <input type="date" id="raidDate"><br><br>
     <textarea id="csvInput" rows="10" cols="100"></textarea><br>
@@ -37,7 +37,6 @@
     <div class="dropdown">
       <button class="dropbtn">Soft-Reserves Raid Dates</button>
       <div class="dropdown-content" id="viewRaidDate">
-        <!-- Options will be populated dynamically -->
       </div>
     </div>
 
@@ -177,7 +176,7 @@
 
     function displayDuplicateMessage(duplicateEntries) {
       const container = document.getElementById('duplicate-message-container');
-      container.innerHTML = ''; // Clear previous messages
+      container.innerHTML = '';
 
       const noticeDiv = document.createElement('div');
       noticeDiv.className = 'notice';
@@ -237,31 +236,41 @@
         lootRef.once('value', (snapshot) => {
           const data = snapshot.val();
           let storedData = data ? Object.entries(data) : [];
-          let playerItemModifiers = {};
-          let uniqueData = {};
-
+          let playerItemTracking = {};
           let updates = {};
 
-          // Process stored data and organize it for SR calculation
+          // Sort all entries by RaidDate in ascending order
+          storedData.sort((a, b) => new Date(a[1].RaidDate) - new Date(b[1].RaidDate));
+
+          // Process stored data and calculate SR points
           storedData.forEach(([key, row]) => {
-            const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.Item + '_' + row.Raid;
-            if (uniqueData[uniqueKey]) {
-              uniqueData[uniqueKey].push({ key, row });
-            } else {
-              uniqueData[uniqueKey] = [{ key, row }];
+            const playerItemKey = `${row.Name.toLowerCase().trim()}_${row.Item}`;
+            
+            if (!playerItemTracking[playerItemKey]) {
+              playerItemTracking[playerItemKey] = { 
+                srPoints: 1, 
+                lastWinDate: null 
+              };
             }
-          });
 
-          // Calculate SR Points for each unique entry
-          Object.values(uniqueData).forEach(entries => {
-            // Sort entries by RaidDate in ascending order (newest first)
-            entries.sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
+            if (row.SRPoints > 0) { // This item was soft reserved
+              if (playerItemTracking[playerItemKey].lastWinDate === null || 
+                  new Date(row.RaidDate) > new Date(playerItemTracking[playerItemKey].lastWinDate)) {
+                // Increment SR points if it's a new raid date
+                row.SRPoints = playerItemTracking[playerItemKey].srPoints;
+                playerItemTracking[playerItemKey].srPoints++;
+              } else {
+                // Reset SR points if the item was won
+                row.SRPoints = 1;
+                playerItemTracking[playerItemKey].srPoints = 1;
+                playerItemTracking[playerItemKey].lastWinDate = row.RaidDate;
+              }
+            } else {
+              // If SRPoints is 0, it means the item wasn't soft reserved
+              row.SRPoints = 0;
+            }
 
-            // Assign SR points based on sorted order
-            entries.forEach((entry, index) => {
-              entry.row['SRPoints'] = entries.length - index;
-              updates[`/raidLootData/${entry.row.Raid}/${entry.key}`] = entry.row;
-            });
+            updates[`/raidLootData/${raid}/${key}`] = row;
           });
 
           // Update Firebase with recalculated SR Points
@@ -290,7 +299,7 @@
           });
         }
         const raidDateDropdown = document.getElementById('viewRaidDate');
-        raidDateDropdown.innerHTML = ''; // Clear existing options
+        raidDateDropdown.innerHTML = '';
         raidDates.forEach(date => {
           const option = document.createElement('div');
           option.className = 'dropdown-item';
@@ -342,6 +351,15 @@
       document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`).classList.add('active');
       populateRaidDateDropdown();
       displayStoredData();
+    }
+
+    function displayStoredData() {
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
+        displayData(storedData);
+      });
     }
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
