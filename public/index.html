@@ -64,13 +64,13 @@
   <script>
     // Your web app's Firebase configuration
     var firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
-      databaseURL: "YOUR_DATABASE_URL"
+      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+      authDomain: "wowsr-9ec27.firebaseapp.com",
+      projectId: "wowsr-9ec27",
+      storageBucket: "wowsr-9ec27.appspot.com",
+      messagingSenderId: "1037521583710",
+      appId: "1037521583710:web:290e85c6bde4e047337ecf",
+      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -159,18 +159,35 @@
     }
 
     async function saveToFirebase(data, raid) {
-      const response = await fetch('/api/saveData', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ data, raid })
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+      let duplicateEntries = [];
+
+      const snapshot = await lootRef.once('value');
+      const existingData = snapshot.val() || {};
+      const existingEntries = Object.values(existingData);
+
+      data.forEach(row => {
+        const duplicate = existingEntries.some(existing => 
+          existing.Name === row.Name && existing.RaidDate === row.RaidDate
+        );
+
+        if (!duplicate) {
+          lootRef.push(row)
+            .then(() => {
+              console.log('Document successfully written!');
+            })
+            .catch(error => {
+              console.error('Error writing document: ', error);
+            });
+        } else {
+          duplicateEntries.push(row);
+        }
       });
 
-      if (response.ok) {
-        console.log('Data saved successfully!');
+      if (duplicateEntries.length > 0) {
+        displayDuplicateMessage(duplicateEntries);
       } else {
-        console.error('Error saving data');
+        alert('Data saved successfully!');
       }
     }
 
