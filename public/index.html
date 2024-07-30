@@ -255,38 +255,32 @@
           let storedData = data ? Object.entries(data) : [];
           let playerItemModifiers = {};
           let uniqueData = {};
-          let duplicateEntries = [];
-
           let updates = {};
 
           // Process stored data and organize it for SR calculation
           storedData.forEach(([key, row]) => {
             const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate;
-            if (uniqueData[uniqueKey]) {
-              duplicateEntries.push(row);
-            } else {
+            if (!uniqueData[uniqueKey]) {
               uniqueData[uniqueKey] = { key, row };
             }
           });
 
+          // Sort entries by RaidDate in ascending order
+          const sortedData = Object.values(uniqueData).sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
+
           // Calculate SR Points for each unique entry
-          Object.values(uniqueData).forEach(({ key, row }) => {
+          sortedData.forEach(({ key, row }, index) => {
             const playerName = row.Name.toLowerCase().trim();
             const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
 
-            if (playerItemModifiers[itemKey]) {
-              row['SRPoints'] = playerItemModifiers[itemKey] + 1;
+            if (!playerItemModifiers[itemKey]) {
+              playerItemModifiers[itemKey] = 1;
             } else {
-              row['SRPoints'] = 1;
+              playerItemModifiers[itemKey]++;
             }
-            playerItemModifiers[itemKey] = row['SRPoints'];
 
+            row['SRPoints'] = playerItemModifiers[itemKey];
             updates[`/raidLootData/${row.Raid}/${key}`] = row;
-          });
-
-          // Remove duplicates from Firebase
-          duplicateEntries.forEach(({ key }) => {
-            updates[`/raidLootData/${key}`] = null;
           });
 
           // Update Firebase with recalculated SR Points
@@ -295,9 +289,6 @@
               console.log(`SR Points recalculated successfully for ${raid}!`);
               if (raid === selectedRaid) {
                 displayStoredData(); // Refresh data for the currently selected raid
-              }
-              if (duplicateEntries.length > 0) {
-                displayDuplicateMessage(duplicateEntries.map(({ row }) => row));
               }
             })
             .catch(error => {
