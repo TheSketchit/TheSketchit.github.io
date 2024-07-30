@@ -64,13 +64,13 @@
   <script>
     // Your web app's Firebase configuration
     var firebaseConfig = {
-      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
-      authDomain: "wowsr-9ec27.firebaseapp.com",
-      projectId: "wowsr-9ec27",
-      storageBucket: "wowsr-9ec27.appspot.com",
-      messagingSenderId: "1037521583710",
-      appId: "1037521583710:web:290e85c6bde4e047337ecf",
-      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID",
+      databaseURL: "YOUR_DATABASE_URL"
     };
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
@@ -159,35 +159,18 @@
     }
 
     async function saveToFirebase(data, raid) {
-      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
-      let duplicateEntries = [];
-
-      const snapshot = await lootRef.once('value');
-      const existingData = snapshot.val() || {};
-      const existingEntries = Object.values(existingData);
-
-      data.forEach(row => {
-        const duplicate = existingEntries.some(existing => 
-          existing.Name === row.Name && existing.RaidDate === row.RaidDate
-        );
-
-        if (!duplicate) {
-          lootRef.push(row)
-            .then(() => {
-              console.log('Document successfully written!');
-            })
-            .catch(error => {
-              console.error('Error writing document: ', error);
-            });
-        } else {
-          duplicateEntries.push(row);
-        }
+      const response = await fetch('/api/saveData', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ data, raid })
       });
 
-      if (duplicateEntries.length > 0) {
-        displayDuplicateMessage(duplicateEntries);
+      if (response.ok) {
+        console.log('Data saved successfully!');
       } else {
-        alert('Data saved successfully!');
+        console.error('Error saving data');
       }
     }
 
@@ -223,6 +206,7 @@
     function displayData(data) {
       const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
       tableBody.innerHTML = '';
+      data.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate)); // Sort by RaidDate in descending order
       data.forEach(row => {
         const tr = document.createElement('tr');
         ['Item', 'From', 'Name', 'Class', 'Spec', 'RaidDate', 'SRPoints'].forEach(key => {
@@ -253,34 +237,41 @@
         lootRef.once('value', (snapshot) => {
           const data = snapshot.val();
           let storedData = data ? Object.entries(data) : [];
-          let playerItemModifiers = {};
-          let uniqueData = {};
+          let playerItemTracking = {};
           let updates = {};
 
-          // Process stored data and organize it for SR calculation
+          // Sort all entries by RaidDate in ascending order
+          storedData.sort((a, b) => new Date(a[1].RaidDate) - new Date(b[1].RaidDate));
+
+          // Process stored data and calculate SR points
           storedData.forEach(([key, row]) => {
-            const uniqueKey = row.Name.toLowerCase().trim() + '_' + row.RaidDate;
-            if (!uniqueData[uniqueKey]) {
-              uniqueData[uniqueKey] = { key, row };
+            const playerItemKey = `${row.Name.toLowerCase().trim()}_${row.Item}`;
+            
+            if (!playerItemTracking[playerItemKey]) {
+              playerItemTracking[playerItemKey] = { 
+                srPoints: 1, 
+                lastWinDate: null 
+              };
             }
-          });
 
-          // Sort entries by RaidDate in ascending order
-          const sortedData = Object.values(uniqueData).sort((a, b) => new Date(a.row.RaidDate) - new Date(b.row.RaidDate));
-
-          // Calculate SR Points for each unique entry
-          sortedData.forEach(({ key, row }, index) => {
-            const playerName = row.Name.toLowerCase().trim();
-            const itemKey = playerName + '_' + row.Item + '_' + row.Raid;
-
-            if (!playerItemModifiers[itemKey]) {
-              playerItemModifiers[itemKey] = 1;
+            if (row.SRPoints > 0) { // This item was soft reserved
+              if (playerItemTracking[playerItemKey].lastWinDate === null || 
+                  new Date(row.RaidDate) > new Date(playerItemTracking[playerItemKey].lastWinDate)) {
+                // Increment SR points if it's a new raid date
+                row.SRPoints = playerItemTracking[playerItemKey].srPoints;
+                playerItemTracking[playerItemKey].srPoints++;
+              } else {
+                // Reset SR points if the item was won
+                row.SRPoints = 1;
+                playerItemTracking[playerItemKey].srPoints = 1;
+                playerItemTracking[playerItemKey].lastWinDate = row.RaidDate;
+              }
             } else {
-              playerItemModifiers[itemKey]++;
+              // If SRPoints is 0, it means the item wasn't soft reserved
+              row.SRPoints = 0;
             }
 
-            row['SRPoints'] = playerItemModifiers[itemKey];
-            updates[`/raidLootData/${row.Raid}/${key}`] = row;
+            updates[`/raidLootData/${raid}/${key}`] = row;
           });
 
           // Update Firebase with recalculated SR Points
@@ -308,9 +299,10 @@
             raidDates.add(row.RaidDate);
           });
         }
+        const sortedRaidDates = Array.from(raidDates).sort((a, b) => new Date(b) - new Date(a));
         const raidDateDropdown = document.getElementById('viewRaidDate');
-        raidDateDropdown.innerHTML = '';
-        raidDates.forEach(date => {
+        raidDateDropdown.innerHTML = ''; // Clear existing options
+        sortedRaidDates.forEach(date => {
           const option = document.createElement('div');
           option.className = 'dropdown-item';
           option.textContent = date;
@@ -368,6 +360,7 @@
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
+        storedData.sort((a, b) => new Date(b.RaidDate) - new Date(a.RaidDate)); // Sort by RaidDate in descending order
         displayData(storedData);
       });
     }
