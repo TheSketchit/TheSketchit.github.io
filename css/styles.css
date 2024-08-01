@@ -124,6 +124,30 @@ td:hover {
   margin-top: 10px;
 }
 
+#filterIndicator {
+  background-color: #444;
+  color: #ffd700;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+  text-align: left;
+}
+
+#clearFilterButton {
+  background-color: #555;
+  color: #ffd700;
+  padding: 10px 20px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#clearFilterButton:hover {
+  background-color: #777;
+}
+
 .dropdown-content {
   display: none;
   position: absolute;
