@@ -79,9 +79,9 @@
     firebase.initializeApp(firebaseConfig);
 
     let isGuest = false;
-    let selectedRaid = 'Sunken Temple';
     let currentFilter = null;
-    let currentSort = { column: 'RaidDate', direction: 'asc' };
+    let currentSort = { column: 'RaidDate', direction: 'desc' };
+    let selectedRaid = null;
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
@@ -316,6 +316,13 @@
     }
 
     function populateRaidDateDropdown() {
+      const raidDateDropdown = document.getElementById('viewRaidDate');
+      raidDateDropdown.innerHTML = '';
+    
+      if (!selectedRaid) {
+        return; // If no raid is selected, leave the dropdown empty
+      }
+    
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
@@ -326,8 +333,6 @@
           });
         }
         const sortedRaidDates = Array.from(raidDates).sort((a, b) => new Date(b) - new Date(a));
-        const raidDateDropdown = document.getElementById('viewRaidDate');
-        raidDateDropdown.innerHTML = ''; // Clear existing options
         sortedRaidDates.forEach(date => {
           const option = document.createElement('div');
           option.className = 'dropdown-item';
@@ -418,6 +423,12 @@
     }
 
     function displayStoredData() {
+      if (!selectedRaid) {
+        // If no raid is selected, clear the table
+        document.getElementById('lootTable').getElementsByTagName('tbody')[0].innerHTML = '';
+        return;
+      }
+    
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
@@ -430,12 +441,12 @@
     
         // Apply sorting
         storedData.sort((a, b) => {
-          // First, sort by RaidDate ascending
-          const dateComparison = new Date(a.RaidDate) - new Date(b.RaidDate);
+          // First, sort by RaidDate descending
+          const dateComparison = new Date(b.RaidDate) - new Date(a.RaidDate);
           if (dateComparison !== 0) return dateComparison;
     
-          // Then, sort by Item descending
-          const itemComparison = b.Item.localeCompare(a.Item);
+          // Then, sort by Item ascending
+          const itemComparison = a.Item.localeCompare(b.Item);
           if (itemComparison !== 0) return itemComparison;
     
           // Finally, sort by Name ascending
@@ -443,7 +454,7 @@
         });
     
         // If current sort is different from default, apply it
-        if (currentSort.column !== 'RaidDate' || currentSort.direction !== 'asc') {
+        if (currentSort.column !== 'RaidDate' || currentSort.direction !== 'desc') {
           storedData.sort((a, b) => {
             let comparison = 0;
             if (currentSort.column === 'RaidDate') {
@@ -460,6 +471,10 @@
         displayData(storedData);
       });
     }
+
+    window.onload = function() {
+      populateRaidDateDropdown();
+    };
     
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
