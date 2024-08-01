@@ -266,41 +266,49 @@
           let storedData = data ? Object.entries(data) : [];
           let playerItemTracking = {};
           let updates = {};
-
+    
           // Sort all entries by RaidDate in ascending order
           storedData.sort((a, b) => new Date(a[1].RaidDate) - new Date(b[1].RaidDate));
-
+    
           // Process stored data and calculate SR points
           storedData.forEach(([key, row]) => {
-            const playerItemKey = `${row.Name.toLowerCase().trim()}_${row.Item}`;
+            const playerKey = row.Name.toLowerCase().trim();
             
-            if (!playerItemTracking[playerItemKey]) {
-              playerItemTracking[playerItemKey] = { 
-                srPoints: 1, 
+            if (!playerItemTracking[playerKey]) {
+              playerItemTracking[playerKey] = { 
+                lastItem: null,
+                srPoints: 1,
                 lastWinDate: null 
               };
             }
-
+    
             if (row.SRPoints > 0) { // This item was soft reserved
-              if (playerItemTracking[playerItemKey].lastWinDate === null || 
-                  new Date(row.RaidDate) > new Date(playerItemTracking[playerItemKey].lastWinDate)) {
-                // Increment SR points if it's a new raid date
-                row.SRPoints = playerItemTracking[playerItemKey].srPoints;
-                playerItemTracking[playerItemKey].srPoints++;
+              if (playerItemTracking[playerKey].lastItem === row.Item) {
+                // Same item as last time, increment SR points
+                row.SRPoints = playerItemTracking[playerKey].srPoints;
+                playerItemTracking[playerKey].srPoints++;
               } else {
-                // Reset SR points if the item was won
+                // Different item, reset SR points
                 row.SRPoints = 1;
-                playerItemTracking[playerItemKey].srPoints = 1;
-                playerItemTracking[playerItemKey].lastWinDate = row.RaidDate;
+                playerItemTracking[playerKey].srPoints = 2;
+                playerItemTracking[playerKey].lastItem = row.Item;
+              }
+              
+              // Check if item was won
+              if (playerItemTracking[playerKey].lastWinDate === row.RaidDate) {
+                row.SRPoints = 1;
+                playerItemTracking[playerKey].srPoints = 1;
+                playerItemTracking[playerKey].lastWinDate = null;
               }
             } else {
               // If SRPoints is 0, it means the item wasn't soft reserved
               row.SRPoints = 0;
             }
-
+    
+            playerItemTracking[playerKey].lastItem = row.Item;
             updates[`/raidLootData/${raid}/${key}`] = row;
           });
-
+    
           // Update Firebase with recalculated SR Points
           firebase.database().ref().update(updates)
             .then(() => {
