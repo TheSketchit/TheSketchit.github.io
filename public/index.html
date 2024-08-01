@@ -80,8 +80,8 @@
 
     let isGuest = false;
     let selectedRaid = 'Sunken Temple';
-    let currentSort = { column: 'RaidDate', direction: 'asc' };
     let currentFilter = null;
+    let currentSort = { column: 'RaidDate', direction: 'asc' };
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
@@ -353,14 +353,7 @@
 
     function filterByColumn(column, value) {
       currentFilter = { column, value };
-      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        let storedData = data ? Object.values(data) : [];
-        const filteredData = storedData.filter(row => row[column] === value);
-        displayData(filteredData);
-        updateFilterIndicator();
-      });
+      displayStoredData();
     }
     
     function updateFilterIndicator() {
@@ -387,34 +380,14 @@
     }
 
     function sortTable(column) {
-      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
-      lootRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        let storedData = data ? Object.values(data) : [];
-        
-        // Toggle sort direction if clicking on the same column
-        if (currentSort.column === column) {
-          currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-        } else {
-          currentSort.column = column;
-          currentSort.direction = 'asc';
-        }
-    
-        storedData.sort((a, b) => {
-          let comparison = 0;
-          if (column === 'RaidDate') {
-            comparison = new Date(a[column]) - new Date(b[column]);
-          } else if (column === 'SRPoints') {
-            comparison = parseFloat(a[column]) - parseFloat(b[column]);
-          } else {
-            comparison = a[column].localeCompare(b[column], undefined, { numeric: true, sensitivity: 'base' });
-          }
-          return currentSort.direction === 'asc' ? comparison : -comparison;
-        });
-    
-        displayData(storedData);
-        updateSortIndicators();
-      });
+      currentFilter = null; // Clear the filter when sorting
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
+      displayStoredData();
     }
 
     function updateSortIndicators() {
@@ -449,9 +422,45 @@
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
-        sortTable(currentSort.column); // Use the current sort
+        
+        // Apply filter if exists
+        if (currentFilter) {
+          storedData = storedData.filter(row => row[currentFilter.column] === currentFilter.value);
+        }
+    
+        // Apply sorting
+        storedData.sort((a, b) => {
+          // First, sort by RaidDate ascending
+          const dateComparison = new Date(a.RaidDate) - new Date(b.RaidDate);
+          if (dateComparison !== 0) return dateComparison;
+    
+          // Then, sort by Item descending
+          const itemComparison = b.Item.localeCompare(a.Item);
+          if (itemComparison !== 0) return itemComparison;
+    
+          // Finally, sort by Name ascending
+          return a.Name.localeCompare(b.Name);
+        });
+    
+        // If current sort is different from default, apply it
+        if (currentSort.column !== 'RaidDate' || currentSort.direction !== 'asc') {
+          storedData.sort((a, b) => {
+            let comparison = 0;
+            if (currentSort.column === 'RaidDate') {
+              comparison = new Date(a[currentSort.column]) - new Date(b[currentSort.column]);
+            } else if (currentSort.column === 'SRPoints') {
+              comparison = parseFloat(a[currentSort.column]) - parseFloat(b[currentSort.column]);
+            } else {
+              comparison = a[currentSort.column].localeCompare(b[currentSort.column], undefined, { numeric: true, sensitivity: 'base' });
+            }
+            return currentSort.direction === 'asc' ? comparison : -comparison;
+          });
+        }
+    
+        displayData(storedData);
       });
     }
+    
   </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
