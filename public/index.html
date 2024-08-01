@@ -245,7 +245,7 @@
           }
           td.style.cursor = 'pointer';
           td.onclick = (event) => {
-            if (event.target === td) { // Only filter if the cell itself was clicked, not a child element
+            if (event.target === td) {
               filterByColumn(key, row[key]);
             }
           };
@@ -386,7 +386,6 @@
     }
 
     function sortTable(column) {
-      currentFilter = null; // Clear the filter when sorting
       if (currentSort.column === column) {
         currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
       } else {
@@ -431,7 +430,6 @@
 
     function displayStoredData() {
       if (!selectedRaid) {
-        // If no raid is selected, clear the table
         document.getElementById('lootTable').getElementsByTagName('tbody')[0].innerHTML = '';
         return;
       }
@@ -441,23 +439,33 @@
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         
-        // Apply default sorting (RaidDate descending, then Item A-Z, then Name A-Z)
-        storedData.sort((a, b) => {
-          // First, sort by RaidDate descending
-          const dateComparison = new Date(b.RaidDate) - new Date(a.RaidDate);
-          if (dateComparison !== 0) return dateComparison;
+        if (currentFilter) {
+          storedData = storedData.filter(row => row[currentFilter.column] === currentFilter.value);
+        }
     
-          // Then, sort by Item ascending
-          const itemComparison = a.Item.localeCompare(b.Item);
-          if (itemComparison !== 0) return itemComparison;
-    
-          // Finally, sort by Name ascending
-          return a.Name.localeCompare(b.Name);
-        });
-    
+        sortData(storedData);
         displayData(storedData);
       });
     }
+
+    function sortData(data) {
+      data.sort((a, b) => {
+        if (currentSort.column === 'RaidDate') {
+          return currentSort.direction === 'asc' 
+            ? new Date(a.RaidDate) - new Date(b.RaidDate)
+            : new Date(b.RaidDate) - new Date(a.RaidDate);
+        } else if (currentSort.column === 'SRPoints') {
+          return currentSort.direction === 'asc'
+            ? a.SRPoints - b.SRPoints
+            : b.SRPoints - a.SRPoints;
+        } else {
+          return currentSort.direction === 'asc'
+            ? a[currentSort.column].localeCompare(b[currentSort.column])
+            : b[currentSort.column].localeCompare(a[currentSort.column]);
+        }
+      });
+    }
+
 
     window.onload = function() {
       populateRaidDateDropdown();
