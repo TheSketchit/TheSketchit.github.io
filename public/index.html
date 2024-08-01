@@ -40,6 +40,9 @@
       </div>
     </div>
 
+    <div id="filterIndicator" style="display: none;"></div>
+    <button onclick="clearFilter()" id="clearFilterButton" style="display: none;">Clear Filter</button>
+    
     <table id="lootTable">
       <thead>
         <tr>
@@ -77,7 +80,8 @@
 
     let isGuest = false;
     let selectedRaid = 'Sunken Temple';
-    let currentSort = { column: 'RaidDate', direction: 'desc' };
+    let currentSort = { column: 'RaidDate', direction: 'asc' };
+    let currentFilter = null;
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
@@ -238,6 +242,12 @@
           } else {
             td.textContent = row[key];
           }
+          td.style.cursor = 'pointer';
+          td.onclick = (event) => {
+            if (event.target === td) { // Only filter if the cell itself was clicked, not a child element
+              filterByColumn(key, row[key]);
+            }
+          };
           tr.appendChild(td);
         });
         tableBody.appendChild(tr);
@@ -342,13 +352,38 @@
     }
 
     function filterByColumn(column, value) {
+      currentFilter = { column, value };
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         const filteredData = storedData.filter(row => row[column] === value);
         displayData(filteredData);
+        updateFilterIndicator();
       });
+    }
+    
+    function updateFilterIndicator() {
+      const filterIndicator = document.getElementById('filterIndicator') || createFilterIndicator();
+      if (currentFilter) {
+        filterIndicator.textContent = `Filtered by ${currentFilter.column}: ${currentFilter.value}`;
+        filterIndicator.style.display = 'block';
+      } else {
+        filterIndicator.style.display = 'none';
+      }
+    }
+    
+    function createFilterIndicator() {
+      const indicator = document.createElement('div');
+      indicator.id = 'filterIndicator';
+      indicator.style.backgroundColor = '#444';
+      indicator.style.color = '#ffd700';
+      indicator.style.padding = '10px';
+      indicator.style.marginTop = '10px';
+      indicator.style.borderRadius = '5px';
+      indicator.style.display = 'none';
+      document.getElementById('tracker-container').insertBefore(indicator, document.getElementById('lootTable'));
+      return indicator;
     }
 
     function sortTable(column) {
@@ -390,6 +425,13 @@
           header.classList.add(`sort-${currentSort.direction}`);
         }
       });
+    }
+
+    function clearFilter() {
+      currentFilter = null;
+      displayStoredData();
+      updateFilterIndicator();
+      document.getElementById('clearFilterButton').style.display = 'none';
     }
 
     function selectRaid(raid) {
