@@ -58,6 +58,32 @@ th, td {
 
 th {
   background-color: #444;
+  position: relative;
+  padding-right: 20px;
+}
+
+th::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+}
+
+th.sort-asc::after {
+  border-bottom: 5px solid #ffd700;
+}
+
+th.sort-desc::after {
+  border-top: 5px solid #ffd700;
+}
+
+th.sort-asc, th.sort-desc {
+  background-color: #555;
 }
 
 th:hover {
