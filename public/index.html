@@ -415,10 +415,16 @@
 
     function selectRaid(raid) {
       selectedRaid = raid;
+      
+      // Reset filter and sort
+      currentFilter = null;
+      currentSort = { column: 'RaidDate', direction: 'desc' };
+      
       document.querySelectorAll('.chevron').forEach(chevron => {
         chevron.classList.remove('active');
       });
       document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`).classList.add('active');
+      
       populateRaidDateDropdown();
       displayStoredData();
     }
@@ -435,12 +441,7 @@
         const data = snapshot.val();
         let storedData = data ? Object.values(data) : [];
         
-        // Apply filter if exists
-        if (currentFilter) {
-          storedData = storedData.filter(row => row[currentFilter.column] === currentFilter.value);
-        }
-    
-        // Apply sorting
+        // Apply default sorting (RaidDate descending, then Item A-Z, then Name A-Z)
         storedData.sort((a, b) => {
           // First, sort by RaidDate descending
           const dateComparison = new Date(b.RaidDate) - new Date(a.RaidDate);
@@ -453,21 +454,6 @@
           // Finally, sort by Name ascending
           return a.Name.localeCompare(b.Name);
         });
-    
-        // If current sort is different from default, apply it
-        if (currentSort.column !== 'RaidDate' || currentSort.direction !== 'desc') {
-          storedData.sort((a, b) => {
-            let comparison = 0;
-            if (currentSort.column === 'RaidDate') {
-              comparison = new Date(a[currentSort.column]) - new Date(b[currentSort.column]);
-            } else if (currentSort.column === 'SRPoints') {
-              comparison = parseFloat(a[currentSort.column]) - parseFloat(b[currentSort.column]);
-            } else {
-              comparison = a[currentSort.column].localeCompare(b[currentSort.column], undefined, { numeric: true, sensitivity: 'base' });
-            }
-            return currentSort.direction === 'asc' ? comparison : -comparison;
-          });
-        }
     
         displayData(storedData);
       });
