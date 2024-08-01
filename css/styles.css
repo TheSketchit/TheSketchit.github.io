@@ -7,6 +7,12 @@ body {
   padding: 20px;
 }
 
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
 h1 {
   color: #ffd700;
   font-size: 3em;
@@ -26,7 +32,8 @@ input, textarea, button {
 }
 
 input[type="date"], textarea {
-  width: 80%;
+  width: 100%;
+  max-width: 300px;
   background-color: #333;
   color: #fff;
 }
@@ -45,8 +52,10 @@ button:hover {
 table {
   width: 100%;
   margin-top: 20px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background-color: #2c2c2c;
+  table-layout: auto;
 }
 
 th, td {
@@ -54,6 +63,9 @@ th, td {
   padding: 8px;
   text-align: left;
   color: #e2e2e2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 th {
@@ -98,6 +110,14 @@ tr:hover {
 td:hover {
   border: 2px solid #666;
 }
+
+#lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; } /* Item */
+#lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; } /* From */
+#lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; } /* Name */
+#lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; } /* Class */
+#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; } /* Spec */
+#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; } /* Raid Date */
+#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; } /* SR Points */
 
 /* Notice styles */
 .notice {
