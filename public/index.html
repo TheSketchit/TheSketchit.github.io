@@ -404,9 +404,56 @@
       });
     }
 
+    function updateURL() {
+      const url = new URL(window.location.href);
+      if (currentFilter) {
+        url.searchParams.set('filterColumn', currentFilter.column);
+        url.searchParams.set('filterValue', currentFilter.value);
+      } else {
+        url.searchParams.delete('filterColumn');
+        url.searchParams.delete('filterValue');
+      }
+    
+      url.searchParams.set('sortColumn', currentSort.column);
+      url.searchParams.set('sortDirection', currentSort.direction);
+    
+      if (selectedRaid) {
+        url.searchParams.set('raid', selectedRaid);
+      } else {
+        url.searchParams.delete('raid');
+      }
+    
+      window.history.replaceState(null, '', url.toString());
+    }
+    
+    function applyURLParameters() {
+      const url = new URL(window.location.href);
+    
+      const filterColumn = url.searchParams.get('filterColumn');
+      const filterValue = url.searchParams.get('filterValue');
+      const sortColumn = url.searchParams.get('sortColumn') || 'RaidDate';
+      const sortDirection = url.searchParams.get('sortDirection') || 'desc';
+      const raid = url.searchParams.get('raid');
+    
+      if (raid) {
+        selectRaid(raid);
+      }
+    
+      if (filterColumn && filterValue) {
+        currentFilter = { column: filterColumn, value: filterValue };
+      }
+    
+      currentSort = { column: sortColumn, direction: sortDirection };
+    
+      displayStoredData();
+      updateFilterIndicator();
+    }
+    
     function filterByColumn(column, value) {
       currentFilter = { column, value };
+      updateFilterIndicator();
       displayStoredData();
+      updateURL();
     }
     
     function updateFilterIndicator() {
@@ -440,6 +487,7 @@
         currentSort.direction = 'asc';
       }
       displayStoredData();
+      updateURL();
     }
 
     function updateSortIndicators() {
@@ -473,6 +521,7 @@
       
       populateRaidDateDropdown();
       displayStoredData();
+      updateURL();
     }
 
     function displayStoredData() {
@@ -515,6 +564,7 @@
 
 
     window.onload = function() {
+      applyURLParameters();
       populateRaidDateDropdown();
       migrateOnyxiaData();
     };
