@@ -236,17 +236,19 @@
           const td = document.createElement('td');
           if (key === 'Item') {
             const a = document.createElement('a');
-            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
-            a.target = '_blank';
+            a.href = '#';
+            a.setAttribute('data-wowhead', `item=${row.ItemId}&domain=classic`);
+            a.setAttribute('data-wh-icon-size', 'small');
+            a.setAttribute('data-wh-rename-link', 'true');
             a.className = 'item-row notranslate d-block q1 q3';
-            a.innerHTML = `<ins></ins><del></del></span><span class="itemlink-text">${row[key]}</span></a>`;
+            a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
             td.appendChild(a);
           } else {
             td.textContent = row[key];
           }
           td.style.cursor = 'pointer';
           td.onclick = (event) => {
-            if (event.target === td) {
+            if (event.target === td || event.target.tagName !== 'A') {
               filterByColumn(key, row[key]);
             }
           };
@@ -255,6 +257,11 @@
         tableBody.appendChild(tr);
       });
       updateSortIndicators();
+    
+      // Refresh Wowhead tooltips
+      if (typeof $WowheadPower !== 'undefined') {
+        $WowheadPower.refreshLinks();
+      }
     }
 
     function migrateOnyxiaData() {
