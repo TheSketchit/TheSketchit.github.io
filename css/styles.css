@@ -32,18 +32,18 @@ body {
 #auth-container button {
   background: linear-gradient(to bottom, #4a1c03 0%, #854113 100%);
   color: #ffd700;
-  border: 2px solid #ffd700;
-  border-radius: 5px;
-  padding: 8px 15px;
+  border: 1.2px solid #ffd700; /* Reduced from 2px */
+  border-radius: 3px; /* Reduced from 5px */
+  padding: 5px 9px; /* Reduced from 8px 15px */
   cursor: pointer;
-  font-size: 16px;
+  font-size: 9.6px; /* Reduced from 16px */
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  transform: translateY(25%);
+  letter-spacing: 0.6px; /* Reduced from 1px */
+  transform: translateY(15%); /* Adjusted from 25% */
   transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-  text-shadow: 1px 1px 2px #000;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.5); /* Reduced from 10px */
+  text-shadow: 0.6px 0.6px 1.2px #000; /* Reduced from 1px 1px 2px */
   position: relative;
   overflow: hidden;
 }
@@ -63,8 +63,8 @@ body {
 
 #auth-container button:hover {
   background: linear-gradient(to bottom, #5a2203 0%, #955123 100%);
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
-  transform: translateY(22%) scale(1.05);
+  box-shadow: 0 0 9px rgba(255, 215, 0, 0.7); /* Reduced from 15px */
+  transform: translateY(13.2%) scale(1.05); /* Adjusted from 22% */
 }
 
 #auth-container button:hover::before {
@@ -73,13 +73,13 @@ body {
 }
 
 #auth-container button:active {
-  transform: translateY(27%) scale(0.95);
-  box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+  transform: translateY(16.2%) scale(0.95); /* Adjusted from 27% */
+  box-shadow: 0 0 3px rgba(255, 215, 0, 0.3); /* Reduced from 5px */
 }
 
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+  70% { box-shadow: 0 0 0 6px rgba(255, 215, 0, 0); } /* Reduced from 10px */
   100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
 }
 
