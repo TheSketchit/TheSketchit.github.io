@@ -58,7 +58,6 @@ button:hover {
 .parchment-table-top,
 .parchment-table-bottom {
   display: flex;
-  height: 30px; /* Adjust based on your GIF height */
 }
 
 .parchment-table-middle {
@@ -69,21 +68,17 @@ button:hover {
 .parchment-table-top-right,
 .parchment-table-bottom-left,
 .parchment-table-bottom-right {
-  width: 30px; /* Adjust based on your GIF width */
-  height: 30px; /* Adjust based on your GIF height */
   flex-shrink: 0;
 }
 
 .parchment-table-top-middle,
 .parchment-table-bottom-middle {
   flex-grow: 1;
-  height: 30px; /* Adjust based on your GIF height */
 }
 
 .parchment-table-left,
 .parchment-table-right {
-  width: 30px; /* Adjust based on your GIF width */
-  background-repeat: repeat-y;
+  flex-shrink: 0;
 }
 
 .parchment-table-content {
@@ -94,34 +89,46 @@ button:hover {
 
 /* GIF backgrounds */
 .parchment-table-top-left {
+  width: 12px;
+  height: 12px;
   background: url('../images/parchborder-top-left.gif') no-repeat;
 }
 
 .parchment-table-top-middle {
+  height: 12px;
   background: url('../images/parchborder-top.gif') repeat-x;
 }
 
 .parchment-table-top-right {
+  width: 14px;
+  height: 12px;
   background: url('../images/parchborder-top-right.gif') no-repeat;
 }
 
 .parchment-table-left {
+  width: 13px;
   background: url('../images/parchborder-left.gif') repeat-y;
 }
 
 .parchment-table-right {
+  width: 14px;
   background: url('../images/parchborder-right.gif') repeat-y;
 }
 
 .parchment-table-bottom-left {
+  width: 12px;
+  height: 14px;
   background: url('../images/parchborder-bot-left.gif') no-repeat;
 }
 
 .parchment-table-bottom-middle {
+  height: 14px;
   background: url('../images/parchborder-bot.gif') repeat-x;
 }
 
 .parchment-table-bottom-right {
+  width: 14px;
+  height: 14px;
   background: url('../images/parchborder-bot-right.gif') no-repeat;
 }
 
