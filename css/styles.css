@@ -9,9 +9,10 @@ body {
 
 .top-banner {
   background: url('../images/paneltop.jpg') repeat-x;
-  height: 62px; /* Height of your banner image */
+  height: 62px;
   width: 100%;
   position: relative;
+  overflow: hidden;
 }
 
 .container {
@@ -24,12 +25,12 @@ body {
 #auth-container {
   position: absolute;
   top: 50%;
-  right: 20px;
+  right: 40px;
   transform: translateY(-50%);
 }
 
 #auth-container button {
-  background-color: #4a4a4a;
+  background-color: transparent;
   color: #ffd700;
   border: none;
   padding: 5px 10px;
@@ -42,24 +43,6 @@ h1 {
   color: #ffd700;
   font-size: 3em;
   margin-bottom: 20px;
-}
-
-.top-banner::before,
-.top-banner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1000px; /* or more, to ensure coverage */
-  background: url('../images/paneltop.jpg') repeat-x;
-}
-
-.top-banner::before {
-  right: 100%;
-}
-
-.top-banner::after {
-  left: 100%;
 }
 
 label, input, textarea, button, th, td, .dropbtn, .dropdown-item {
@@ -126,7 +109,7 @@ button:hover {
 
 .parchment-table-content {
   flex-grow: 1;
-  background-color: #f0e6d2; /* Parchment-like color */
+  background-color: #f0e6d2;
   padding: 10px;
 }
 
@@ -207,13 +190,13 @@ button:hover {
   background-color: #ebe3d3;
 }
 
-#lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; } /* Item */
-#lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; } /* From */
-#lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; } /* Name */
-#lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; } /* Class */
-#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; } /* Spec */
-#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; } /* Raid Date */
-#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; } /* SR Points */
+#lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; }
+#lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; }
+#lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; }
+#lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; }
+#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; }
+#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; }
+#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; }
 
 /* Sorting indicators */
 th::after {
