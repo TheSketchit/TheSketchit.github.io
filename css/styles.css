@@ -48,77 +48,77 @@ button:hover {
   background-color: #777;
 }
 
+/* Parchment Table styles */
 .parchment-table-container {
   width: 100%;
   margin: 20px auto;
+  overflow: hidden;
 }
 
 .parchment-table-top,
-.parchment-table-bottom {
-  display: flex;
-  height: 30px; /* Adjust based on your GIF height */
-}
-
+.parchment-table-bottom,
 .parchment-table-middle {
   display: flex;
+  margin: -1px 0;
 }
 
 .parchment-table-top-left,
 .parchment-table-top-right,
 .parchment-table-bottom-left,
 .parchment-table-bottom-right {
-  width: 30px; /* Adjust based on your GIF width */
-  height: 30px; /* Adjust based on your GIF height */
+  width: 32px;
+  height: 32px;
+  margin: -1px;
 }
 
 .parchment-table-top-middle,
 .parchment-table-bottom-middle {
   flex-grow: 1;
-  height: 30px; /* Adjust based on your GIF height */
+  height: 30px;
 }
 
 .parchment-table-left,
 .parchment-table-right {
-  width: 30px; /* Adjust based on your GIF width */
+  width: 30px;
 }
 
 .parchment-table-content {
   flex-grow: 1;
-  background-color: #f0e6d2; /* Parchment-like color */
+  background-color: #f0e6d2;
   padding: 10px;
 }
 
 /* GIF backgrounds */
 .parchment-table-top-left {
-  background: url('../images/parchborder-top-left.gif') no-repeat;
+  background: url('../images/parchborder-top-left.gif') no-repeat top left;
 }
 
 .parchment-table-top-middle {
-  background: url('../images/parchborder-top.gif') repeat-x;
+  background: url('../images/parchborder-top.gif') repeat-x top;
 }
 
 .parchment-table-top-right {
-  background: url('../images/parchborder-top-right.gif') no-repeat;
+  background: url('../images/parchborder-top-right.gif') no-repeat top right;
 }
 
 .parchment-table-left {
-  background: url('../images/parchborder-left.gif') repeat-y;
+  background: url('../images/parchborder-left.gif') repeat-y left;
 }
 
 .parchment-table-right {
-  background: url('../images/parchborder-right.gif') repeat-y;
+  background: url('../images/parchborder-right.gif') repeat-y right;
 }
 
 .parchment-table-bottom-left {
-  background: url('../images/parchborder-bot-left.gif') no-repeat;
+  background: url('../images/parchborder-bot-left.gif') no-repeat bottom left;
 }
 
 .parchment-table-bottom-middle {
-  background: url('../images/parchborder-bot.gif') repeat-x;
+  background: url('../images/parchborder-bot.gif') repeat-x bottom;
 }
 
 .parchment-table-bottom-right {
-  background: url('../images/parchborder-bot-right.gif') no-repeat;
+  background: url('../images/parchborder-bot-right.gif') no-repeat bottom right;
 }
 
 /* Table styles */
@@ -286,7 +286,7 @@ th.sort-asc, th.sort-desc {
   background-color: #555;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   border-color: #666;
-  user-select: none; /* Prevent text selection */
+  user-select: none;
 }
 
 .dropdown:hover .dropdown-content {
@@ -315,7 +315,7 @@ th.sort-asc, th.sort-desc {
   display: inline-block;
   text-align: center;
   position: relative;
-  z-index: 1; /* Ensure clickable area */
+  z-index: 1;
   box-shadow: inset 1px 1px 5px #fff, inset -1px -1px 5px #000;
 }
 
