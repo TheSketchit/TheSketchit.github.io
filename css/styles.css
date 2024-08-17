@@ -24,7 +24,7 @@ body {
 
 #auth-container {
   position: absolute;
-  top: 50%;
+  top: 75%;
   right: 40px;
   transform: translateY(-50%);
 }
@@ -36,6 +36,7 @@ body {
   padding: 5px 10px;
   cursor: pointer;
   font-size: 14px;
+  transform: translateY(25%); /* Added to push the button down a bit more */
 }
 
 h1 {
