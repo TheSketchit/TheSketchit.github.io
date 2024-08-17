@@ -48,32 +48,108 @@ button:hover {
   background-color: #777;
 }
 
-/* Table styles */
-table {
+/* Parchment Table styles */
+.parchment-table-container {
   width: 100%;
-  margin-top: 20px;
-  border-collapse: separate;
-  border-spacing: 0;
-  background-color: #2c2c2c;
-  table-layout: auto;
+  margin: 20px auto;
 }
 
-th, td {
-  border: 1px solid #444;
+.parchment-table-top,
+.parchment-table-bottom {
+  display: flex;
+  height: 30px; /* Adjust based on your GIF height */
+}
+
+.parchment-table-top-left,
+.parchment-table-top-right,
+.parchment-table-bottom-left,
+.parchment-table-bottom-right {
+  width: 30px; /* Adjust based on your GIF width */
+  height: 30px; /* Adjust based on your GIF height */
+}
+
+.parchment-table-top-middle,
+.parchment-table-bottom-middle {
+  flex-grow: 1;
+  height: 30px; /* Adjust based on your GIF height */
+}
+
+.parchment-table-middle {
+  display: flex;
+}
+
+.parchment-table-content {
+  flex-grow: 1;
+  background-color: #f0e6d2; /* Parchment-like color */
+  padding: 10px;
+}
+
+/* GIF backgrounds */
+.parchment-table-top-left {
+  background: url('images/parchborder-top-left.gif') no-repeat;
+}
+
+.parchment-table-top-middle {
+  background: url('images/parchborder-top.gif') repeat-x;
+}
+
+.parchment-table-top-right {
+  background: url('images/parchborder-top-right.gif') no-repeat;
+}
+
+.parchment-table-bottom-left {
+  background: url('images/parchborder-bot-left.gif') no-repeat;
+}
+
+.parchment-table-bottom-middle {
+  background: url('images/parchborder-bot.gif') repeat-x;
+}
+
+.parchment-table-bottom-right {
+  background: url('images/parchborder-bot-right.gif') no-repeat;
+}
+
+/* Table styles */
+#lootTable {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: transparent;
+}
+
+#lootTable th, #lootTable td {
+  border: 1px solid #d3c5a1;
   padding: 8px;
   text-align: left;
-  color: #e2e2e2;
+  color: #333;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-th {
-  background-color: #444;
+#lootTable th {
+  background-color: #e0d5b7;
+  font-weight: bold;
   position: relative;
   padding-right: 20px;
 }
 
+#lootTable tr:nth-child(even) {
+  background-color: #f7f3e9;
+}
+
+#lootTable tr:hover {
+  background-color: #ebe3d3;
+}
+
+#lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; } /* Item */
+#lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; } /* From */
+#lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; } /* Name */
+#lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; } /* Class */
+#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; } /* Spec */
+#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; } /* Raid Date */
+#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; } /* SR Points */
+
+/* Sorting indicators */
 th::after {
   content: '';
   position: absolute;
@@ -87,37 +163,16 @@ th::after {
 }
 
 th.sort-asc::after {
-  border-bottom: 5px solid #ffd700;
+  border-bottom: 5px solid #333;
 }
 
 th.sort-desc::after {
-  border-top: 5px solid #ffd700;
+  border-top: 5px solid #333;
 }
 
 th.sort-asc, th.sort-desc {
-  background-color: #555;
+  background-color: #d3c5a1;
 }
-
-th:hover {
-  background-color: #555;
-}
-
-tr:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  border-color: #666;
-}
-
-td:hover {
-  border: 2px solid #666;
-}
-
-#lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; } /* Item */
-#lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; } /* From */
-#lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; } /* Name */
-#lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; } /* Class */
-#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; } /* Spec */
-#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; } /* Raid Date */
-#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; } /* SR Points */
 
 /* Notice styles */
 .notice {
@@ -287,4 +342,3 @@ td:hover {
     transform: translateY(-5px);
   }
 }
-
