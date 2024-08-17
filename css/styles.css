@@ -4,19 +4,62 @@ body {
   color: #e2e2e2;
   text-align: center;
   margin: 0;
-  padding: 20px;
+  padding: 0;
+}
+
+.top-banner {
+  background: url('../images/paneltop.jpg') repeat-x;
+  height: 62px; /* Height of your banner image */
+  width: 100%;
+  position: relative;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+  position: relative;
+}
+
+#auth-container {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+}
+
+#auth-container button {
+  background-color: #4a4a4a;
+  color: #ffd700;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 h1 {
+  padding-top: 20px;
   color: #ffd700;
   font-size: 3em;
   margin-bottom: 20px;
+}
+
+.top-banner::before,
+.top-banner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1000px; /* or more, to ensure coverage */
+  background: url('../images/paneltop.jpg') repeat-x;
+}
+
+.top-banner::before {
+  right: 100%;
+}
+
+.top-banner::after {
+  left: 100%;
 }
 
 label, input, textarea, button, th, td, .dropbtn, .dropdown-item {
