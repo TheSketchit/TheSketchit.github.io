@@ -107,11 +107,17 @@ h1 {
 }
 
 .button-row-container::before,
-.button-row-container::after {
+.button-row-container::after,
+.button-row-top,
+.button-row-bottom {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
+}
+
+.button-row-container::before,
+.button-row-container::after {
+  top: 34px;
+  bottom: 34px;
   width: 9px;
 }
 
@@ -127,20 +133,19 @@ h1 {
 
 .button-row-top,
 .button-row-bottom {
-  position: absolute;
   left: 9px;
   right: 9px;
   height: 34px;
-  background: url('../images/greyandgold-top.gif') repeat-x;
 }
 
 .button-row-top {
   top: 0;
+  background: url('../images/greyandgold-top.gif') repeat-x;
 }
 
 .button-row-bottom {
   bottom: 0;
-  background-image: url('../images/greyandgold-bot.gif');
+  background: url('../images/greyandgold-bot.gif') repeat-x;
 }
 
 .button-row-top::before,
@@ -155,21 +160,25 @@ h1 {
 
 .button-row-top::before {
   left: -9px;
+  top: 0;
   background: url('../images/greyandgold-top-left.gif') no-repeat;
 }
 
 .button-row-top::after {
   right: -9px;
+  top: 0;
   background: url('../images/greyandgold-top-right.gif') no-repeat;
 }
 
 .button-row-bottom::before {
   left: -9px;
+  bottom: 0;
   background: url('../images/greyandgold-bot-left.gif') no-repeat;
 }
 
 .button-row-bottom::after {
   right: -9px;
+  bottom: 0;
   background: url('../images/greyandgold-bot-right.gif') no-repeat;
 }
 
