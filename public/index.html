@@ -38,21 +38,36 @@
     <div id="filterIndicator" style="display: none;"></div>
     <button onclick="clearFilter()" id="clearFilterButton" style="display: none;">Clear Filter</button>
     
-    <table id="lootTable">
-      <thead>
-        <tr>
-          <th onclick="sortTable('Item')">Item</th>
-          <th onclick="sortTable('From')">From</th>
-          <th onclick="sortTable('Name')">Name</th>
-          <th onclick="sortTable('Class')">Class</th>
-          <th onclick="sortTable('Spec')">Spec</th>
-          <th onclick="sortTable('RaidDate')">Raid Date</th>
-          <th onclick="sortTable('SRPoints')">SR Points</th>
-        </tr>
-      </thead>
-      <tbody>
-      </tbody>
-    </table>
+  <div class="parchment-table-container">
+    <div class="parchment-table-top">
+      <div class="parchment-table-top-left"></div>
+      <div class="parchment-table-top-middle"></div>
+      <div class="parchment-table-top-right"></div>
+    </div>
+    <div class="parchment-table-middle">
+      <div class="parchment-table-content">
+        <table id="lootTable">
+          <thead>
+            <tr>
+              <th onclick="sortTable('Item')">Item</th>
+              <th onclick="sortTable('From')">From</th>
+              <th onclick="sortTable('Name')">Name</th>
+              <th onclick="sortTable('Class')">Class</th>
+              <th onclick="sortTable('Spec')">Spec</th>
+              <th onclick="sortTable('RaidDate')">Raid Date</th>
+              <th onclick="sortTable('SRPoints')">SR Points</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="parchment-table-bottom">
+      <div class="parchment-table-bottom-left"></div>
+      <div class="parchment-table-bottom-middle"></div>
+      <div class="parchment-table-bottom-right"></div>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
@@ -210,7 +225,7 @@
     }
 
     function displayData(data) {
-      const tableBody = document.getElementById('lootTable').getElementsByTagName('tbody')[0];
+      const tableBody = document.querySelector('#lootTable tbody');
       tableBody.innerHTML = '';
       data.forEach(row => {
         const tr = document.createElement('tr');
