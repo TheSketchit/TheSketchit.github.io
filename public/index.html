@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
-  
   <div class="top-banner">
     <div class="container">
       <div id="auth-container">
@@ -15,10 +14,10 @@
       </div>
     </div>
   </div>
-  
+
   <div class="container">
     <h1>WoW Soft Reserve Loot Tracker</h1>
-
+    
     <div id="tracker-container" style="display:none;">
       <div id="duplicate-message-container"></div>
       <label for="raidDate" id="raidDateLabel">Raid Date:</label>
@@ -26,7 +25,7 @@
       <textarea id="csvInput" rows="10" cols="100"></textarea><br>
       <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
       <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
-
+      
       <div class="chevron-navigation">
         <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
         <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
@@ -36,8 +35,7 @@
 
       <div class="dropdown">
         <button class="dropbtn">Soft-Reserves Raid Dates</button>
-        <div class="dropdown-content" id="viewRaidDate">
-        </div>
+        <div class="dropdown-content" id="viewRaidDate"></div>
       </div>
 
       <div id="filterIndicator" style="display: none;"></div>
@@ -64,8 +62,7 @@
                   <th onclick="sortTable('SRPoints')">SR Points</th>
                 </tr>
               </thead>
-              <tbody>
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
           <div class="parchment-table-right"></div>
@@ -84,7 +81,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
   <script>
-
+    
     var firebaseConfig = {
       apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
       authDomain: "wowsr-9ec27.firebaseapp.com",
