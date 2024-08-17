@@ -48,7 +48,6 @@ button:hover {
   background-color: #777;
 }
 
-/* Parchment Table styles */
 .parchment-table-container {
   width: 100%;
   margin: 20px auto;
@@ -58,6 +57,10 @@ button:hover {
 .parchment-table-bottom {
   display: flex;
   height: 30px; /* Adjust based on your GIF height */
+}
+
+.parchment-table-middle {
+  display: flex;
 }
 
 .parchment-table-top-left,
@@ -74,8 +77,9 @@ button:hover {
   height: 30px; /* Adjust based on your GIF height */
 }
 
-.parchment-table-middle {
-  display: flex;
+.parchment-table-left,
+.parchment-table-right {
+  width: 30px; /* Adjust based on your GIF width */
 }
 
 .parchment-table-content {
@@ -84,6 +88,7 @@ button:hover {
   padding: 10px;
 }
 
+/* GIF backgrounds */
 .parchment-table-top-left {
   background: url('../images/parchborder-top-left.gif') no-repeat;
 }
@@ -94,6 +99,14 @@ button:hover {
 
 .parchment-table-top-right {
   background: url('../images/parchborder-top-right.gif') no-repeat;
+}
+
+.parchment-table-left {
+  background: url('../images/parchborder-left.gif') repeat-y;
+}
+
+.parchment-table-right {
+  background: url('../images/parchborder-right.gif') repeat-y;
 }
 
 .parchment-table-bottom-left {
