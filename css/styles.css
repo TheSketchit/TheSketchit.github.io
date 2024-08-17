@@ -84,29 +84,28 @@ button:hover {
   padding: 10px;
 }
 
-/* GIF backgrounds */
 .parchment-table-top-left {
-  background: url('/images/parchborder-top-left.gif') no-repeat;
+  background: url('../images/parchborder-top-left.gif') no-repeat;
 }
 
 .parchment-table-top-middle {
-  background: url('/images/parchborder-top.gif') repeat-x;
+  background: url('../images/parchborder-top.gif') repeat-x;
 }
 
 .parchment-table-top-right {
-  background: url('/images/parchborder-top-right.gif') no-repeat;
+  background: url('../images/parchborder-top-right.gif') no-repeat;
 }
 
 .parchment-table-bottom-left {
-  background: url('/images/parchborder-bot-left.gif') no-repeat;
+  background: url('../images/parchborder-bot-left.gif') no-repeat;
 }
 
 .parchment-table-bottom-middle {
-  background: url('/images/parchborder-bot.gif') repeat-x;
+  background: url('../images/parchborder-bot.gif') repeat-x;
 }
 
 .parchment-table-bottom-right {
-  background: url('/images/parchborder-bot-right.gif') no-repeat;
+  background: url('../images/parchborder-bot-right.gif') no-repeat;
 }
 
 /* Table styles */
