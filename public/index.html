@@ -239,19 +239,25 @@
           const td = document.createElement('td');
           if (key === 'Item') {
             const a = document.createElement('a');
-            a.href = '#';
-            a.setAttribute('data-wowhead', `item=${row.ItemId}&domain=classic`);
-            a.setAttribute('data-wh-icon-size', 'small');
-            a.setAttribute('data-wh-rename-link', 'true');
+            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
+            a.target = '_blank';
             a.className = 'item-row notranslate d-block q1 q3';
             a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
             td.appendChild(a);
+          } else if (key === 'Name') {
+            const span = document.createElement('span');
+            span.textContent = row[key];
+            span.className = 'player-name';
+            span.onclick = (event) => {
+              event.stopPropagation(); // Prevent cell click event
+              window.open(`https://atlasforge.gg/wow-classic/armory/us/wild-growth/${row[key]}`, '_blank');
+            };
+            td.appendChild(span);
           } else {
             td.textContent = row[key];
           }
-          td.style.cursor = 'pointer';
           td.onclick = (event) => {
-            if (event.target === td || event.target.tagName !== 'A') {
+            if (event.target === td) { // Only filter if the cell itself was clicked
               filterByColumn(key, row[key]);
             }
           };
