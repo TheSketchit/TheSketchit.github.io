@@ -10,9 +10,27 @@
   width: 900px;
   left: -200px;
   bottom: -350px;
-  background: linear-gradient(to bottom, #ff6a00, #ff0000);
+  background: radial-gradient(ellipse at center, rgba(255,106,0,0.6) 0%, rgba(255,0,0,0.2) 70%, rgba(255,0,0,0) 100%);
   border-radius: 50% 50% 0 0;
   z-index: 999;
+  animation: fire-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes fire-glow {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@media (min-width: 960px) {
+  .fire {
+    display: block;
+  }
 }
 
 @media (min-width: 960px) {
@@ -79,6 +97,7 @@
   background: radial-gradient(circle at center, rgba(255,215,0,0.8) 0%, rgba(255,106,0,0.4) 65%, rgba(255,0,0,0) 100%);
   box-shadow: 0 0 10px 2px rgba(255,106,0,0.4);
   animation: rise 3s ease-in infinite;
+  opacity: 0.3;
 }
 
 @keyframes rise {
@@ -87,7 +106,7 @@
     transform: translateY(0) scale(0.3);
   }
   50% {
-    opacity: 1;
+    opacity: 0.3;
   }
   100% {
     opacity: 0;
@@ -100,55 +119,49 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40px; /* Reduced height for subtlety */
-  background: linear-gradient(to top, 
-    rgba(0, 0, 0, 0.8) 0%,     /* Almost black at the bottom */
-    rgba(139, 0, 0, 0.4) 40%,  /* Dark red */
-    rgba(255, 69, 0, 0.2) 70%, /* Dark orange, very transparent */
-    rgba(255, 165, 0, 0.1) 85%, /* Light orange, extremely transparent */
-    rgba(0, 0, 0, 0) 100%      /* Fade to transparent */
+  height: 150px;
+  background: linear-gradient(to top,
+    rgba(255, 30, 0, 0.4) 0%,
+    rgba(255, 60, 0, 0.3) 20%,
+    rgba(255, 90, 0, 0.2) 40%,
+    rgba(255, 120, 0, 0.1) 60%,
+    rgba(255, 150, 0, 0.05) 80%,
+    rgba(0, 0, 0, 0) 100%
   );
   z-index: 998;
   pointer-events: none;
+  opacity: 0;
+  animation: fire-pulse 8s ease-in-out infinite;
 }
 
-.fire-gradient::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 15px; /* Mountain silhouette height */
-  background-image: 
-    radial-gradient(2px 2px at 20px 30px, #FAF1E4, transparent),
-    radial-gradient(2px 2px at 40px 70px, #FAF1E4, transparent),
-    radial-gradient(2px 2px at 50px 160px, #FAF1E4, transparent),
-    radial-gradient(2px 2px at 90px 40px, #FAF1E4, transparent),
-    radial-gradient(2px 2px at 130px 80px, #FAF1E4, transparent),
-    radial-gradient(2px 2px at 160px 120px, #FAF1E4, transparent),
-    url('data:image/svg+xml,<svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 100 C 20 80 50 80 70 100 90 80 120 80 140 100 160 80 190 80 210 100 230 80 260 80 280 100 300 80 330 80 350 100 350 100 0 100 0 100 Z" fill="black"/></svg>');
-  background-size: 300px 100px;
-  background-repeat: repeat-x;
-  opacity: 0.7;
-  filter: blur(3px);
+@keyframes fire-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    height: 150px;
+  }
+  50% {
+    opacity: 0.6;
+    height: 180px;
+  }
 }
 
 .fire-gradient::after {
   content: '';
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  top: 0;
   background: inherit;
-  filter: blur(5px);
+  filter: blur(20px);
+  animation: fire-blur 10s ease-in-out infinite alternate;
 }
 
-@keyframes subtle-flicker {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 0.65; }
-}
-
-.fire-gradient {
-  animation: subtle-flicker 4s infinite;
+@keyframes fire-blur {
+  0%, 100% {
+    filter: blur(20px);
+  }
+  50% {
+    filter: blur(25px);
+  }
 }
