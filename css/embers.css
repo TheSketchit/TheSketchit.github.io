@@ -17,8 +17,9 @@
   background: radial-gradient(circle at center, rgba(255,215,0,0.9) 0%, rgba(255,106,0,0.5) 65%, rgba(255,0,0,0) 100%);
   box-shadow: 
     0 0 10px 2px rgba(255,106,0,0.6),
-    0 0 20px 4px rgba(255,106,0,0.3);
-  animation: rise 3s ease-in infinite;
+    0 0 20px 4px rgba(255,106,0,0.3),
+    0 0 30px 6px rgba(255,215,0,0.2);
+  animation: rise 3s ease-in infinite, glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes rise {
@@ -35,26 +36,41 @@
   }
 }
 
+@keyframes glow {
+  0% {
+    box-shadow: 
+      0 0 10px 2px rgba(255,106,0,0.6),
+      0 0 20px 4px rgba(255,106,0,0.3),
+      0 0 30px 6px rgba(255,215,0,0.2);
+  }
+  100% {
+    box-shadow: 
+      0 0 15px 3px rgba(255,106,0,0.8),
+      0 0 30px 6px rgba(255,106,0,0.5),
+      0 0 45px 9px rgba(255,215,0,0.3);
+  }
+}
+
 .heat-effect {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100px;
+  height: 200px; /* Increased height */
   background: linear-gradient(to top, 
-    rgba(255, 0, 0, 0.2), 
-    rgba(255, 106, 0, 0.1), 
-    rgba(255, 215, 0, 0.05), 
+    rgba(255, 0, 0, 0.3), 
+    rgba(255, 106, 0, 0.2), 
+    rgba(255, 215, 0, 0.1), 
     transparent
   );
-  filter: blur(10px);
-  opacity: 0.7;
-  animation: flicker 3s infinite alternate;
+  filter: blur(15px);
+  opacity: 0.8;
+  animation: flicker 4s infinite alternate;
 }
 
 @keyframes flicker {
-  0%, 100% { opacity: 0.7; }
-  25% { opacity: 0.6; }
-  50% { opacity: 0.8; }
-  75% { opacity: 0.65; }
+  0%, 100% { opacity: 0.8; transform: scaleY(1); }
+  25% { opacity: 0.7; transform: scaleY(0.95); }
+  50% { opacity: 0.9; transform: scaleY(1.05); }
+  75% { opacity: 0.75; transform: scaleY(0.98); }
 }
