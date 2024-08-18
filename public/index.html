@@ -593,44 +593,13 @@
     
   </script>
   
-  <script>
-    function createEmbers() {
-      const container = document.querySelector('.embers-container');
-      
-      for (let i = 0; i < 50; i++) {
-        createParticle(container);
-      }
-    }
-    
-    function createParticle(container) {
-      const particle = document.createElement('div');
-      particle.className = 'particle';
-      
-      const size = Math.random() * 4 + 2;
-      const left = Math.random() * 100;
-      const swayAmount = Math.random() * 100 - 50;
-      
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.left = `${left}%`;
-      particle.style.setProperty('--sway-amount', `${swayAmount}px`);
-      
-      container.appendChild(particle);
-      
-      particle.addEventListener('animationend', () => {
-        particle.remove();
-        createParticle(container);
-      });
-    }
-    
-    document.addEventListener('DOMContentLoaded', createEmbers);
-    
-  </script>
-
+  <canvas id="emberCanvas"></canvas>
+  <div class="heat-effect"></div>
+  
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
+  <script src="../js/embers.js"></script>
  </div>
-<div class="embers-container"></div>
-<div class="heat-effect"></div>
+
 </body>
 </html>
