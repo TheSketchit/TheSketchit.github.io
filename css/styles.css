@@ -103,8 +103,7 @@ h1 {
   padding: 34px 9px;
   background: url('../images/light.jpg') repeat;
   position: relative;
-  max-width: fit-content;
-  z-index: 10; /* Ensures the bar is above other elements */
+  width: 100%; /* Ensures it stretches across the container */
 }
 
 .button-row-container::before,
@@ -118,11 +117,13 @@ h1 {
 
 .button-row-container::before,
 .button-row-container::after {
-  top: 34px;
-  bottom: 34px;
+  top: 0;
+  bottom: 0;
   width: 9px;
-  z-index: 6; /* These should be above the top and bottom bars */
+  position: absolute;
+  height: 100%; /* Ensures it covers from top to bottom */
 }
+
 
 .button-row-container::before {
   left: 0;
@@ -136,10 +137,11 @@ h1 {
 
 .button-row-top,
 .button-row-bottom {
-  left: 9px;
-  right: 9px;
+  left: 0;
+  right: 0;
   height: 34px;
-  z-index: 7; /* Top and bottom bars should be above the background */
+  position: absolute;
+  width: 100%; /* Ensures it stretches from left to right */
 }
 
 .button-row-top {
@@ -156,32 +158,31 @@ h1 {
 .button-row-top::after,
 .button-row-bottom::before,
 .button-row-bottom::after {
-  content: '';
-  position: absolute;
   width: 9px;
   height: 34px;
+  position: absolute;
 }
 
 .button-row-top::before {
-  left: -9px;
+  left: 0;
   top: 0;
   background: url('../images/greyandgold-top-left.gif') no-repeat;
 }
 
 .button-row-top::after {
-  right: -9px;
+  right: 0;
   top: 0;
   background: url('../images/greyandgold-top-right.gif') no-repeat;
 }
 
 .button-row-bottom::before {
-  left: -9px;
+  left: 0;
   bottom: 0;
   background: url('../images/greyandgold-bot-left.gif') no-repeat;
 }
 
 .button-row-bottom::after {
-  right: -9px;
+  right: 0;
   bottom: 0;
   background: url('../images/greyandgold-bot-right.gif') no-repeat;
 }
