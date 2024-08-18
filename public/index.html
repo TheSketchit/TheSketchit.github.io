@@ -598,10 +598,6 @@
       const embersContainer = document.createElement('div');
       embersContainer.className = 'embers-container';
       document.body.appendChild(embersContainer);
-  
-      const heatEffect = document.createElement('div');
-      heatEffect.className = 'heat-effect';
-      document.body.appendChild(heatEffect);
     
       for (let i = 0; i < 100; i++) {
         createParticle(embersContainer);
@@ -611,34 +607,42 @@
     function createParticle(container) {
       const particle = document.createElement('div');
       particle.className = 'particle';
+      
+      // Randomize particle properties
+      const size = Math.random() * 8 + 2;
+      const riseDuration = Math.random() * 10 + 15; // 15-25 seconds to rise
+      const swayDuration = Math.random() * 3 + 2;
+      const swayAmount = Math.random() * 100 - 50; // -50px to 50px
+      const maxOpacity = Math.random() * 0.4 + 0.6; // 0.6 to 1.0
+      
       particle.style.left = `${Math.random() * 100}%`;
-      particle.style.width = `${Math.random() * 8 + 2}px`;
-      particle.style.height = particle.style.width;
-      particle.style.animationDuration = `${Math.random() * 4 + 6}s, 2s, ${Math.random() * 2 + 3}s`;
-      particle.style.animationDelay = `${Math.random() * 5}s, 0s, ${Math.random() * 2}s`;
-      particle.style.setProperty('--sway-amount', Math.random() * 60 - 30);
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.setProperty('--rise-duration', `${riseDuration}s`);
+      particle.style.setProperty('--sway-duration', `${swayDuration}s`);
+      particle.style.setProperty('--sway-amount', swayAmount);
+      particle.style.setProperty('--max-opacity', maxOpacity);
+    
       container.appendChild(particle);
     
-      particle.addEventListener('animationiteration', (event) => {
-        if (event.animationName === 'rise') {
-          particle.remove();
-          createParticle(container);
-        }
-      });
+      // Remove and recreate particle after animation completes
+      setTimeout(() => {
+        particle.remove();
+        createParticle(container);
+      }, riseDuration * 1000);
     }
     
     // Call this function when the page loads
     window.addEventListener('load', createEmbers);
-  
+    
     // Ensure the effect persists
     setInterval(() => {
-      const heatEffect = document.querySelector('.heat-effect');
-      if (!heatEffect) {
-        const newHeatEffect = document.createElement('div');
-        newHeatEffect.className = 'heat-effect';
-        document.body.appendChild(newHeatEffect);
+      const embersContainer = document.querySelector('.embers-container');
+      if (!embersContainer) {
+        createEmbers();
       }
     }, 1000);
+    
   </script>
 
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
