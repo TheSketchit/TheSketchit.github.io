@@ -599,7 +599,11 @@
       embersContainer.className = 'embers-container';
       document.body.appendChild(embersContainer);
     
-      for (let i = 0; i < 100; i++) {
+      const heatEffect = document.createElement('div');
+      heatEffect.className = 'heat-effect';
+      document.body.appendChild(heatEffect);
+    
+      for (let i = 0; i < 50; i++) {
         createParticle(embersContainer);
       }
     }
@@ -608,12 +612,11 @@
       const particle = document.createElement('div');
       particle.className = 'particle';
       
-      // Randomize particle properties
-      const size = Math.random() * 8 + 2;
-      const riseDuration = Math.random() * 10 + 15; // 15-25 seconds to rise
+      const size = Math.random() * 4 + 1; 
+      const riseDuration = Math.random() * 8 + 8; 
       const swayDuration = Math.random() * 3 + 2;
-      const swayAmount = Math.random() * 100 - 50; // -50px to 50px
-      const maxOpacity = Math.random() * 0.4 + 0.6; // 0.6 to 1.0
+      const swayAmount = Math.random() * 50 - 25; 
+      const maxOpacity = Math.random() * 0.5 + 0.2; 
       
       particle.style.left = `${Math.random() * 100}%`;
       particle.style.width = `${size}px`;
@@ -631,8 +634,7 @@
         createParticle(container);
       }, riseDuration * 1000);
     }
-    
-    // Call this function when the page loads
+
     window.addEventListener('load', createEmbers);
     
     // Ensure the effect persists
