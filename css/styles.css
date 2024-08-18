@@ -9,12 +9,17 @@ body {
 
 .player-name {
   cursor: pointer;
-  color: #ffd700; /* Gold color */
   text-decoration: none;
 }
 
 .player-name:hover {
+  cursor: pointer;
+  color: #ffd700; /* Gold color */
   text-decoration: underline;
+  text-shadow: 
+    0 0 2px #000,   /* Inner glow */
+    0 0 4px #000,   /* Middle glow */
+    0 0 6px #000;   /* Outer glow */
 }
 
 .top-banner {
