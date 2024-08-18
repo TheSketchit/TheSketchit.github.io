@@ -100,30 +100,20 @@ h1 {
   justify-content: center;
   align-items: center;
   margin: 20px auto;
-  padding: 34px 9px;
+  padding: 0;
   background: url('../images/light.jpg') repeat;
   position: relative;
-  width: 100%; /* Ensures it stretches across the container */
-}
-
-.button-row-container::before,
-.button-row-container::after,
-.button-row-top,
-.button-row-bottom {
-  content: '';
-  position: absolute;
-  z-index: 5; /* Ensures the edges and borders are above the background */
+  width: 100%;
 }
 
 .button-row-container::before,
 .button-row-container::after {
+  content: '';
+  position: absolute;
   top: 0;
   bottom: 0;
   width: 9px;
-  position: absolute;
-  height: 100%; /* Ensures it covers from top to bottom */
 }
-
 
 .button-row-container::before {
   left: 0;
@@ -137,11 +127,12 @@ h1 {
 
 .button-row-top,
 .button-row-bottom {
+  content: '';
+  position: absolute;
   left: 0;
   right: 0;
   height: 34px;
-  position: absolute;
-  width: 100%; /* Ensures it stretches from left to right */
+  width: 100%;
 }
 
 .button-row-top {
