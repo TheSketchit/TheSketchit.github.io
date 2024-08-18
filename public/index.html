@@ -8,13 +8,6 @@
   <link rel="stylesheet" href="../css/embers.css">
 </head>
 <body>
-
-  <div class="background-container">
-    <div class="background-fade"></div>
-  </div>
-
-  <div class="fire-gradient"></div>
-  <div class="embers-container"></div>
   
   <div class="top-banner">
     <div class="container">
@@ -601,27 +594,32 @@
   
   <script>
     function createEmbers() {
-        const embersContainer = document.querySelector('.embers-container');
-        const emberCount = 100; // Increased count for more embers
+      const embersContainer = document.createElement('div');
+      embersContainer.className = 'embers-container';
+      document.body.appendChild(embersContainer);
     
-        for (let i = 0; i < emberCount; i++) {
-            const emberContainer = document.createElement('div');
-            emberContainer.className = 'ember-container';
-            emberContainer.style.setProperty('--rise-duration', `${5000 + Math.random() * 5000}ms`);
-            emberContainer.style.setProperty('--rise-delay', `${Math.random() * 5000}ms`);
-            emberContainer.style.setProperty('--rise-x', `${Math.random() * 50 - 25}px`);
-            emberContainer.style.left = `${Math.random() * 100}%`;
-            emberContainer.style.transform = `scale(${0.5 + Math.random() * 1.5})`;
-    
-            const ember = document.createElement('div');
-            ember.className = 'ember';
-            ember.style.opacity = `${0.5 + Math.random() * 0.5}`;
-            emberContainer.appendChild(ember);
-    
-            embersContainer.appendChild(emberContainer);
-        }
+      for (let i = 0; i < 50; i++) {
+        createParticle(embersContainer);
+      }
     }
     
+    function createParticle(container) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = `${Math.random() * 100}%`;
+      particle.style.width = `${Math.random() * 5 + 5}px`;
+      particle.style.height = particle.style.width;
+      particle.style.animationDuration = `${Math.random() * 3 + 2}s`;
+      particle.style.animationDelay = `${Math.random() * 5}s`;
+      container.appendChild(particle);
+    
+      particle.addEventListener('animationend', () => {
+        particle.remove();
+        createParticle(container);
+      });
+    }
+    
+    // Call this function when the page loads
     window.addEventListener('load', createEmbers);
   </script>
 
