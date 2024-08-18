@@ -1,61 +1,37 @@
 .embers-container {
-  pointer-events: none;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   height: 100vh;
   overflow: hidden;
-  z-index: 1000;
+  pointer-events: none;
 }
 
 .particle {
-  pointer-events: none;
   position: absolute;
   bottom: -10px;
   border-radius: 50%;
   background: radial-gradient(circle at center, rgba(255,215,0,0.9) 0%, rgba(255,106,0,0.5) 65%, rgba(255,0,0,0) 100%);
-  box-shadow: 
-    0 0 5px 1px rgba(255,106,0,0.6),
-    0 0 10px 2px rgba(255,106,0,0.3),
-    0 0 15px 3px rgba(255,215,0,0.2);
-  animation: 
-    rise var(--rise-duration) ease-out forwards, 
-    glow 2s ease-in-out infinite alternate, 
-    sway var(--sway-duration) ease-in-out infinite;
+  box-shadow: 0 0 10px 2px rgba(255,106,0,0.6);
+  animation: rise 8s ease-in infinite;
 }
 
 @keyframes rise {
   0% {
-    opacity: 0;
-    transform: translateY(0) scale(0.3);
+    opacity: 1;
+    transform: translateY(0) translateX(0);
   }
-  10% { opacity: var(--max-opacity); }
-  90% { opacity: var(--max-opacity); }
-  100% {
-    opacity: 0;
-    transform: translateY(-100vh) scale(0.1);
+  50% {
+    opacity: 0.8;
   }
-}
-
-@keyframes glow {
-  0% {
-    box-shadow: 
-      0 0 5px 1px rgba(255,106,0,0.6),
-      0 0 10px 2px rgba(255,106,0,0.3),
-      0 0 15px 3px rgba(255,215,0,0.2);
+  75% {
+    opacity: 0.6;
   }
   100% {
-    box-shadow: 
-      0 0 7px 2px rgba(255,106,0,0.8),
-      0 0 14px 4px rgba(255,106,0,0.5),
-      0 0 21px 6px rgba(255,215,0,0.3);
+    opacity: 0;
+    transform: translateY(-100vh) translateX(var(--sway-amount));
   }
-}
-
-@keyframes sway {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(calc(var(--sway-amount) * 1px)); }
 }
 
 .heat-effect {
@@ -64,36 +40,6 @@
   left: 0;
   right: 0;
   height: 100px;
-  background: 
-    linear-gradient(to top, 
-      rgba(255, 0, 0, 0.1), 
-      rgba(255, 106, 0, 0.05), 
-      rgba(255, 215, 0, 0.02), 
-      transparent 70%
-    ),
-    repeating-radial-gradient(
-      circle at 50% 150%,
-      rgba(255, 69, 0, 0.1),
-      rgba(255, 69, 0, 0.1) 10px,
-      rgba(255, 140, 0, 0.1) 10px,
-      rgba(255, 140, 0, 0.1) 20px
-    );
-  filter: blur(10px);
-  opacity: 0.3;
-  animation: flicker 4s infinite alternate, wave 10s ease-in-out infinite;
-  transform-origin: bottom;
-}
-
-@keyframes flicker {
-  0%, 100% { opacity: 0.3; }
-  25% { opacity: 0.25; }
-  50% { opacity: 0.35; }
-  75% { opacity: 0.28; }
-}
-
-@keyframes wave {
-  0%, 100% { transform: scaleY(1) skew(0deg); }
-  25% { transform: scaleY(1.1) skew(1deg); }
-  50% { transform: scaleY(0.9) skew(-1deg); }
-  75% { transform: scaleY(1.05) skew(0.5deg); }
+  background: linear-gradient(to top, rgba(255,0,0,0.2), transparent);
+  opacity: 0.5;
 }
