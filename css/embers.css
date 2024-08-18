@@ -36,7 +36,7 @@
 
 .ember-container {
   position: absolute;
-  bottom: -10px;
+  bottom: -px;
   width: 2px;
   height: 2px;
   animation: rise var(--rise-duration) ease-in infinite var(--rise-delay);
