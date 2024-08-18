@@ -19,7 +19,9 @@
     0 0 10px 2px rgba(255,106,0,0.6),
     0 0 20px 4px rgba(255,106,0,0.3),
     0 0 30px 6px rgba(255,215,0,0.2);
-  animation: rise 8s ease-in-out infinite, glow 2s ease-in-out infinite alternate, sway 4s ease-in-out infinite;
+  animation: rise var(--rise-duration) ease-out infinite, 
+             glow 2s ease-in-out infinite alternate, 
+             sway var(--sway-duration) ease-in-out infinite;
 }
 
 
@@ -29,8 +31,8 @@
     opacity: 0;
     transform: translateY(0) scale(0.3);
   }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
+  5% { opacity: var(--max-opacity); }
+  95% { opacity: var(--max-opacity); }
   100% {
     opacity: 0;
     transform: translateY(-100vh) scale(0.1);
