@@ -27,28 +27,22 @@
       <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
 
       <div class="button-row-container">
-        <div class="button-row-top"></div>
-        <div class="button-row-bottom"></div>
+        <div class="button-row-top"></div> <!-- Top border or design element -->
         <div class="chevron-navigation">
-          <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
-          <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
-          <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
-          <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
-          <div class="dropdown">
-            <button class="dropbtn">Soft-Reserves Raid Dates</button>
-            <div class="dropdown-content" id="viewRaidDate">
-              <div class="dropdown">
+            <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
+            <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
+            <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
+            <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
+            <div class="dropdown">
                 <button class="dropbtn">Soft-Reserves Raid Dates</button>
-                <div class="dropdown-content" id="viewRaidDate"></div>
-              </div>
+                <div class="dropdown-content" id="viewRaidDate">
+                    <!-- Content here -->
+                </div>
             </div>
-          </div>
         </div>
+        <div class="button-row-bottom"></div> <!-- Bottom border or design element -->
       </div>
 
-      <div id="filterIndicator" style="display: none;"></div>
-      <button onclick="clearFilter()" id="clearFilterButton" style="display: none;">Clear Filter</button>
-      
       <div class="parchment-table-container">
         <div class="parchment-table-top">
           <div class="parchment-table-top-left"></div>
