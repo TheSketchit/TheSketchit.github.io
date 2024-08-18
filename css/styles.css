@@ -104,6 +104,7 @@ h1 {
   background: url('../images/light.jpg') repeat;
   position: relative;
   max-width: fit-content;
+  z-index: 10; /* Ensures the bar is above other elements */
 }
 
 .button-row-container::before,
@@ -112,6 +113,7 @@ h1 {
 .button-row-bottom {
   content: '';
   position: absolute;
+  z-index: 5; /* Ensures the edges and borders are above the background */
 }
 
 .button-row-container::before,
@@ -119,6 +121,7 @@ h1 {
   top: 34px;
   bottom: 34px;
   width: 9px;
+  z-index: 6; /* These should be above the top and bottom bars */
 }
 
 .button-row-container::before {
@@ -136,6 +139,7 @@ h1 {
   left: 9px;
   right: 9px;
   height: 34px;
+  z-index: 7; /* Top and bottom bars should be above the background */
 }
 
 .button-row-top {
@@ -371,9 +375,9 @@ h1 {
 #lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; }
 #lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; }
 #lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; }
-#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; }
-#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; }
-#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; }
+#lootTable th:nth-child(5), #lootTable td:nth.child(5) { width: 10%; }
+#lootTable th:nth.child(6), #lootTable td:nth.child(6) { width: 15%; }
+#lootTable th:nth.child(7), #lootTable td:nth.child(7) { width: 10%; }
 
 /* Sorting indicators */
 th::after {
@@ -443,7 +447,6 @@ th.sort-asc, th.sort-desc {
   border-radius: 5px;
   text-align: left;
 }
-
 
 /* Keyframes for glowing border animation */
 @keyframes glow {
