@@ -1,97 +1,143 @@
-.fire-gradient {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 50%;
-    background: linear-gradient(
-        to top,
-        rgba(255, 87, 34, 0.8),
-        rgba(255, 140, 0, 0.6),
-        rgba(255, 193, 7, 0.3),
-        rgba(255, 235, 59, 0.2)
-    );
-    pointer-events: none;
+.fire {
+  display: none;
+  filter: blur(1em);
+  position: fixed;
+  pointer-events: none;
+  height: 3em;
+  margin: 50px auto 0 auto;
+  background: linear-gradient(to bottom, #ff6a00, #ff0000);
+  border-radius: 50% 50% 0 0;
+  z-index: 999;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-@keyframes fire-pulse {
-  0%, 100% { opacity: 0.4; height: 200px; }
-  50% { opacity: 0.5; height: 220px; }
+@media (min-width: 480px) {
+  .fire {
+    display: block;
+    width: 1100px;
+    bottom: -345px;
+  }
+}
+
+@media (min-width: 720px) {
+  .fire {
+    width: 1500px;
+  }
+}
+
+@media (min-width: 960px) {
+  .fire {
+    width: 1600px;
+    bottom: -340px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .fire {
+    width: 1800px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .fire {
+    width: 2000px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .fire {
+    width: 3000px;
+    bottom: -305px;
+  }
 }
 
 .embers-container {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 1;
+  pointer-events: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  overflow: hidden;
+  z-index: 1000;
 }
 
-.ember-container {
-    position: absolute;
-    bottom: 0;
-    width: 10px;
-    height: 10px;
-    opacity: 0.7;
-    animation: rise var(--rise-duration) ease-out infinite;
-    transform: translateX(var(--rise-x));
-    z-index: 2;
-}
-
-.ember-container {
+.particle {
+  pointer-events: none;
   position: absolute;
-  bottom: -px;
-  width: 2px;
-  height: 2px;
-  animation: rise var(--rise-duration) ease-in infinite var(--rise-delay);
-}
-
-.ember {
-    width: 100%;
-    height: 100%;
-    background-color: rgba(255, 87, 34, 1);
-    box-shadow: 0 0 15px 5px rgba(255, 87, 34, 0.5), 
-                0 0 30px 15px rgba(255, 193, 7, 0.3);
-    border-radius: 50%;
+  bottom: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255,215,0,0.8) 0%, rgba(255,106,0,0.4) 65%, rgba(255,0,0,0) 100%);
+  box-shadow: 0 0 10px 2px rgba(255,106,0,0.4);
+  animation: rise 3s ease-in infinite;
 }
 
 @keyframes rise {
-    0% {
-        transform: translateY(100%) translateX(var(--rise-x));
-        opacity: 1;
-    }
-    80% {
-        opacity: 0.7;
-    }
-    100% {
-        transform: translateY(-150%) translateX(calc(var(--rise-x) * 2));
-        opacity: 0;
-    }
-}
-
-@keyframes flicker {
-    0%, 100% { opacity: 0.9; transform: scale(1.05); }
-    50% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.3);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100vh) scale(0.1);
+  }
 }
 
 .fire-gradient {
-    animation: flicker 3s infinite alternate ease-in-out;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px; /* Subtle height for gradient */
+  background: linear-gradient(to top, 
+    rgba(0, 0, 0, 0.8) 0%,     /* Dark base */
+    rgba(139, 0, 0, 0.4) 40%,  /* Dark red */
+    rgba(255, 69, 0, 0.2) 70%, /* Dark orange */
+    rgba(255, 165, 0, 0.1) 85%, /* Light orange */
+    rgba(0, 0, 0, 0) 100%      /* Transparent fade */
+  );
+  z-index: 998;
+  pointer-events: none;
+  animation: subtle-flicker 4s infinite;
 }
 
-
-@keyframes fade-frames {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 0.6; }
+.fire-gradient::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 15px; /* Mountain silhouette */
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 40px 70px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 50px 160px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 90px 40px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 130px 80px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 160px 120px, #FAF1E4, transparent),
+    url('data:image/svg+xml,<svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 100 C 20 80 50 80 70 100 90 80 120 80 140 100 160 80 190 80 210 100 230 80 260 80 280 100 300 80 330 80 350 100 350 100 0 100 0 100 Z" fill="black"/></svg>');
+  background-size: 300px 100px;
+  background-repeat: repeat-x;
+  opacity: 0.7;
+  filter: blur(3px);
 }
 
-@keyframes scale-frames {
-  0%, 100% { transform: scale3d(0.4, 0.4, 1); }
-  50% { transform: scale3d(1.1, 1.1, 1); }
+.fire-gradient::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  filter: blur(5px);
 }
 
-@keyframes rise {
-  0% { transform: translate3d(0, 0, 0); opacity: 0.8; }
-  100% { transform: translate3d(var(--rise-x), -300px, 0); opacity: 0; }
+@keyframes subtle-flicker {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.65; }
 }
