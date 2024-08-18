@@ -478,7 +478,7 @@ th.sort-asc, th.sort-desc {
   animation: glow 3s infinite alternate, hover 2s infinite ease-in-out;
 }
 
-.chevron, .dropbtn {
+.chevron {
   padding: 10px 20px;
   margin: 0;
   background-color: #0044cc;
