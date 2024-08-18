@@ -614,13 +614,16 @@
       particle.style.left = `${Math.random() * 100}%`;
       particle.style.width = `${Math.random() * 5 + 5}px`;
       particle.style.height = particle.style.width;
-      particle.style.animationDuration = `${Math.random() * 3 + 2}s`;
-      particle.style.animationDelay = `${Math.random() * 5}s`;
+      particle.style.animationDuration = `${Math.random() * 2 + 5}s, 2s, ${Math.random() * 2 + 3}s`;
+      particle.style.animationDelay = `${Math.random() * 5}s, 0s, ${Math.random() * 2}s`;
+      particle.style.setProperty('--sway-amount', Math.random() * 40 - 20);
       container.appendChild(particle);
     
-      particle.addEventListener('animationend', () => {
-        particle.remove();
-        createParticle(container);
+      particle.addEventListener('animationiteration', (event) => {
+        if (event.animationName === 'rise') {
+          particle.remove();
+          createParticle(container);
+        }
       });
     }
     
