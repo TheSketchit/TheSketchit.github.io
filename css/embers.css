@@ -1,26 +1,4 @@
-.embers-container {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.particle {
-  position: absolute;
-  bottom: -10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(255,215,0,0.9) 0%, rgba(255,106,0,0.5) 65%, rgba(255,0,0,0) 100%);
-  box-shadow: 0 0 10px 2px rgba(255,106,0,0.6);
-  animation: rise 8s ease-in infinite;
-}
-
-@keyframes rise {
-  0% {
-    opacity: 1;
-    transform: translateY(0) translateX(0);body, html {
+body, html {
     margin: 0;
     padding: 0;
     overflow: hidden;
@@ -41,61 +19,24 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 150px;
+    height: 200px;
     background: 
         linear-gradient(to top, 
-            rgba(255, 30, 0, 0.2), 
-            rgba(255, 90, 0, 0.1), 
-            rgba(255, 170, 0, 0.05), 
-            transparent 70%
-        ),
-        repeating-radial-gradient(
-            circle at 50% 150%,
-            rgba(255, 69, 0, 0.1),
-            rgba(255, 69, 0, 0.1) 10px,
-            rgba(255, 140, 0, 0.1) 10px,
-            rgba(255, 140, 0, 0.1) 20px
+            rgba(255, 30, 0, 0.3), 
+            rgba(255, 90, 0, 0.2), 
+            rgba(255, 140, 0, 0.1), 
+            transparent 80%
         );
-    filter: blur(10px);
-    opacity: 0.6;
-    animation: flicker 4s infinite alternate, wave 10s ease-in-out infinite;
-    transform-origin: bottom;
+    filter: blur(20px);
+    opacity: 0.7;
+    animation: flicker 4s infinite alternate;
     z-index: 999;
     pointer-events: none;
 }
 
 @keyframes flicker {
-    0%, 100% { opacity: 0.6; }
-    25% { opacity: 0.5; }
-    50% { opacity: 0.7; }
-    75% { opacity: 0.55; }
-}
-
-@keyframes wave {
-    0%, 100% { transform: scaleY(1) skew(0deg); }
-    25% { transform: scaleY(1.1) skew(1deg); }
-    50% { transform: scaleY(0.9) skew(-1deg); }
-    75% { transform: scaleY(1.05) skew(0.5deg); }
-}
-  }
-  50% {
-    opacity: 0.8;
-  }
-  75% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-100vh) translateX(var(--sway-amount));
-  }
-}
-
-.heat-effect {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 100px;
-  background: linear-gradient(to top, rgba(255,0,0,0.2), transparent);
-  opacity: 0.5;
+    0%, 100% { opacity: 0.7; }
+    25% { opacity: 0.6; }
+    50% { opacity: 0.75; }
+    75% { opacity: 0.65; }
 }
