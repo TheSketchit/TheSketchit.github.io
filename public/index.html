@@ -592,43 +592,57 @@
   </script>
 
   <div class="fire-gradient"></div>
-  <div class="embers-container">
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-    <div class="ember-container"><div class="ember"></div></div>
-  </div>
+  <div class="heat-wave"></div>
+  <div class="embers-container"></div>
   
   <script>
     function createEmbers() {
       const embersContainer = document.querySelector('.embers-container');
-      const emberCount = 30; // Adjust as needed
+      const emberCount = 100; // Increased number of embers
     
       for (let i = 0; i < emberCount; i++) {
         const emberContainer = document.createElement('div');
         emberContainer.className = 'ember-container';
-        emberContainer.style.setProperty('--rise-duration', `${5000 + Math.random() * 3000}ms`);
-        emberContainer.style.setProperty('--rise-delay', `${Math.random() * 5000}ms`);
-        emberContainer.style.setProperty('--rise-x', `${Math.random() * 20 - 10}vw`);
+        
+        const riseDuration = 5000 + Math.random() * 5000; // Longer rise duration
+        const riseDelay = Math.random() * 10000; // Longer delay for more variety
+        const riseX = Math.random() * 40 - 20; // Wider horizontal movement
+        
+        emberContainer.style.setProperty('--rise-duration', `${riseDuration}ms`);
+        emberContainer.style.setProperty('--rise-delay', `${riseDelay}ms`);
+        emberContainer.style.setProperty('--rise-x', `${riseX}vw`);
         emberContainer.style.left = `${Math.random() * 100}vw`;
+        emberContainer.style.width = `${1 + Math.random() * 2}px`; // Varied sizes
+        emberContainer.style.height = emberContainer.style.width;
         
         const ember = document.createElement('div');
         ember.className = 'ember';
-        emberContainer.appendChild(ember);
         
+        // Add some color variety to embers
+        const hue = 0 + Math.random() * 30; // Range from red to orange
+        ember.style.backgroundImage = `radial-gradient(hsl(${hue}, 100%, 60%), hsl(${hue}, 100%, 40%) 20%, transparent 56%)`;
+        
+        emberContainer.appendChild(ember);
         embersContainer.appendChild(emberContainer);
       }
     }
     
-    window.addEventListener('load', createEmbers);
+    function createHeatWaves() {
+      const container = document.querySelector('.heat-wave');
+      const waveCount = 3;
+    
+      for (let i = 0; i < waveCount; i++) {
+        const wave = document.createElement('div');
+        wave.className = 'heat-wave';
+        wave.style.animationDelay = `${-i * 6}s`; // Stagger the waves
+        container.appendChild(wave);
+      }
+    }
+    
+    window.addEventListener('load', () => {
+      createEmbers();
+      createHeatWaves();
+    });
   </script>
 
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
