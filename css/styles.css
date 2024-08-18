@@ -7,6 +7,16 @@ body {
   padding: 0;
 }
 
+.player-name {
+  cursor: pointer;
+  color: #ffd700; /* Gold color */
+  text-decoration: none;
+}
+
+.player-name:hover {
+  text-decoration: underline;
+}
+
 .top-banner {
   background: url('../images/paneltop.jpg') repeat-x;
   height: 62px;
