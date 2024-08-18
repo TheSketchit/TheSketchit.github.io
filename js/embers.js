@@ -10,29 +10,44 @@ class Ember {
         this.x = Math.random() * this.canvas.width;
         this.y = this.baseY + Math.random() * 50;
         this.size = Math.random() * 2 + 1;
-        this.speedY = Math.random() * 1 + 0.5;
-        this.speedX = Math.random() * 0.6 - 0.3;
+        this.speedY = Math.random() * 0.8 + 0.2;
+        this.speedX = Math.random() * 0.4 - 0.2;
         this.lifetime = 0;
-        this.maxLifetime = Math.random() * 200 + 100;
+        this.maxLifetime = Math.random() * 400 + 200;
         this.angle = Math.random() * 360;
         this.rotationSpeed = Math.random() * 0.02 - 0.01;
         this.color = `hsl(${Math.random() * 20 + 10}, 100%, ${Math.random() * 40 + 50}%)`;
+        this.zigZag = Math.random() < 0.5;
+        this.zigZagAmplitude = Math.random() * 100 + 50;
+        this.zigZagFrequency = Math.random() * 0.02 + 0.01;
+        this.fadeInOut = Math.random() < 0.5;
     }
 
     update() {
         this.y -= this.speedY;
-        this.x += Math.sin(this.lifetime * 0.1) * this.speedX;
+        if (this.zigZag) {
+            this.x += Math.sin(this.lifetime * this.zigZagFrequency) * this.speedX;
+        } else {
+            this.x += this.speedX;
+        }
         this.lifetime++;
         this.angle += this.rotationSpeed;
-        this.size -= 0.003;
+        this.size -= 0.002;
 
-        if (this.lifetime > this.maxLifetime || this.y < 0 || this.size <= 0) {
+        if (this.lifetime > this.maxLifetime || this.y < 0 || this.size <= 0 || this.x < 0 || this.x > this.canvas.width) {
             this.reset();
         }
     }
 
     draw() {
-        const alpha = Math.min(1, (this.maxLifetime - this.lifetime) / 100);
+        let alpha;
+        if (this.fadeInOut) {
+            alpha = Math.sin((this.lifetime / this.maxLifetime) * Math.PI);
+        } else {
+            alpha = 1 - (this.lifetime / this.maxLifetime);
+        }
+        alpha = Math.max(0, Math.min(1, alpha));
+
         this.ctx.save();
         this.ctx.translate(this.x, this.y);
         this.ctx.rotate(this.angle);
@@ -76,7 +91,7 @@ class EmberEffect {
     }
 
     createEmbers() {
-        const emberCount = Math.floor(this.canvas.width * this.canvas.height / 8000);
+        const emberCount = Math.floor(this.canvas.width * this.canvas.height / 16000); // Reduced by half
         const baseY = this.canvas.height;
         for (let i = 0; i < emberCount; i++) {
             this.embers.push(new Ember(this.canvas, this.ctx, baseY));
