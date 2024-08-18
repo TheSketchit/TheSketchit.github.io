@@ -28,16 +28,17 @@
       <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
       <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
       
-      <div class="chevron-navigation">
-        <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
-        <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
-        <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
-        <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
-      </div>
-
-      <div class="dropdown">
-        <button class="dropbtn">Soft-Reserves Raid Dates</button>
-        <div class="dropdown-content" id="viewRaidDate"></div>
+      <div class="navigation-container">
+        <div class="chevron-navigation">
+          <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
+          <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
+          <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
+          <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
+        </div>
+        <div class="dropdown">
+          <button class="dropbtn">Soft-Reserves Raid Dates</button>
+          <div class="dropdown-content" id="viewRaidDate"></div>
+        </div>
       </div>
 
       <div id="filterIndicator" style="display: none;"></div>
