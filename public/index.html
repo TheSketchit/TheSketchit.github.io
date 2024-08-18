@@ -598,15 +598,15 @@
   <script>
     function createEmbers() {
       const embersContainer = document.querySelector('.embers-container');
-      const emberCount = 50;
+      const emberCount = 40; // Reduced count for subtlety
     
       for (let i = 0; i < emberCount; i++) {
         const emberContainer = document.createElement('div');
         emberContainer.className = 'ember-container';
-        emberContainer.style.setProperty('--rise-duration', `${5000 + Math.random() * 3000}ms`);
-        emberContainer.style.setProperty('--rise-delay', `${Math.random() * 5000}ms`);
-        emberContainer.style.setProperty('--rise-x', `${Math.random() * 20 - 10}vw`);
-        emberContainer.style.left = `${Math.random() * 100}vw`;
+        emberContainer.style.setProperty('--rise-duration', `${7000 + Math.random() * 5000}ms`);
+        emberContainer.style.setProperty('--rise-delay', `${Math.random() * 7000}ms`);
+        emberContainer.style.setProperty('--rise-x', `${Math.random() * 30 - 15}px`);
+        emberContainer.style.left = `${Math.random() * 100}%`;
         
         const ember = document.createElement('div');
         ember.className = 'ember';
