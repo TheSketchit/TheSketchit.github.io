@@ -230,6 +230,11 @@ button:hover {
   background-color: transparent;
 }
 
+#lootTable td {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
 #lootTable th, #lootTable td {
   border: 1px solid #d3c5a1;
   padding: 8px;
@@ -238,6 +243,26 @@ button:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+#lootTable td::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  box-shadow: 
+    0 0 2px #000,   /* Inner glow */
+    0 0 4px #000,   /* Middle glow */
+    0 0 6px #000;   /* Outer glow */
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none; /* Ensures the pseudo-element doesn't interfere with clicks */
+}
+
+#lootTable td:hover::after {
+  opacity: 1;
 }
 
 #lootTable th {
@@ -253,6 +278,12 @@ button:hover {
 
 #lootTable tr:hover {
   background-color: #ebe3d3;
+  position: relative;
+  z-index: 1; /* Ensures the hovered row appears above others */
+}
+
+#lootTable td:hover {
+  color: #333; /* Adjust this color as needed for better contrast */
 }
 
 #lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; }
