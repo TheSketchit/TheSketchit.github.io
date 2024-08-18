@@ -3,24 +3,24 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 150px;
+  height: 200px;
   background: linear-gradient(to top,
-    rgba(255, 30, 0, 0.4) 0%,
-    rgba(255, 60, 0, 0.3) 20%,
-    rgba(255, 90, 0, 0.2) 40%,
-    rgba(255, 120, 0, 0.1) 60%,
-    rgba(255, 150, 0, 0.05) 80%,
+    rgba(59, 0, 0, 0.6) 0%,
+    rgba(99, 14, 14, 0.5) 20%,
+    rgba(139, 28, 28, 0.4) 40%,
+    rgba(179, 42, 42, 0.3) 60%,
+    rgba(219, 56, 56, 0.2) 80%,
     rgba(0, 0, 0, 0) 100%
   );
   z-index: 998;
   pointer-events: none;
-  opacity: 0.6;
-  animation: fire-pulse 8s ease-in-out infinite;
+  opacity: 0.4;
+  animation: fire-pulse 10s ease-in-out infinite;
 }
 
 @keyframes fire-pulse {
-  0%, 100% { opacity: 0.6; height: 150px; }
-  50% { opacity: 0.8; height: 170px; }
+  0%, 100% { opacity: 0.4; height: 200px; }
+  50% { opacity: 0.5; height: 220px; }
 }
 
 .embers-container {
@@ -29,7 +29,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 200px;
+  height: 300px;
   overflow: hidden;
   z-index: 999;
 }
@@ -47,21 +47,21 @@
   height: 100%;
   border-radius: 50%;
   mix-blend-mode: screen;
-  background-image: radial-gradient(#fdaf29, #fd4229 20%, transparent 56%);
-  animation: fade-frames 200ms infinite, scale-frames 2s infinite;
+  background-image: radial-gradient(#ff6347, #8b0000 30%, transparent 70%);
+  animation: fade-frames 300ms infinite, scale-frames 3s infinite;
 }
 
 @keyframes fade-frames {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.6; }
 }
 
 @keyframes scale-frames {
   0%, 100% { transform: scale3d(0.4, 0.4, 1); }
-  50% { transform: scale3d(1.2, 1.2, 1); }
+  50% { transform: scale3d(1.1, 1.1, 1); }
 }
 
 @keyframes rise {
-  0% { transform: translate3d(0, 0, 0); opacity: 1; }
-  100% { transform: translate3d(var(--rise-x), -100vh, 0); opacity: 0; }
+  0% { transform: translate3d(0, 0, 0); opacity: 0.8; }
+  100% { transform: translate3d(var(--rise-x), -300px, 0); opacity: 0; }
 }
