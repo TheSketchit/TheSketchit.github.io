@@ -1,21 +1,17 @@
 .fire-gradient {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 200px;
-  background: linear-gradient(to top,
-    rgba(59, 0, 0, 0.6) 0%,
-    rgba(99, 14, 14, 0.5) 20%,
-    rgba(139, 28, 28, 0.4) 40%,
-    rgba(179, 42, 42, 0.3) 60%,
-    rgba(219, 56, 56, 0.2) 80%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  z-index: 998;
-  pointer-events: none;
-  opacity: 0.4;
-  animation: fire-pulse 10s ease-in-out infinite;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    background: linear-gradient(
+        to top,
+        rgba(255, 87, 34, 0.8),
+        rgba(255, 140, 0, 0.6),
+        rgba(255, 193, 7, 0.3),
+        rgba(255, 235, 59, 0.2)
+    );
+    pointer-events: none;
 }
 
 @keyframes fire-pulse {
@@ -24,14 +20,24 @@
 }
 
 .embers-container {
-  pointer-events: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 300px;
-  overflow: hidden;
-  z-index: 999;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.ember-container {
+    position: absolute;
+    bottom: 0;
+    width: 10px;
+    height: 10px;
+    opacity: 0.7;
+    animation: rise var(--rise-duration) ease-out infinite;
+    transform: translateX(var(--rise-x));
+    z-index: 2;
 }
 
 .ember-container {
@@ -43,13 +49,37 @@
 }
 
 .ember {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  mix-blend-mode: screen;
-  background-image: radial-gradient(#ff6347, #8b0000 30%, transparent 70%);
-  animation: fade-frames 300ms infinite, scale-frames 3s infinite;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 87, 34, 1);
+    box-shadow: 0 0 15px 5px rgba(255, 87, 34, 0.5), 
+                0 0 30px 15px rgba(255, 193, 7, 0.3);
+    border-radius: 50%;
 }
+
+@keyframes rise {
+    0% {
+        transform: translateY(100%) translateX(var(--rise-x));
+        opacity: 1;
+    }
+    80% {
+        opacity: 0.7;
+    }
+    100% {
+        transform: translateY(-150%) translateX(calc(var(--rise-x) * 2));
+        opacity: 0;
+    }
+}
+
+@keyframes flicker {
+    0%, 100% { opacity: 0.9; transform: scale(1.05); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+.fire-gradient {
+    animation: flicker 3s infinite alternate ease-in-out;
+}
+
 
 @keyframes fade-frames {
   0%, 100% { opacity: 0.8; }
