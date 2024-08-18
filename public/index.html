@@ -16,12 +16,12 @@
     </div>
   </div>
 
-  <div class="background-container">
-    <div class="background-fade"></div>
-  </div>
-
   <div class="container">
     <h1>WoW Soft Reserve Loot Tracker</h1>
+
+    <div class="background-container">
+      <div class="background-fade"></div>
+    </div>
     
     <div id="tracker-container" style="display:none;">
       <div id="duplicate-message-container"></div>
@@ -600,23 +600,25 @@
   
   <script>
     function createEmbers() {
-      const embersContainer = document.querySelector('.embers-container');
-      const emberCount = 40; // Reduced count for subtlety
+        const embersContainer = document.querySelector('.embers-container');
+        const emberCount = 100; // Increased count for more embers
     
-      for (let i = 0; i < emberCount; i++) {
-        const emberContainer = document.createElement('div');
-        emberContainer.className = 'ember-container';
-        emberContainer.style.setProperty('--rise-duration', `${7000 + Math.random() * 5000}ms`);
-        emberContainer.style.setProperty('--rise-delay', `${Math.random() * 7000}ms`);
-        emberContainer.style.setProperty('--rise-x', `${Math.random() * 30 - 15}px`);
-        emberContainer.style.left = `${Math.random() * 100}%`;
-        
-        const ember = document.createElement('div');
-        ember.className = 'ember';
-        emberContainer.appendChild(ember);
-        
-        embersContainer.appendChild(emberContainer);
-      }
+        for (let i = 0; i < emberCount; i++) {
+            const emberContainer = document.createElement('div');
+            emberContainer.className = 'ember-container';
+            emberContainer.style.setProperty('--rise-duration', `${5000 + Math.random() * 5000}ms`);
+            emberContainer.style.setProperty('--rise-delay', `${Math.random() * 5000}ms`);
+            emberContainer.style.setProperty('--rise-x', `${Math.random() * 50 - 25}px`);
+            emberContainer.style.left = `${Math.random() * 100}%`;
+            emberContainer.style.transform = `scale(${0.5 + Math.random() * 1.5})`;
+    
+            const ember = document.createElement('div');
+            ember.className = 'ember';
+            ember.style.opacity = `${0.5 + Math.random() * 0.5}`;
+            emberContainer.appendChild(ember);
+    
+            embersContainer.appendChild(emberContainer);
+        }
     }
     
     window.addEventListener('load', createEmbers);
