@@ -100,24 +100,37 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 100px; /* Adjust this to control the height of the flames */
+  height: 40px; /* Reduced height for subtlety */
   background: linear-gradient(to top, 
-    #ff4500 0%,     /* Deep orange */
-    #ff6a00 30%,    /* Bright orange */
-    #ff8c00 60%,    /* Dark orange */
-    #ffa500 80%,    /* Orange */
-    rgba(255, 165, 0, 0) 100%  /* Fade to transparent */
+    rgba(0, 0, 0, 0.8) 0%,     /* Almost black at the bottom */
+    rgba(139, 0, 0, 0.4) 40%,  /* Dark red */
+    rgba(255, 69, 0, 0.2) 70%, /* Dark orange, very transparent */
+    rgba(255, 165, 0, 0.1) 85%, /* Light orange, extremely transparent */
+    rgba(0, 0, 0, 0) 100%      /* Fade to transparent */
   );
-  z-index: 998; /* Ensure it's below the embers but above other content */
-  opacity: 0.7; /* Adjust for desired intensity */
-  pointer-events: none; /* Allows clicking through the gradient */
+  z-index: 998;
+  pointer-events: none;
 }
 
-/* Add a subtle animation to make it more dynamic */
-@keyframes flicker {
-  0% { opacity: 0.7; }
-  50% { opacity: 0.6; }
-  100% { opacity: 0.7; }
+.fire-gradient::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 15px; /* Mountain silhouette height */
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 40px 70px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 50px 160px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 90px 40px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 130px 80px, #FAF1E4, transparent),
+    radial-gradient(2px 2px at 160px 120px, #FAF1E4, transparent),
+    url('data:image/svg+xml,<svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 100 C 20 80 50 80 70 100 90 80 120 80 140 100 160 80 190 80 210 100 230 80 260 80 280 100 300 80 330 80 350 100 350 100 0 100 0 100 Z" fill="black"/></svg>');
+  background-size: 300px 100px;
+  background-repeat: repeat-x;
+  opacity: 0.7;
+  filter: blur(3px);
 }
 
 .fire-gradient::after {
@@ -128,6 +141,14 @@
   right: 0;
   bottom: 0;
   background: inherit;
-  filter: blur(10px);
-  animation: flicker 3s infinite alternate;
+  filter: blur(5px);
+}
+
+@keyframes subtle-flicker {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.65; }
+}
+
+.fire-gradient {
+  animation: subtle-flicker 4s infinite;
 }
