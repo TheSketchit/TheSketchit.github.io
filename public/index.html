@@ -598,6 +598,10 @@
       const embersContainer = document.createElement('div');
       embersContainer.className = 'embers-container';
       document.body.appendChild(embersContainer);
+  
+      const heatEffect = document.createElement('div');
+      heatEffect.className = 'heat-effect';
+      document.body.appendChild(heatEffect);
     
       for (let i = 0; i < 50; i++) {
         createParticle(embersContainer);
