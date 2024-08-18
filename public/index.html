@@ -626,6 +626,16 @@
     
     // Call this function when the page loads
     window.addEventListener('load', createEmbers);
+  
+    // Ensure the effect persists
+    setInterval(() => {
+      const heatEffect = document.querySelector('.heat-effect');
+      if (!heatEffect) {
+        const newHeatEffect = document.createElement('div');
+        newHeatEffect.className = 'heat-effect';
+        document.body.appendChild(newHeatEffect);
+      }
+    }, 1000);
   </script>
 
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
