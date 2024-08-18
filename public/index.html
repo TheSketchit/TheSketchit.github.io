@@ -592,73 +592,42 @@
   </script>
 
   <div class="fire-gradient"></div>
-  <div class="fire"></div>
-  <div class="embers-container"></div>
-
-  <script>
-    function createFireFlares() {
-      const fireGradient = document.querySelector('.fire-gradient');
-      
-      setInterval(() => {
-        const flare = document.createElement('div');
-        flare.style.position = 'absolute';
-        flare.style.bottom = '0';
-        flare.style.left = `${Math.random() * 100}%`;
-        flare.style.width = '10px';
-        flare.style.height = '50px';
-        flare.style.background = 'radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,165,0,0) 70%)';
-        flare.style.filter = 'blur(5px)';
-        flare.style.opacity = '0';
-        flare.style.transition = 'all 0.5s ease-out';
-  
-        fireGradient.appendChild(flare);
-  
-        setTimeout(() => {
-          flare.style.height = '100px';
-          flare.style.opacity = '0.7';
-        }, 50);
-  
-        setTimeout(() => {
-          flare.style.opacity = '0';
-        }, 450);
-  
-        setTimeout(() => {
-          flare.remove();
-        }, 1000);
-      }, 200);
-    }
-  
-    window.addEventListener('load', () => {
-      createEmbers();
-      createFireFlares();
-    });
-  </script>
+  <div class="embers-container">
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+    <div class="ember-container"><div class="ember"></div></div>
+  </div>
   
   <script>
     function createEmbers() {
       const embersContainer = document.querySelector('.embers-container');
-  
-      for (let i = 0; i < 50; i++) {
-        createParticle(embersContainer);
+      const emberCount = 30; // Adjust as needed
+    
+      for (let i = 0; i < emberCount; i++) {
+        const emberContainer = document.createElement('div');
+        emberContainer.className = 'ember-container';
+        emberContainer.style.setProperty('--rise-duration', `${5000 + Math.random() * 3000}ms`);
+        emberContainer.style.setProperty('--rise-delay', `${Math.random() * 5000}ms`);
+        emberContainer.style.setProperty('--rise-x', `${Math.random() * 20 - 10}vw`);
+        emberContainer.style.left = `${Math.random() * 100}vw`;
+        
+        const ember = document.createElement('div');
+        ember.className = 'ember';
+        emberContainer.appendChild(ember);
+        
+        embersContainer.appendChild(emberContainer);
       }
     }
-  
-    function createParticle(container) {
-      const particle = document.createElement('div');
-      particle.className = 'particle';
-      particle.style.left = `${Math.random() * 100}%`;
-      particle.style.width = `${Math.random() * 5 + 5}px`;
-      particle.style.height = particle.style.width;
-      particle.style.animationDuration = `${Math.random() * 3 + 2}s`;
-      particle.style.animationDelay = `${Math.random() * 5}s`;
-      container.appendChild(particle);
-  
-      particle.addEventListener('animationend', () => {
-        particle.remove();
-        createParticle(container);
-      });
-    }
-  
+    
     window.addEventListener('load', createEmbers);
   </script>
 
