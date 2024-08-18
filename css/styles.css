@@ -375,9 +375,9 @@ h1 {
 #lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; }
 #lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; }
 #lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; }
-#lootTable th:nth-child(5), #lootTable td:nth.child(5) { width: 10%; }
-#lootTable th:nth.child(6), #lootTable td:nth.child(6) { width: 15%; }
-#lootTable th:nth.child(7), #lootTable td:nth.child(7) { width: 10%; }
+#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; }
+#lootTable th:nth.child(6), #lootTable td:nth-child(6) { width: 15%; }
+#lootTable th:nth.child(7), #lootTable td:nth-child(7) { width: 10%; }
 
 /* Sorting indicators */
 th::after {
