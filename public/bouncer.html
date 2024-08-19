@@ -174,6 +174,16 @@
             this.y = Math.random() * gameContainer.clientHeight;
             this.size = Math.random() * 2 + 1;
             this.speed = Math.random() * 0.5 + 0.1;
+            this.element = this.createElement();
+        }
+    
+        createElement() {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.width = `${this.size}px`;
+            star.style.height = `${this.size}px`;
+            gameContainer.appendChild(star);
+            return star;
         }
     
         update() {
@@ -182,20 +192,6 @@
                 this.y = 0;
                 this.x = Math.random() * gameContainer.clientWidth;
             }
-        }
-    
-        draw() {
-            const star = document.createElement('div');
-            star.className = 'star';
-            star.style.left = `${this.x}px`;
-            star.style.top = `${this.y}px`;
-            star.style.width = `${this.size}px`;
-            star.style.height = `${this.size}px`;
-            gameContainer.appendChild(star);
-    
-            setTimeout(() => {
-                gameContainer.removeChild(star);
-            }, 100);
         }
     }
     
@@ -269,13 +265,11 @@
     }
     
     function updateStarsAndMist() {
-        // Clear previous stars
-        gameContainer.querySelectorAll('.star').forEach(star => star.remove());
-    
         // Update and draw stars
         stars.forEach(star => {
             star.update();
-            star.draw();
+            star.element.style.left = `${star.x}px`;
+            star.element.style.top = `${star.y}px`;
         });
     
         // Update and interact with mist clouds
@@ -451,29 +445,44 @@
         }, 300);
       }
     }
-  
-  
-    // Create ember trail effect
-    function createEmberTrail(x, y, vx, vy) {
-      const ember = document.createElement('div');
-      ember.className = 'ember';
-      const size = Math.random() * 5 + 3;
-      ember.style.width = `${size}px`;
-      ember.style.height = `${size}px`;
-      
-      const angle = Math.atan2(vy, vx);
-      const offsetX = Math.cos(angle + Math.PI) * player.radius;
-      const offsetY = Math.sin(angle + Math.PI) * player.radius;
-  
-      ember.style.left = `${x + offsetX - size / 2}px`;
-      ember.style.top = `${y + offsetY - size / 2}px`;
-  
-      gameContainer.appendChild(ember);
-  
-      setTimeout(() => {
-        gameContainer.removeChild(ember);
-      }, 1000 + Math.random() * 500);
+
+    const emberPool = [];
+    
+    function getEmberFromPool() {
+        if (emberPool.length > 0) {
+            return emberPool.pop();
+        } else {
+            const ember = document.createElement('div');
+            ember.className = 'ember';
+            gameContainer.appendChild(ember);
+            return ember;
+        }
     }
+    
+    function returnEmberToPool(ember) {
+        ember.style.display = 'none';
+        emberPool.push(ember);
+    }
+    
+    function createEmberTrail(x, y, vx, vy) {
+        const ember = getEmberFromPool();
+        const size = Math.random() * 5 + 3;
+        ember.style.width = `${size}px`;
+        ember.style.height = `${size}px`;
+        ember.style.display = 'block';
+    
+        const angle = Math.atan2(vy, vx);
+        const offsetX = Math.cos(angle + Math.PI) * player.radius;
+        const offsetY = Math.sin(angle + Math.PI) * player.radius;
+    
+        ember.style.left = `${x + offsetX - size / 2}px`;
+        ember.style.top = `${y + offsetY - size / 2}px`;
+    
+        setTimeout(() => {
+            returnEmberToPool(ember);
+        }, 1000 + Math.random() * 500);
+    }
+
   
     // Impact shake effect
     function impactShake() {
