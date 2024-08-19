@@ -70,9 +70,8 @@
       position: absolute;
       width: 150px;
       height: 150px;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-      opacity: 0.4;
-      transition: transform 0.5s ease-out, opacity 1s;
+      pointer-events: none;
+      will-change: transform, opacity;
     }
 
     .ember {
@@ -345,9 +344,31 @@
         mist.className = 'mist';
         mist.style.left = `${Math.random() * gameContainer.clientWidth}px`;
         mist.style.top = `${Math.random() * gameContainer.clientHeight}px`;
-  
+        mist.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+        mist.style.opacity = Math.random() * 0.5 + 0.2;
+    
+        const hue = Math.random() * 60 + 180; // Blue to purple hues
+        mist.style.background = `radial-gradient(circle, hsla(${hue}, 100%, 70%, 0.3) 0%, hsla(${hue}, 100%, 50%, 0) 70%)`;
+    
         gameContainer.appendChild(mist);
+        animateMist(mist);
       }
+    }
+    
+    function animateMist(mistElement) {
+      const duration = Math.random() * 10000 + 5000; // 5 to 15 seconds
+      const keyframes = [
+        { transform: `scale(${Math.random() * 0.5 + 0.5}) rotate(0deg)`, opacity: Math.random() * 0.5 + 0.2 },
+        { transform: `scale(${Math.random() * 0.5 + 0.8}) rotate(180deg)`, opacity: Math.random() * 0.5 + 0.4 },
+        { transform: `scale(${Math.random() * 0.5 + 0.5}) rotate(360deg)`, opacity: Math.random() * 0.5 + 0.2 }
+      ];
+    
+      mistElement.animate(keyframes, {
+        duration: duration,
+        iterations: Infinity,
+        easing: 'ease-in-out',
+        direction: 'alternate'
+      });
     }
   
     // Create star elements in the background
@@ -369,27 +390,26 @@
     // Interact with mist
     function interactWithMist(x, y) {
       const mists = document.querySelectorAll('.mist');
-      let interactingWithMist = false;
       mists.forEach(mist => {
         const dx = mist.offsetLeft + 75 - x;
         const dy = mist.offsetTop + 75 - y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-  
-        if (distance < 100) {
-          interactingWithMist = true;
-          mist.style.transform = `translate(${dx * 1.5}px, ${dy * 1.5}px)`;
-          mist.style.opacity = '0';
-          setTimeout(() => {
-            mist.style.transform = '';
-            mist.style.opacity = '0.4';
-          }, 1000);
+    
+        if (distance < 150) {
+          const angle = Math.atan2(dy, dx);
+          const force = (150 - distance) / 150;
+          const moveX = Math.cos(angle) * force * 50;
+          const moveY = Math.sin(angle) * force * 50;
+    
+          mist.animate([
+            { transform: `translate(${moveX}px, ${moveY}px) scale(${1 + force})` },
+            { transform: 'translate(0, 0) scale(1)' }
+          ], {
+            duration: 1000,
+            easing: 'ease-out'
+          });
         }
       });
-  
-      if (interactingWithMist) {
-        player.vx *= mistSlowdown;
-        player.vy *= mistSlowdown;
-      }
     }
   
     // Create ember trail effect
@@ -417,13 +437,18 @@
     // Impact shake effect
     function impactShake() {
       const currentTransform = playerElement.style.transform;
-      playerElement.style.transform = `${currentTransform} scale(1.2) rotate(5deg)`;
-      setTimeout(() => {
-        playerElement.style.transform = `${currentTransform} scale(0.8) rotate(-5deg)`;
-        setTimeout(() => {
-          playerElement.style.transform = currentTransform;
-        }, 100);
-      }, 100);
+      const bounceSequence = [
+        { transform: `${currentTransform} scale(0.8, 1.2)`, offset: 0 },
+        { transform: `${currentTransform} scale(1.2, 0.8)`, offset: 0.3 },
+        { transform: `${currentTransform} scale(0.9, 1.1)`, offset: 0.5 },
+        { transform: `${currentTransform} scale(1.1, 0.9)`, offset: 0.7 },
+        { transform: currentTransform, offset: 1 }
+      ];
+    
+      playerElement.animate(bounceSequence, {
+        duration: 300,
+        easing: 'ease-in-out'
+      });
     }
   
     // Start the animation loop
