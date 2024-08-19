@@ -3,11 +3,11 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    background-color: #000000; /* Fallback color */
+    background-color: #000000; /* Black background */
     background-image: url('../images/Repeating-BG.png');
-    background-repeat: repeat-y; /* Only repeat vertically */
-    background-position: bottom; /* Align the image to the bottom */
-    background-attachment: fixed; /* Keep the background fixed while scrolling */
+    background-repeat: repeat-x;
+    background-position: bottom;
+    background-attachment: fixed;
 }
 
 .player-name {
