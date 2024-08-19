@@ -40,7 +40,6 @@ body {
   position: relative;
   text-align: center; /* Center the content */
   z-index: 1; /* Ensure content is above the ember effect */
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
 }
 
 #auth-container {
