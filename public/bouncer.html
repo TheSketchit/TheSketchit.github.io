@@ -145,7 +145,6 @@
     let dragStartX = 0;
     let dragStartY = 0;
     let bounceCount = 0;
-    let lastBounceTime = 0;
     let lastSoundTime = 0;
 
     // Create player element
@@ -175,29 +174,34 @@
 
   function updatePosition() {
     if (!isDragging) {
-      player.x += player.vx;
-      player.y += player.vy;
-
-      // Bounce off all borders
-      if (player.x - player.radius <= 0 || player.x + player.radius >= gameContainer.clientWidth) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vx *= -bounciness;
-        createLightning(player.x, player.y);
-        impactShake();
-        incrementBounceCount();
-        playPopSound();
-      }
-      if (player.y - player.radius <= 0 || player.y + player.radius >= gameContainer.clientHeight) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vy *= -bounciness;
-        createLightning(player.x, player.y);
-        impactShake();
-        incrementBounceCount();
-        playPopSound();
-      }
-
-      player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
-      player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
+        player.x += player.vx;
+        player.y += player.vy;
+    
+        let bounced = false;
+    
+        // Bounce off horizontal borders
+        if (player.x - player.radius <= 0 || player.x + player.radius >= gameContainer.clientWidth) {
+          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+          player.vx *= -bounciness;
+          bounced = true;
+        }
+    
+        // Bounce off vertical borders
+        if (player.y - player.radius <= 0 || player.y + player.radius >= gameContainer.clientHeight) {
+          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+          player.vy *= -bounciness;
+          bounced = true;
+        }
+    
+        if (bounced) {
+          createLightning(player.x, player.y);
+          impactShake();
+          incrementBounceCount();
+          playPopSound();
+        }
+    
+        player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
 
       const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
 
@@ -232,12 +236,8 @@
   }
 
   function incrementBounceCount() {
-    const currentTime = Date.now();
-    if (currentTime - lastBounceTime > 200) {
-      bounceCount++;
-      scoreDisplay.textContent = `Bounces: ${bounceCount}`;
-      lastBounceTime = currentTime;
-    }
+    bounceCount++;
+    scoreDisplay.textContent = `Bounces: ${bounceCount}`;
   }
 
   function playPopSound() {
