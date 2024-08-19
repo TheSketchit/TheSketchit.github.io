@@ -5,7 +5,7 @@ body {
     min-height: 100vh;
     background-color: #000000; /* Fallback color */
     background-image: url('../images/Repeating-BG.png');
-    background-repeat: repeat-x; /* Only repeat horizontally */
+    background-repeat: repeat-y; /* Only repeat vertically */
     background-position: bottom; /* Align the image to the bottom */
     background-attachment: fixed; /* Keep the background fixed while scrolling */
 }
