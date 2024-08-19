@@ -1,9 +1,13 @@
 body {
-  font-family: Semplicita Pro, Open Sans, Arial, Helvetica, sans-serif;
-  margin: 0;
-  padding: 0;
-  min-height: 100vh;
-  background-color: #000000; 
+    font-family: Semplicita Pro, Open Sans, Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: #000000; /* Fallback color */
+    background-image: url('../images/Repeating-BG.png');
+    background-repeat: repeat-x; /* Only repeat horizontally */
+    background-position: bottom; /* Align the image to the bottom */
+    background-attachment: fixed; /* Keep the background fixed while scrolling */
 }
 
 .player-name {
@@ -36,6 +40,7 @@ body {
   position: relative;
   text-align: center; /* Center the content */
   z-index: 1; /* Ensure content is above the ember effect */
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
 }
 
 #auth-container {
