@@ -13,7 +13,7 @@
     <div class="container">
       <div id="auth-container">
         <button onclick="goToLogin()">Login</button>
-        <button onclick="goToLogin()">🎈</button>
+        <button onclick="goToGame()">🎈</button>
       </div>
     </div>
   </div>
@@ -586,6 +586,10 @@
 
     function goToLogin() {
       window.location.href = '/login.html';
+    }
+
+    function goToGame() {
+      window.location.href = '/bouncer.html';
     }
     
     window.onload = function() {
