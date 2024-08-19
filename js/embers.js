@@ -4,6 +4,8 @@ class Ember {
         this.ctx = ctx;
         this.baseY = baseY;
         this.reset();
+        this.shadowBlur = Math.random() * 10 + 5;
+        this.shadowColor = `rgba(255, 100, 0, ${Math.random() * 0.3 + 0.1})`;
     }
 
     reset() {
@@ -51,6 +53,13 @@ class Ember {
         this.ctx.save();
         this.ctx.translate(this.x, this.y);
         this.ctx.rotate(this.angle);
+
+        // Draw shadow
+        this.ctx.shadowBlur = this.shadowBlur;
+        this.ctx.shadowColor = this.shadowColor;
+        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 5;
+
         this.ctx.fillStyle = this.color;
         this.ctx.globalAlpha = alpha;
         this.ctx.beginPath();
