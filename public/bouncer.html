@@ -171,51 +171,54 @@
     gameContainer.appendChild(scoreDisplay);
 
     //
-
   function updatePosition() {
     if (!isDragging) {
-        player.x += player.vx;
-        player.y += player.vy;
-    
-        let bounced = false;
-    
-        // Bounce off horizontal borders
-        if (player.x - player.radius <= 0 || player.x + player.radius >= gameContainer.clientWidth) {
-          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-          player.vx *= -bounciness;
-          bounced = true;
-        }
-    
-        // Bounce off vertical borders
-        if (player.y - player.radius <= 0 || player.y + player.radius >= gameContainer.clientHeight) {
-          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-          player.vy *= -bounciness;
-          bounced = true;
-        }
-    
-        if (bounced) {
-          createLightning(player.x, player.y);
-          impactShake();
-          incrementBounceCount();
-          playPopSound();
-        }
-    
-        player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
-        player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
-
+      let bounced = false;
+  
+      // Check horizontal borders
+      const nextX = player.x + player.vx;
+      if (nextX - player.radius <= 0 || nextX + player.radius >= gameContainer.clientWidth) {
+        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+        player.vx *= -bounciness;
+        bounced = true;
+      }
+  
+      // Check vertical borders
+      const nextY = player.y + player.vy;
+      if (nextY - player.radius <= 0 || nextY + player.radius >= gameContainer.clientHeight) {
+        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+        player.vy *= -bounciness;
+        bounced = true;
+      }
+  
+      if (bounced) {
+        createLightning(player.x, player.y);
+        impactShake();
+        incrementBounceCount();
+        playPopSound();
+      }
+  
+      // Update position after checking for bounces
+      player.x += player.vx;
+      player.y += player.vy;
+  
+      // Ensure the ball stays within bounds
+      player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
+  
       const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-
+  
       if (speed > emberThreshold) {
         createEmberTrail(player.x, player.y, player.vx, player.vy);
       }
-
+  
       interactWithMist(player.x, player.y);
-
+  
       // Apply energy-based slowdown
       player.energy *= energyDecay;
       player.vx *= 0.999;
       player.vy *= 0.999;
-
+  
       // Stop the ball if it's moving very slowly
       if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
         player.vx = 0;
@@ -223,15 +226,15 @@
         player.energy = 0;
       }
     }
-
+  
     playerElement.style.left = `${player.x - player.radius}px`;
     playerElement.style.top = `${player.y - player.radius}px`;
-
+  
     // Visual feedback for high energy
     const energyScale = 1 + player.energy * 0.3;
     const energyRotation = player.energy * 360;
     playerElement.style.transform = `scale(${energyScale}) rotate(${energyRotation}deg)`;
-
+  
     requestAnimationFrame(updatePosition);
   }
 
@@ -245,9 +248,9 @@
     if (currentTime - lastSoundTime > 50) { // Prevent sound spam
       popSound.currentTime = 0; // Reset sound to start
       popSound.play();
-      lastSoundTime = currentTime;
     }
-  }  
+    lastSoundTime = currentTime;
+  }
 
     // Mouse event listeners
     gameContainer.addEventListener('mousedown', (event) => {
@@ -413,11 +416,12 @@
   
     // Impact shake effect
     function impactShake() {
-      playerElement.style.transform = 'scale(1.2) rotate(5deg)';
+      const currentTransform = playerElement.style.transform;
+      playerElement.style.transform = `${currentTransform} scale(1.2) rotate(5deg)`;
       setTimeout(() => {
-        playerElement.style.transform = 'scale(0.8) rotate(-5deg)';
+        playerElement.style.transform = `${currentTransform} scale(0.8) rotate(-5deg)`;
         setTimeout(() => {
-          playerElement.style.transform = 'scale(1) rotate(0deg)';
+          playerElement.style.transform = currentTransform;
         }, 100);
       }, 100);
     }
