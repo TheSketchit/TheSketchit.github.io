@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Swirling Ball with Realistic Effects</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+      user-select: none; /* Prevents highlighting */
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(15,15,40,1) 100%);
+      overflow: hidden;
+    }
+
+    .circle {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: rgba(255, 0, 0, 0.8);
+      text-align: center;
+      line-height: 80px;
+      font-size: 16px;
+      color: #fff;
+      box-shadow: 0 0 100px rgba(255, 0, 0, 1);
+      transition: transform 0.1s ease-out;
+      cursor: pointer; /* Changes the mouse pointer to a hand */
+    }
+
+    .alias-label {
+      position: absolute;
+      top: -40px;
+      left: -10px;
+      width: 100px;
+      text-align: center;
+      color: #ffd700;
+      font-size: 16px;
+      animation: spark 1s infinite;
+      filter: drop-shadow(0 0 10px #ffd700);
+    }
+
+    @keyframes spark {
+      0%, 100% { filter: drop-shadow(0 0 10px #ffd700); }
+      50% { filter: drop-shadow(0 0 20px #ffd700); }
+    }
+
+    .lightning {
+      position: absolute;
+      width: 2px;
+      background: linear-gradient(to top, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+      filter: drop-shadow(0 0 5px #fff);
+      animation: shoot 0.3s forwards;
+    }
+
+    @keyframes shoot {
+      0% { height: 0; }
+      100% { height: 100px; }
+    }
+
+    .mist {
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+      opacity: 0.4;
+      transition: transform 0.5s ease-out, opacity 1s;
+    }
+
+    .ember {
+      position: absolute;
+      background-color: orange;
+      border-radius: 50%;
+      opacity: 0.8;
+      pointer-events: none; /* Prevent interaction with embers */
+      animation: fade 1s forwards;
+    }
+
+    @keyframes fade {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.5); }
+    }
+
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background-color: white;
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+
+    .star.twinkle {
+      animation: twinkle 1.5s infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 0.2; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container"></div>
+
+  <script>
+    const gameContainer = document.getElementById('game-container');
+
+    // Add audio element
+    const popSound = new Audio('pop.mp3');
+    popSound.volume = 0.5; // Adjust volume as needed
+
+    // Prompt for player name
+    const playerName = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+
+    // Player object
+    const player = {
+      alias: playerName,
+      x: gameContainer.clientWidth / 2,
+      y: gameContainer.clientHeight / 2,
+      vx: 0,
+      vy: 0,
+      radius: 40,
+      energy: 0
+    };
+
+    const emberThreshold = 3;
+    const releaseMultiplier = 0.15;
+    const mistSlowdown = 0.995;
+    const energyDecay = 0.9998; // Slower energy decay for longer-lasting movement
+    const minBounciness = 0.7;
+    const maxBounciness = 1.0;
+
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let bounceCount = 0;
+    let lastBounceTime = 0;
+    let lastSoundTime = 0;
+
+    // Create player element
+    const playerElement = document.createElement('div');
+    playerElement.className = 'circle';
+    playerElement.style.left = `${player.x}px`;
+    playerElement.style.top = `${player.y}px`;
+
+    const aliasLabel = document.createElement('div');
+    aliasLabel.className = 'alias-label';
+    aliasLabel.textContent = player.alias;
+
+    playerElement.appendChild(aliasLabel);
+    gameContainer.appendChild(playerElement);
+
+    // Create bounce score display
+    const scoreDisplay = document.createElement('div');
+    scoreDisplay.style.position = 'absolute';
+    scoreDisplay.style.top = '10px';
+    scoreDisplay.style.left = '10px';
+    scoreDisplay.style.color = 'white';
+    scoreDisplay.style.fontSize = '24px';
+    scoreDisplay.textContent = 'Bounces: 0';
+    gameContainer.appendChild(scoreDisplay);
+
+    //
+
+  function updatePosition() {
+    if (!isDragging) {
+      player.x += player.vx;
+      player.y += player.vy;
+
+      // Bounce off all borders
+      if (player.x - player.radius <= 0 || player.x + player.radius >= gameContainer.clientWidth) {
+        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+        player.vx *= -bounciness;
+        createLightning(player.x, player.y);
+        impactShake();
+        incrementBounceCount();
+        playPopSound();
+      }
+      if (player.y - player.radius <= 0 || player.y + player.radius >= gameContainer.clientHeight) {
+        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+        player.vy *= -bounciness;
+        createLightning(player.x, player.y);
+        impactShake();
+        incrementBounceCount();
+        playPopSound();
+      }
+
+      player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
+
+      const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+
+      if (speed > emberThreshold) {
+        createEmberTrail(player.x, player.y, player.vx, player.vy);
+      }
+
+      interactWithMist(player.x, player.y);
+
+      // Apply energy-based slowdown
+      player.energy *= energyDecay;
+      player.vx *= 0.999;
+      player.vy *= 0.999;
+
+      // Stop the ball if it's moving very slowly
+      if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
+        player.vx = 0;
+        player.vy = 0;
+        player.energy = 0;
+      }
+    }
+
+    playerElement.style.left = `${player.x - player.radius}px`;
+    playerElement.style.top = `${player.y - player.radius}px`;
+
+    // Visual feedback for high energy
+    const energyScale = 1 + player.energy * 0.3;
+    const energyRotation = player.energy * 360;
+    playerElement.style.transform = `scale(${energyScale}) rotate(${energyRotation}deg)`;
+
+    requestAnimationFrame(updatePosition);
+  }
+
+  function incrementBounceCount() {
+    const currentTime = Date.now();
+    if (currentTime - lastBounceTime > 200) {
+      bounceCount++;
+      scoreDisplay.textContent = `Bounces: ${bounceCount}`;
+      lastBounceTime = currentTime;
+    }
+  }
+
+  function playPopSound() {
+    const currentTime = Date.now();
+    if (currentTime - lastSoundTime > 50) { // Prevent sound spam
+      popSound.currentTime = 0; // Reset sound to start
+      popSound.play();
+      lastSoundTime = currentTime;
+    }
+  }  
+
+    // Mouse event listeners
+    gameContainer.addEventListener('mousedown', (event) => {
+      const dx = event.clientX - player.x;
+      const dy = event.clientY - player.y;
+      if (dx * dx + dy * dy <= player.radius * player.radius) {
+        isDragging = true;
+        lastMouseX = dragStartX = event.clientX;
+        lastMouseY = dragStartY = event.clientY;
+        playerElement.style.transform = 'scale(0.8)';
+      }
+    });
+
+    gameContainer.addEventListener('mousemove', (event) => {
+      if (isDragging) {
+        const dx = event.clientX - lastMouseX;
+        const dy = event.clientY - lastMouseY;
+        player.x += dx;
+        player.y += dy;
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+      }
+    });
+
+    gameContainer.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        playerElement.style.transform = 'scale(1)';
+        const releaseX = lastMouseX - dragStartX;
+        const releaseY = lastMouseY - dragStartY;
+        const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
+        player.vx = releaseX * releaseMultiplier;
+        player.vy = releaseY * releaseMultiplier;
+        player.energy = Math.min(releaseMagnitude / 200, 1);
+        bounceCount = 0;
+        scoreDisplay.textContent = 'Bounces: 0';
+        
+        // Visual feedback for powerful throws
+        if (player.energy > 0.6) {
+          createPowerThrowEffect();
+        }
+      }
+    });
+
+    function createPowerThrowEffect() {
+      const powerRing = document.createElement('div');
+      powerRing.style.position = 'absolute';
+      powerRing.style.left = `${player.x - player.radius * 2}px`;
+      powerRing.style.top = `${player.y - player.radius * 2}px`;
+      powerRing.style.width = `${player.radius * 4}px`;
+      powerRing.style.height = `${player.radius * 4}px`;
+      powerRing.style.borderRadius = '50%';
+      powerRing.style.border = '4px solid white';
+      powerRing.style.opacity = '0.8';
+      powerRing.style.transition = 'all 0.5s ease-out';
+
+      gameContainer.appendChild(powerRing);
+
+      setTimeout(() => {
+        powerRing.style.transform = 'scale(3)';
+        powerRing.style.opacity = '0';
+      }, 50);
+
+      setTimeout(() => {
+        gameContainer.removeChild(powerRing);
+      }, 550);
+    }
+
+
+  
+    // Create lightning effect shooting from the ball
+    function createLightning(x, y) {
+      for (let i = 0; i < 5; i++) {
+        const lightning = document.createElement('div');
+        lightning.className = 'lightning';
+        lightning.style.left = `${x}px`;
+        lightning.style.top = `${y}px`;
+        lightning.style.transform = `rotate(${Math.random() * 360}deg)`;
+  
+        gameContainer.appendChild(lightning);
+  
+        setTimeout(() => {
+          gameContainer.removeChild(lightning);
+        }, 300);
+      }
+    }
+  
+    // Create mist elements in the background
+    function createMist() {
+      for (let i = 0; i < 20; i++) {
+        const mist = document.createElement('div');
+        mist.className = 'mist';
+        mist.style.left = `${Math.random() * gameContainer.clientWidth}px`;
+        mist.style.top = `${Math.random() * gameContainer.clientHeight}px`;
+  
+        gameContainer.appendChild(mist);
+      }
+    }
+  
+    // Create star elements in the background
+    function createStars() {
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = `${Math.random() * gameContainer.clientWidth}px`;
+        star.style.top = `${Math.random() * gameContainer.clientHeight}px`;
+  
+        if (Math.random() > 0.5) {
+          star.classList.add('twinkle');
+        }
+  
+        gameContainer.appendChild(star);
+      }
+    }
+  
+    // Interact with mist
+    function interactWithMist(x, y) {
+      const mists = document.querySelectorAll('.mist');
+      let interactingWithMist = false;
+      mists.forEach(mist => {
+        const dx = mist.offsetLeft + 75 - x;
+        const dy = mist.offsetTop + 75 - y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+  
+        if (distance < 100) {
+          interactingWithMist = true;
+          mist.style.transform = `translate(${dx * 1.5}px, ${dy * 1.5}px)`;
+          mist.style.opacity = '0';
+          setTimeout(() => {
+            mist.style.transform = '';
+            mist.style.opacity = '0.4';
+          }, 1000);
+        }
+      });
+  
+      if (interactingWithMist) {
+        player.vx *= mistSlowdown;
+        player.vy *= mistSlowdown;
+      }
+    }
+  
+    // Create ember trail effect
+    function createEmberTrail(x, y, vx, vy) {
+      const ember = document.createElement('div');
+      ember.className = 'ember';
+      const size = Math.random() * 5 + 3;
+      ember.style.width = `${size}px`;
+      ember.style.height = `${size}px`;
+      
+      const angle = Math.atan2(vy, vx);
+      const offsetX = Math.cos(angle + Math.PI) * player.radius;
+      const offsetY = Math.sin(angle + Math.PI) * player.radius;
+  
+      ember.style.left = `${x + offsetX - size / 2}px`;
+      ember.style.top = `${y + offsetY - size / 2}px`;
+  
+      gameContainer.appendChild(ember);
+  
+      setTimeout(() => {
+        gameContainer.removeChild(ember);
+      }, 1000 + Math.random() * 500);
+    }
+  
+    // Impact shake effect
+    function impactShake() {
+      playerElement.style.transform = 'scale(1.2) rotate(5deg)';
+      setTimeout(() => {
+        playerElement.style.transform = 'scale(0.8) rotate(-5deg)';
+        setTimeout(() => {
+          playerElement.style.transform = 'scale(1) rotate(0deg)';
+        }, 100);
+      }, 100);
+    }
+  
+    // Start the animation loop
+    updatePosition();
+    createMist();
+    createStars();
+  </script>
+</body>
+</html>
