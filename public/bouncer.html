@@ -53,15 +53,37 @@
       display: none;
     }
   </style>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
     <button id="aspect-ratio-toggle">Toggle 16:9 / 4:3</button>
   </div>
+    <div id="high-score-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;">
+    <h2>Top 10 High Scores</h2>
+    <ol id="high-score-list"></ol>
+    <button id="retry-button">Retry</button>
+  </div>
   <div id="cheat-message">Stop trying to Cheat, you fucking Weiner.</div>
 
   <script>
+  // Firebase configuration
+  var firebaseConfig = {
+    apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+    authDomain: "wowsr-9ec27.firebaseapp.com",
+    projectId: "wowsr-9ec27",
+    storageBucket: "wowsr-9ec27.appspot.com",
+    messagingSenderId: "1037521583710",
+    appId: "1037521583710:web:290e85c6bde4e047337ecf",
+    databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+    
   const gameContainer = document.getElementById('game-container');
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
@@ -241,10 +263,13 @@
       player.vy *= Math.pow(0.999, deltaTime / 16);
   
       // Stop the ball if it's moving very slowly
-      if (speed < 0.05) {
+      if (speed < 0.09) {
         player.vx = 0;
         player.vy = 0;
         player.energy = 0;
+
+        // Submit high score and show high score modal
+        submitHighScore();
       }
     }
   
@@ -252,6 +277,58 @@
     if (ballAnimationTime > 0) {
       ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
     }
+  }
+
+  function submitHighScore() {
+    const highScoreRef = database.ref('highScores');
+    highScoreRef.push({
+      score: bounceCount,
+      playerName: player.alias,
+      timestamp: Date.now()
+    }).then(() => {
+      displayHighScores();
+    });
+  }
+
+  function displayHighScores() {
+    const highScoreRef = database.ref('highScores');
+    highScoreRef.orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+      const highScores = [];
+      snapshot.forEach((childSnapshot) => {
+        highScores.push(childSnapshot.val());
+      });
+  
+      highScores.reverse();  // Reverse to get descending order
+  
+      const highScoreList = document.getElementById('high-score-list');
+      highScoreList.innerHTML = '';
+      highScores.forEach((score) => {
+        const li = document.createElement('li');
+        li.textContent = `${score.playerName}: ${score.score}`;
+        highScoreList.appendChild(li);
+      });
+  
+      document.getElementById('high-score-modal').style.display = 'block';
+    });
+  }
+
+  document.getElementById('retry-button').addEventListener('click', () => {
+    document.getElementById('high-score-modal').style.display = 'none';
+    resetGame();
+  });
+
+  function resetGame() {
+    bounceCount = 0;
+    player.x = baseWidth / 2;
+    player.y = baseHeight / 2;
+    player.vx = 0;
+    player.vy = 0;
+    player.energy = 0;
+    player.alias = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+    ballAnimationTime = 0;
+    emberParticles.length = 0;
+    createMist();
+    createStars();
   }
     
   function incrementBounceCount() {
