@@ -314,23 +314,29 @@
     }
   }
 
-    function submitHighScore() {
-    console.log("Attempting to submit high score:", bounceCount);
-    const highScoreRef = database.ref('highScores');
-    return highScoreRef.push({
-        score: bounceCount,
-        playerName: player.alias,
-        timestamp: Date.now()
-    })
-    .then(() => {
-        console.log("High score submitted successfully");
-        displayHighScores();
-    })
-    .catch((error) => {
-        console.error("Error submitting high score:",);
-        alert("Failed to submit high score. Error: " + error.message);
-    });
-    }
+  function submitHighScore() {
+      console.log("Attempting to submit high score:", bounceCount);
+  
+      // Check if the score is valid before submitting
+      if (bounceCount > 0) {
+          const highScoreRef = database.ref('highScores');
+          return highScoreRef.push({
+              score: bounceCount,
+              playerName: player.alias,
+              timestamp: Date.now()
+          })
+          .then(() => {
+              console.log("High score submitted successfully");
+              displayHighScores();
+          })
+          .catch((error) => {
+              console.error("Error submitting high score:", error);
+              alert("Failed to submit high score. Error: " + error.message);
+          });
+      } else {
+          console.log("High score not submitted because bounceCount is zero or less.");
+      }
+  }
 
   function displayHighScores() {
     console.log("Attempting to display high scores");
