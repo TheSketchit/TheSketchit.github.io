@@ -216,8 +216,14 @@
   let lastMouseY = 0;
   let dragStartX = 0;
   let dragStartY = 0;
-  let bounceCount = 0;
-  let lastSoundTime = 0;
+  let dragStartTime = 0;
+  let lastMouseMoveTime = 0;
+  let dragVelocityX = 0;
+  let dragVelocityY = 0;
+
+  const maxThrowVelocity = 50;
+  const minThrowVelocity = 5;
+  const dragSensitivity = 0.5;
 
   // Player object
   const player = {
@@ -391,6 +397,10 @@
         isDragging = true;
         lastMouseX = dragStartX = x;
         lastMouseY = dragStartY = y;
+        dragStartTime = Date.now();
+        lastMouseMoveTime = dragStartTime;
+        player.vx = 0;
+        player.vy = 0;
         playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
@@ -402,10 +412,24 @@
         const y = (event.clientY - rect.top) / scale;
         const dx = x - lastMouseX;
         const dy = y - lastMouseY;
-        player.x += dx;
-        player.y += dy;
+        
+        // Limit the ball's movement to within the game area
+        player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x + dx));
+        player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y + dy));
+
+        const currentTime = Date.now();
+        const timeDelta = currentTime - lastMouseMoveTime;
+        
+        if (timeDelta > 0) {
+          dragVelocityX = dx / timeDelta * 1000 * dragSensitivity;
+          dragVelocityY = dy / timeDelta * 1000 * dragSensitivity;
+        }
+
         lastMouseX = x;
         lastMouseY = y;
+        lastMouseMoveTime = currentTime;
+
+        updatePlayerElement();
       }
     });
 
@@ -413,18 +437,38 @@
       if (isDragging) {
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
-        const releaseX = lastMouseX - dragStartX;
-        const releaseY = lastMouseY - dragStartY;
-        const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
-        player.vx = releaseX * releaseMultiplier;
-        player.vy = releaseY * releaseMultiplier;
-        player.energy = Math.min(releaseMagnitude / 200, 1);
+
+        const throwDuration = Date.now() - dragStartTime;
+        const throwDistance = Math.sqrt(
+          Math.pow(lastMouseX - dragStartX, 2) + 
+          Math.pow(lastMouseY - dragStartY, 2)
+        );
+
+        let throwVelocity = throwDistance / throwDuration * 1000;
+        throwVelocity = Math.max(minThrowVelocity, Math.min(maxThrowVelocity, throwVelocity));
+
+        const velocityMultiplier = throwVelocity / Math.sqrt(dragVelocityX * dragVelocityX + dragVelocityY * dragVelocityY);
+
+        player.vx = dragVelocityX * velocityMultiplier;
+        player.vy = dragVelocityY * velocityMultiplier;
+
+        player.energy = throwVelocity / maxThrowVelocity;
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
         
         if (player.energy > 0.6) {
           createPowerThrowEffect();
         }
+      }
+    });
+
+    gameArea.addEventListener('mouseout', () => {
+      if (isDragging) {
+        isDragging = false;
+        playerElement.style.transform = `scale(${scale})`;
+        // Optionally, you can set the ball's velocity to zero here if you don't want it to move when the mouse leaves the game area
+        player.vx = 0;
+        player.vy = 0;
       }
     });
 
