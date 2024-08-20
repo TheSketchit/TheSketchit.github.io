@@ -87,7 +87,7 @@
 
   // Game constants
   const emberThreshold = 3;
-  const releaseMultiplier = 0.1;
+  const releaseMultiplier = 0.7;
   const energyDecay = 0.9998;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
@@ -110,7 +110,7 @@
     y: baseHeight / 2,
     vx: 0,
     vy: 0,
-    radius: 20,
+    radius: 40,
     energy: 0,
     lastBounceX: baseWidth / 2,
     lastBounceY: baseHeight / 2
@@ -330,7 +330,7 @@
   }
 
   function pushBallOutOfBorder(border) {
-    const pushForce = 2; // Adjust this value to change how strongly the ball is pushed
+    const pushForce = 5; // Adjust this value to change how strongly the ball is pushed
 
     switch(border) {
       case 'left':
@@ -663,6 +663,9 @@
   canvas.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
+      const maxVelocity = 50; // Adjust this value as needed
+      player.vx = Math.min(Math.max(releaseVelocityX, -maxVelocity), maxVelocity);
+      player.vy = Math.min(Math.max(releaseVelocityY, -maxVelocity), maxVelocity);
       const releaseVelocityX = mouseVelocityX * releaseMultiplier;
       const releaseVelocityY = mouseVelocityY * releaseMultiplier;
       const releaseMagnitude = Math.sqrt(releaseVelocityX * releaseVelocityX + releaseVelocityY * releaseVelocityY);
