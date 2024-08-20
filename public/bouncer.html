@@ -158,7 +158,7 @@
   // Game constants
   const emberThreshold = 3;
   const energyDecay = 0.998;
-  const velocityDecay = 0.99;
+  const velocityDecay = 0.995;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
   const borderRetraction = 20;
@@ -982,7 +982,7 @@
   
           // Calculate throw power based on speed (distance / time)
           const speed = distance / dragDuration;
-          const maxSpeed = 1500; // Adjust this value to set the upper limit of throw power
+          const maxSpeed = 1000; // Adjust this value to set the upper limit of throw power
           const throwPower = Math.min(speed, maxSpeed);
   
           const angle = Math.atan2(dy, dx);
@@ -999,7 +999,7 @@
           player.lastBounceX = player.x;
           player.lastBounceY = player.y;
           
-          if (player.energy > 0.6) {
+          if (player.energy > 0.2) {
               createPowerThrowEffect();
           }
       }
