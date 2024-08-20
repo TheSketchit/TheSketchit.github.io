@@ -112,6 +112,7 @@
   };
 
   firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
     
   const gameContainer = document.getElementById('game-container');
   const canvas = document.getElementById('game-canvas');
@@ -122,6 +123,7 @@
   let ballAnimationTime = 0;
   let highScoreSubmitted = false;
   const ballAnimationDuration = 300; // milliseconds
+  let ringParticles = [];
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -716,24 +718,22 @@
     requestAnimationFrame(gameLoop);
   }
 
-
   function createPowerThrowEffect() {
-    const ringParticles = [];
-    const particleCount = 20;
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2;
-      ringParticles.push({
-        x: player.x + Math.cos(angle) * player.radius,
-        y: player.y + Math.sin(angle) * player.radius,
-        vx: Math.cos(angle) * 5,
-        vy: Math.sin(angle) * 5,
-        life: 1
-      });
-    }
-    return ringParticles;
+      ringParticles = [];  // Clear any existing particles
+      const particleCount = 20;
+      for (let i = 0; i < particleCount; i++) {
+          const angle = (i / particleCount) * Math.PI * 2;
+          ringParticles.push({
+              x: player.x + Math.cos(angle) * player.radius,
+              y: player.y + Math.sin(angle) * player.radius,
+              vx: Math.cos(angle) * 5,
+              vy: Math.sin(angle) * 5,
+              life: 1
+          });
+      }
   }
     
-    function animatePowerThrow() {
+  function animatePowerThrow() {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
 
@@ -756,7 +756,7 @@
 
     if (ringParticles.length > 0) {
         requestAnimationFrame(animatePowerThrow);
-    }
+      }
     }
 
     animatePowerThrow();
