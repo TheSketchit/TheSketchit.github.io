@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enhanced Swirling Ball with Realistic Effects</title>
+  <title>Regret Bouncy Ball</title>
   <style>
-   body, html {
+    body, html {
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -26,22 +26,33 @@
 
     #game-area {
       position: relative;
-      aspect-ratio: 16 / 9;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       overflow: hidden;
     }
 
-    #background-blur {
+    .blurred-border {
       position: absolute;
-      top: 0;
+      background: rgba(0, 0, 50, 0.3);
+      backdrop-filter: blur(10px);
+    }
+
+    .blurred-border.top, .blurred-border.bottom {
       left: 0;
       right: 0;
-      bottom: 0;
-      background: inherit;
-      filter: blur(10px);
-      z-index: -1;
+      height: 50px;
     }
+
+    .blurred-border.left, .blurred-border.right {
+      top: 0;
+      bottom: 0;
+      width: 50px;
+    }
+
+    .blurred-border.top { top: 0; }
+    .blurred-border.bottom { bottom: 0; }
+    .blurred-border.left { left: 0; }
+    .blurred-border.right { right: 0; }
 
     .circle {
       position: absolute;
@@ -55,6 +66,18 @@
       color: #fff;
       box-shadow: 0 0 50px rgba(255, 0, 0, 1);
       transition: transform 0.1s ease-out;
+      cursor: pointer;
+    }
+
+    #aspect-ratio-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 5px 10px;
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
     }
 
@@ -141,13 +164,18 @@
       0%, 100% { opacity: 0.8; }
       50% { opacity: 0.2; }
     }
+    
   </style>
 </head>
 <body>
   <div id="game-container">
     <div id="game-area">
-      <div id="background-blur"></div>
+      <div class="blurred-border top"></div>
+      <div class="blurred-border bottom"></div>
+      <div class="blurred-border left"></div>
+      <div class="blurred-border right"></div>
     </div>
+    <button id="aspect-ratio-toggle">Toggle 16:9 / 4:3</button>
   </div>
   <div id="cheat-message">Stop trying to Cheat, you fucking Weiner.</div>
 
@@ -155,11 +183,13 @@
   const gameContainer = document.getElementById('game-container');
   const gameArea = document.getElementById('game-area');
   const cheatMessage = document.getElementById('cheat-message');
+  const aspectRatioToggle = document.getElementById('aspect-ratio-toggle');
 
   // Define base dimensions
   const baseWidth = 1600;
   const baseHeight = 900;
   let scale = 1;
+  let isWidescreen = true;
 
   // Minimum allowed dimensions
   const minWidth = 955;
@@ -222,32 +252,32 @@
   function updateGameArea() {
     const containerWidth = gameContainer.clientWidth;
     const containerHeight = gameContainer.clientHeight;
-    
+
     if (containerWidth < minWidth || containerHeight < minHeight) {
       showCheatMessage();
       return;
     }
-    
+
     hideCheatMessage();
-    
+
     const containerAspect = containerWidth / containerHeight;
-    const gameAspect = baseWidth / baseHeight;
-    
+    const gameAspect = isWidescreen ? 16 / 9 : 4 / 3;
+
     if (containerAspect > gameAspect) {
       scale = containerHeight / baseHeight;
-      gameArea.style.width = `${baseHeight * gameAspect}px`;
+      gameArea.style.width = `${containerHeight * gameAspect}px`;
       gameArea.style.height = `${containerHeight}px`;
     } else {
       scale = containerWidth / baseWidth;
       gameArea.style.width = `${containerWidth}px`;
       gameArea.style.height = `${containerWidth / gameAspect}px`;
     }
-    
+
     gameArea.style.fontSize = `${16 * scale}px`;
-    
+
     // Update player position and size
     updatePlayerElement();
-    }
+  }
     
   function showCheatMessage() {
     cheatMessage.style.display = 'block';
@@ -270,20 +300,21 @@
 
   function updatePosition() {
     if (cheatMessage.style.display === 'block') return;
+    
     if (!isDragging) {
       let bounced = false;
 
-      // Check horizontal borders
+      // Check horizontal borders (including blurred areas)
       const nextX = player.x + player.vx;
-      if (nextX - player.radius <= 0 || nextX + player.radius >= baseWidth) {
+      if (nextX - player.radius <= 50 || nextX + player.radius >= baseWidth - 50) {
         const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
         player.vx *= -bounciness;
         bounced = true;
       }
 
-      // Check vertical borders
+      // Check vertical borders (including blurred areas)
       const nextY = player.y + player.vy;
-      if (nextY - player.radius <= 0 || nextY + player.radius >= baseHeight) {
+      if (nextY - player.radius <= 50 || nextY + player.radius >= baseHeight - 50) {
         const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
         player.vy *= -bounciness;
         bounced = true;
@@ -300,9 +331,9 @@
       player.x += player.vx;
       player.y += player.vy;
 
-      // Ensure the ball stays within bounds
-      player.x = Math.max(player.radius, Math.min(baseWidth - player.radius, player.x));
-      player.y = Math.max(player.radius, Math.min(baseHeight - player.radius, player.y));
+      // Ensure the ball stays within bounds (including blurred areas)
+      player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x));
+      player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y));
 
       const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
 
@@ -558,6 +589,15 @@
       });
     }
 
+    // Add aspect ratio toggle functionality
+    aspectRatioToggle.addEventListener('click', () => {
+      isWidescreen = !isWidescreen;
+      updateGameArea();
+      createMist();
+      createStars();
+    });
+
+    // Initialize the game
     function initGame() {
       updateGameArea();
       gameArea.appendChild(playerElement);
