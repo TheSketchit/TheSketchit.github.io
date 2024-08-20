@@ -392,8 +392,8 @@
       const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
         isDragging = true;
-        lastMouseX = dragStartX = x;
-        lastMouseY = dragStartY = y;
+        lastMouseX = x;
+        lastMouseY = y;
         playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
@@ -405,10 +405,15 @@
         const y = (event.clientY - rect.top) / scale;
         const dx = x - lastMouseX;
         const dy = y - lastMouseY;
+    
         player.x += dx;
         player.y += dy;
         lastMouseX = x;
         lastMouseY = y;
+    
+        // Ensure ball stays within the visible game area
+        player.x = Math.max(player.radius, Math.min(baseWidth - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(baseHeight - player.radius, player.y));
       }
     });
 
@@ -416,18 +421,16 @@
       if (isDragging) {
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
-        const releaseX = lastMouseX - dragStartX;
-        const releaseY = lastMouseY - dragStartY;
-        const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
-        player.vx = releaseX * releaseMultiplier;
-        player.vy = releaseY * releaseMultiplier;
-        player.energy = Math.min(releaseMagnitude / 200, 1);
-        bounceCount = 0;
-        scoreDisplay.textContent = 'Bounces: 0';
-        
-        if (player.energy > 0.6) {
-          createPowerThrowEffect();
-        }
+    
+        const releaseVX = (lastMouseX - dragStartX) * releaseMultiplier;
+        const releaseVY = (lastMouseY - dragStartY) * releaseMultiplier;
+    
+        // Apply velocity for smooth movement
+        player.vx = releaseVX;
+        player.vy = releaseVY;
+    
+        // Allow energy to diminish after release
+        player.energy = Math.sqrt(player.vx * player.vx + player.vy * player.vy) / 200;
       }
     });
 
