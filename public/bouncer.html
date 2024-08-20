@@ -663,7 +663,7 @@
   canvas.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
-      const maxVelocity = 50; // Adjust this value as needed
+      const maxVelocity = 150; // Adjust this value as needed
       player.vx = Math.min(Math.max(releaseVelocityX, -maxVelocity), maxVelocity);
       player.vy = Math.min(Math.max(releaseVelocityY, -maxVelocity), maxVelocity);
       const releaseVelocityX = mouseVelocityX * releaseMultiplier;
