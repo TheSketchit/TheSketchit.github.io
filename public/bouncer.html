@@ -166,8 +166,6 @@
 
   // Game variables
   let isDragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
   let bounceCount = 0;
   let lastSoundTime = 0;
 
@@ -942,9 +940,6 @@
     }
 
     animatePowerThrow();
-
-
-  let dragStartTime;
 
   canvas.addEventListener('mousedown', (event) => {
       if (gameOver) return;  // Stop interaction if game is over
