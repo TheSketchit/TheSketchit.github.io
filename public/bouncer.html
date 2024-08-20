@@ -91,6 +91,7 @@
   const aspectRatioToggle = document.getElementById('aspect-ratio-toggle');
 
   let ballAnimationTime = 0;
+  let highScoreSubmitted = false;
   const ballAnimationDuration = 300; // milliseconds
 
   // Define base dimensions
@@ -112,7 +113,8 @@
 
   // Game constants
   const emberThreshold = 3;
-  const energyDecay = 0.9998;
+  const energyDecay = 0.995;
+  const velocityDecay = 0.99;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
   const borderRetraction = 20;
@@ -252,27 +254,28 @@
       }
   
       const speed = Math.hypot(player.vx, player.vy);
-  
+
       if (speed > emberThreshold) {
         createEmberTrail(player.x, player.y, player.vx, player.vy);
       }
-  
-      // Apply energy-based slowdown
+
+      // Apply energy-based slowdown with faster decay
       player.energy *= Math.pow(energyDecay, deltaTime / 16);
-      player.vx *= Math.pow(0.999, deltaTime / 16);
-      player.vy *= Math.pow(0.999, deltaTime / 16);
-  
-      // Stop the ball if it's moving very slowly
-      if (speed < 0.09) {
+      player.vx *= Math.pow(velocityDecay, deltaTime / 16);
+      player.vy *= Math.pow(velocityDecay, deltaTime / 16);
+
+      // Stop the ball if it's moving very slowly and submit high score only once
+      if (speed < 0.05 && !highScoreSubmitted) {
         player.vx = 0;
         player.vy = 0;
         player.energy = 0;
 
         // Submit high score and show high score modal
         submitHighScore();
+        highScoreSubmitted = true; // Set the flag to prevent multiple submissions
       }
     }
-  
+
     // Update ball animation
     if (ballAnimationTime > 0) {
       ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
@@ -329,6 +332,7 @@
     emberParticles.length = 0;
     createMist();
     createStars();
+    highScoreSubmitted = false; // Reset the flag when starting a new game
   }
     
   function incrementBounceCount() {
