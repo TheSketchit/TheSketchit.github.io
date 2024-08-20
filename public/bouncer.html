@@ -80,8 +80,10 @@
     }
     
   </style>
+  
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 </head>
 <body>
   <div id="game-container">
@@ -112,6 +114,7 @@
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const database = firebase.database();
+  const auth = firebase.auth();
     
   const gameContainer = document.getElementById('game-container');
   const canvas = document.getElementById('game-canvas');
@@ -313,42 +316,55 @@
   }
 
   function submitHighScore() {
-    console.log("Submitting high score:", bounceCount);
-    const highScoreRef = database.ref('highScores');
-    highScoreRef.push({
-      score: bounceCount,
-      playerName: player.alias,
-      timestamp: Date.now()
-    }).then(() => {
-      displayHighScores();
-    }).catch((error) => {
-      console.error("Error submitting high score:", error);
-    });
+    console.log("Attempting to submit high score:", bounceCount);
+    
+    auth.signInAnonymously()
+      .then(() => {
+        console.log("Anonymous auth successful");
+        const highScoreRef = database.ref('highScores');
+        return highScoreRef.push({
+          score: bounceCount,
+          playerName: player.alias,
+          timestamp: Date.now()
+        });
+      })
+      .then(() => {
+        console.log("High score submitted successfully");
+        displayHighScores();
+      })
+      .catch((error) => {
+        console.error("Error submitting high score:", error);
+        alert("Failed to submit high score. Error: " + error.message);
+      });
   }
 
   function displayHighScores() {
-    console.log("Displaying high scores");
+    console.log("Attempting to display high scores");
+    
     const highScoreRef = database.ref('highScores');
-    highScoreRef.orderByChild('score').limitToLast(10).once('value', (snapshot) => {
-      const highScores = [];
-      snapshot.forEach((childSnapshot) => {
-        highScores.push(childSnapshot.val());
+    highScoreRef.orderByChild('score').limitToLast(10).once('value')
+      .then((snapshot) => {
+        const highScores = [];
+        snapshot.forEach((childSnapshot) => {
+          highScores.push(childSnapshot.val());
+        });
+    
+        highScores.reverse();  // Reverse to get descending order
+    
+        const highScoreList = document.getElementById('high-score-list');
+        highScoreList.innerHTML = '';
+        highScores.forEach((score) => {
+          const li = document.createElement('li');
+          li.textContent = `${score.playerName}: ${score.score}`;
+          highScoreList.appendChild(li);
+        });
+    
+        document.getElementById('high-score-modal').style.display = 'block';
+      })
+      .catch((error) => {
+        console.error("Error fetching high scores:", error);
+        alert("Failed to fetch high scores. Error: " + error.message);
       });
-  
-      highScores.reverse();  // Reverse to get descending order
-  
-      const highScoreList = document.getElementById('high-score-list');
-      highScoreList.innerHTML = '';
-      highScores.forEach((score) => {
-        const li = document.createElement('li');
-        li.textContent = `${score.playerName}: ${score.score}`;
-        highScoreList.appendChild(li);
-      });
-  
-      document.getElementById('high-score-modal').style.display = 'block';
-    }).catch((error) => {
-      console.error("Error fetching high scores:", error);
-    });
   }
 
   document.getElementById('retry-button').addEventListener('click', () => {
