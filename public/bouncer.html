@@ -128,10 +128,10 @@
   let gameOver = false; 
   let existingScores = new Set();
   let dragPoints = [];
-  const MAX_DRAG_POINTS = 50;
+  const MAX_DRAG_POINTS = 40;
   const CORNER_BOUNCE_THRESHOLD = 50;
   const MAX_THROW_POWER = 500; // Reduced from 1000
-  const THROW_POWER_MULTIPLIER = 0.16; // Reduced from 0.2
+  const THROW_POWER_MULTIPLIER = 0.14; //
   const ENERGY_DIVISOR = 1000; // Increased from 500 to reduce energy gain
   let dragStartTime;
   let dragStartX, dragStartY;
@@ -982,14 +982,14 @@
   
           // Calculate throw power based on speed (distance / time)
           const speed = distance / dragDuration;
-          const maxSpeed = 3000; // Adjust this value to set the upper limit of throw power
+          const maxSpeed = 1500; // Adjust this value to set the upper limit of throw power
           const throwPower = Math.min(speed, maxSpeed);
   
           const angle = Math.atan2(dy, dx);
   
           // Adjust these multipliers to fine-tune the throw strength
-          player.vx = Math.cos(angle) * throwPower * 0.4;
-          player.vy = Math.sin(angle) * throwPower * 0.4;
+          player.vx = Math.cos(angle) * throwPower * 0.12;
+          player.vy = Math.sin(angle) * throwPower * 0.12;
   
           // Set energy based on throw power
           player.energy = Math.min(throwPower / maxSpeed, 1);
