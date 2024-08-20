@@ -108,10 +108,13 @@
   </style>
 </head>
 <body>
-  <div id="game-container"></div>
+  <div id="game-container">
+    <div id="game-area"></div>
+  </div>
 
   <script>
     const gameContainer = document.getElementById('game-container');
+    const gameArea = document.getElementById('game-area');
 
     // Add audio element
     const popSound = new Audio('../images/pop.mp3');
@@ -123,8 +126,8 @@
     // Player object
     const player = {
       alias: playerName,
-      x: gameContainer.clientWidth / 2,
-      y: gameContainer.clientHeight / 2,
+      x: baseWidth / 2,
+      y: baseHeight / 2,
       vx: 0,
       vy: 0,
       radius: 40,
@@ -134,7 +137,7 @@
     const emberThreshold = 3;
     const releaseMultiplier = 0.15;
     const mistSlowdown = 0.995;
-    const energyDecay = 0.9998; // Slower energy decay for longer-lasting movement
+    const energyDecay = 0.9998;
     const minBounciness = 0.7;
     const maxBounciness = 1.0;
 
@@ -145,6 +148,10 @@
     let dragStartY = 0;
     let bounceCount = 0;
     let lastSoundTime = 0;
+
+    const baseWidth = 800;
+    const baseHeight = 600;
+    let scale = 1;
 
     // Create player element
     const playerElement = document.createElement('div');
@@ -157,7 +164,7 @@
     aliasLabel.textContent = player.alias;
 
     playerElement.appendChild(aliasLabel);
-    gameContainer.appendChild(playerElement);
+    gameArea.appendChild(playerElement);
 
     // Create bounce score display
     const scoreDisplay = document.createElement('div');
@@ -167,9 +174,27 @@
     scoreDisplay.style.color = 'white';
     scoreDisplay.style.fontSize = '24px';
     scoreDisplay.textContent = 'Bounces: 0';
-    gameContainer.appendChild(scoreDisplay);
+    gameArea.appendChild(scoreDisplay);
 
-    //
+    function updateGameArea() {
+      const containerWidth = gameContainer.clientWidth;
+      const containerHeight = gameContainer.clientHeight;
+      const containerAspect = containerWidth / containerHeight;
+      const gameAspect = baseWidth / baseHeight;
+
+      if (containerAspect > gameAspect) {
+        scale = containerHeight / baseHeight;
+        gameArea.style.width = `${baseWidth * scale}px`;
+        gameArea.style.height = `${baseHeight * scale}px`;
+      } else {
+        scale = containerWidth / baseWidth;
+        gameArea.style.width = `${baseWidth * scale}px`;
+        gameArea.style.height = `${baseHeight * scale}px`;
+      }
+
+      gameArea.style.fontSize = `${16 * scale}px`;
+    }
+  //
   function updatePosition() {
     if (!isDragging) {
       let bounced = false;
@@ -243,41 +268,47 @@
   }
 
   function playPopSound() {
-    const currentTime = Date.now();
-    if (currentTime - lastSoundTime > 50) { // Prevent sound spam
-      popSound.currentTime = 0; // Reset sound to start
-      popSound.play();
+      const currentTime = Date.now();
+      if (currentTime - lastSoundTime > 50) {
+        popSound.currentTime = 0;
+        popSound.play();
+      }
+      lastSoundTime = currentTime;
     }
-    lastSoundTime = currentTime;
-  }
 
     // Mouse event listeners
     gameContainer.addEventListener('mousedown', (event) => {
-      const dx = event.clientX - player.x;
-      const dy = event.clientY - player.y;
+      const rect = gameArea.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / scale;
+      const y = (event.clientY - rect.top) / scale;
+      const dx = x - player.x;
+      const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
         isDragging = true;
-        lastMouseX = dragStartX = event.clientX;
-        lastMouseY = dragStartY = event.clientY;
-        playerElement.style.transform = 'scale(0.8)';
+        lastMouseX = dragStartX = x;
+        lastMouseY = dragStartY = y;
+        playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
 
     gameContainer.addEventListener('mousemove', (event) => {
       if (isDragging) {
-        const dx = event.clientX - lastMouseX;
-        const dy = event.clientY - lastMouseY;
+        const rect = gameArea.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / scale;
+        const y = (event.clientY - rect.top) / scale;
+        const dx = x - lastMouseX;
+        const dy = y - lastMouseY;
         player.x += dx;
         player.y += dy;
-        lastMouseX = event.clientX;
-        lastMouseY = event.clientY;
+        lastMouseX = x;
+        lastMouseY = y;
       }
     });
 
     gameContainer.addEventListener('mouseup', () => {
       if (isDragging) {
         isDragging = false;
-        playerElement.style.transform = 'scale(1)';
+        playerElement.style.transform = `scale(${scale})`;
         const releaseX = lastMouseX - dragStartX;
         const releaseY = lastMouseY - dragStartY;
         const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
@@ -287,7 +318,6 @@
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
         
-        // Visual feedback for powerful throws
         if (player.energy > 0.6) {
           createPowerThrowEffect();
         }
@@ -295,7 +325,7 @@
     });
 
     function createPowerThrowEffect() {
-      const powerRing = document.createElement('div');
+     const powerRing = document.createElement('div');
       powerRing.style.position = 'absolute';
       powerRing.style.left = `${player.x - player.radius * 2}px`;
       powerRing.style.top = `${player.y - player.radius * 2}px`;
@@ -306,7 +336,7 @@
       powerRing.style.opacity = '0.8';
       powerRing.style.transition = 'all 0.5s ease-out';
 
-      gameContainer.appendChild(powerRing);
+      gameArea.appendChild(powerRing);
 
       setTimeout(() => {
         powerRing.style.transform = 'scale(3)';
@@ -314,7 +344,7 @@
       }, 50);
 
       setTimeout(() => {
-        gameContainer.removeChild(powerRing);
+        gameArea.removeChild(powerRing);
       }, 550);
     }
 
@@ -329,10 +359,10 @@
         lightning.style.top = `${y}px`;
         lightning.style.transform = `rotate(${Math.random() * 360}deg)`;
   
-        gameContainer.appendChild(lightning);
+        gameArea.appendChild(lightning);
   
         setTimeout(() => {
-          gameContainer.removeChild(lightning);
+          gameArea.removeChild(lightning);
         }, 300);
       }
     }
@@ -342,21 +372,21 @@
       for (let i = 0; i < 20; i++) {
         const mist = document.createElement('div');
         mist.className = 'mist';
-        mist.style.left = `${Math.random() * gameContainer.clientWidth}px`;
-        mist.style.top = `${Math.random() * gameContainer.clientHeight}px`;
-        mist.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+        mist.style.left = `${Math.random() * baseWidth * scale}px`;
+        mist.style.top = `${Math.random() * baseHeight * scale}px`;
+        mist.style.transform = `scale(${(Math.random() * 0.5 + 0.5) * scale})`;
         mist.style.opacity = Math.random() * 0.5 + 0.2;
     
-        const hue = Math.random() * 60 + 180; // Blue to purple hues
+        const hue = Math.random() * 60 + 180;
         mist.style.background = `radial-gradient(circle, hsla(${hue}, 100%, 70%, 0.3) 0%, hsla(${hue}, 100%, 50%, 0) 70%)`;
     
-        gameContainer.appendChild(mist);
+        gameArea.appendChild(mist);
         animateMist(mist);
       }
     }
     
     function animateMist(mistElement) {
-      const duration = Math.random() * 10000 + 5000; // 5 to 15 seconds
+      const duration = Math.random() * 10000 + 5000;
       const keyframes = [
         { transform: `scale(${Math.random() * 0.5 + 0.5}) rotate(0deg)`, opacity: Math.random() * 0.5 + 0.2 },
         { transform: `scale(${Math.random() * 0.5 + 0.8}) rotate(180deg)`, opacity: Math.random() * 0.5 + 0.4 },
@@ -376,14 +406,14 @@
       for (let i = 0; i < 100; i++) {
         const star = document.createElement('div');
         star.className = 'star';
-        star.style.left = `${Math.random() * gameContainer.clientWidth}px`;
-        star.style.top = `${Math.random() * gameContainer.clientHeight}px`;
+        star.style.left = `${Math.random() * baseWidth * scale}px`;
+        star.style.top = `${Math.random() * baseHeight * scale}px`;
   
         if (Math.random() > 0.5) {
           star.classList.add('twinkle');
         }
   
-        gameContainer.appendChild(star);
+        gameArea.appendChild(star);
       }
     }
   
@@ -427,10 +457,10 @@
       ember.style.left = `${x + offsetX - size / 2}px`;
       ember.style.top = `${y + offsetY - size / 2}px`;
   
-      gameContainer.appendChild(ember);
+      gameArea.appendChild(ember);
   
       setTimeout(() => {
-        gameContainer.removeChild(ember);
+        gameArea.removeChild(ember);
       }, 1000 + Math.random() * 500);
     }
   
@@ -450,8 +480,16 @@
         easing: 'ease-in-out'
       });
     }
-  
+
+    // Add window resize event listener
+    window.addEventListener('resize', () => {
+      updateGameArea();
+      createMist();
+      createStars();
+    });
+    
     // Start the animation loop
+    updateGameArea();
     updatePosition();
     createMist();
     createStars();
