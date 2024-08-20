@@ -52,6 +52,33 @@
       text-align: center;
       display: none;
     }
+
+    #high-score-modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0,0,0,0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 1000;
+    }
+    #high-score-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    #retry-button {
+      margin-top: 10px;
+      padding: 5px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
   </style>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -61,11 +88,13 @@
     <canvas id="game-canvas"></canvas>
     <button id="aspect-ratio-toggle">Toggle 16:9 / 4:3</button>
   </div>
-    <div id="high-score-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px;">
+  
+  <div id="high-score-modal">
     <h2>Top 10 High Scores</h2>
     <ol id="high-score-list"></ol>
     <button id="retry-button">Retry</button>
   </div>
+
   <div id="cheat-message">Stop trying to Cheat, you fucking Weiner.</div>
 
   <script>
@@ -265,7 +294,8 @@
       player.vy *= Math.pow(velocityDecay, deltaTime / 16);
 
       // Stop the ball if it's moving very slowly and submit high score only once
-      if (speed < 0.05 && !highScoreSubmitted) {
+      if (speed < 0.1 && !highScoreSubmitted) {
+        console.log("Ball stopped, submitting high score");
         player.vx = 0;
         player.vy = 0;
         player.energy = 0;
@@ -283,6 +313,7 @@
   }
 
   function submitHighScore() {
+    console.log("Submitting high score:", bounceCount);
     const highScoreRef = database.ref('highScores');
     highScoreRef.push({
       score: bounceCount,
@@ -290,10 +321,13 @@
       timestamp: Date.now()
     }).then(() => {
       displayHighScores();
+    }).catch((error) => {
+      console.error("Error submitting high score:", error);
     });
   }
 
   function displayHighScores() {
+    console.log("Displaying high scores");
     const highScoreRef = database.ref('highScores');
     highScoreRef.orderByChild('score').limitToLast(10).once('value', (snapshot) => {
       const highScores = [];
@@ -312,6 +346,8 @@
       });
   
       document.getElementById('high-score-modal').style.display = 'block';
+    }).catch((error) => {
+      console.error("Error fetching high scores:", error);
     });
   }
 
@@ -319,7 +355,7 @@
     document.getElementById('high-score-modal').style.display = 'none';
     resetGame();
   });
-
+    
   function resetGame() {
     bounceCount = 0;
     player.x = baseWidth / 2;
