@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Enhanced Swirling Ball with Realistic Effects</title>
   <style>
-    body, html {
+   body, html {
       margin: 0;
       padding: 0;
       overflow: hidden;
       background-color: #000;
-      user-select: none; /* Prevents highlighting */
+      user-select: none;
     }
 
     #game-container {
@@ -19,21 +19,57 @@
       height: 100vh;
       background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(15,15,40,1) 100%);
       overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #game-area {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    #background-blur {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: inherit;
+      filter: blur(10px);
+      z-index: -1;
     }
 
     .circle {
       position: absolute;
-      width: 80px;
-      height: 80px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background-color: rgba(255, 0, 0, 0.8);
       text-align: center;
-      line-height: 80px;
+      line-height: 40px;
       font-size: 16px;
       color: #fff;
-      box-shadow: 0 0 100px rgba(255, 0, 0, 1);
+      box-shadow: 0 0 50px rgba(255, 0, 0, 1);
       transition: transform 0.1s ease-out;
-      cursor: pointer; /* Changes the mouse pointer to a hand */
+      cursor: pointer;
+    }
+
+    #cheat-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 24px;
+      text-align: center;
+      display: none;
     }
 
     .alias-label {
@@ -109,17 +145,25 @@
 </head>
 <body>
   <div id="game-container">
-    <div id="game-area"></div>
+    <div id="game-area">
+      <div id="background-blur"></div>
+    </div>
   </div>
+  <div id="cheat-message">Stop trying to Cheat, you fucking Weiner.</div>
 
   <script>
   const gameContainer = document.getElementById('game-container');
   const gameArea = document.getElementById('game-area');
+  const cheatMessage = document.getElementById('cheat-message');
 
   // Define base dimensions
-  const baseWidth = 800;
-  const baseHeight = 600;
+  const baseWidth = 1600;
+  const baseHeight = 900;
   let scale = 1;
+
+  // Minimum allowed dimensions
+  const minWidth = 955;
+  const minHeight = 542;
 
   // Add audio element
   const popSound = new Audio('../images/pop.mp3');
@@ -152,7 +196,7 @@
     y: baseHeight / 2,
     vx: 0,
     vy: 0,
-    radius: 40,
+    radius: 20,  // Reduced default size
     energy: 0
   };
 
@@ -178,23 +222,43 @@
   function updateGameArea() {
     const containerWidth = gameContainer.clientWidth;
     const containerHeight = gameContainer.clientHeight;
+    
+    if (containerWidth < minWidth || containerHeight < minHeight) {
+      showCheatMessage();
+      return;
+    }
+    
+    hideCheatMessage();
+    
     const containerAspect = containerWidth / containerHeight;
     const gameAspect = baseWidth / baseHeight;
-
+    
     if (containerAspect > gameAspect) {
       scale = containerHeight / baseHeight;
-      gameArea.style.width = `${baseWidth * scale}px`;
-      gameArea.style.height = `${baseHeight * scale}px`;
+      gameArea.style.width = `${baseHeight * gameAspect}px`;
+      gameArea.style.height = `${containerHeight}px`;
     } else {
       scale = containerWidth / baseWidth;
-      gameArea.style.width = `${baseWidth * scale}px`;
-      gameArea.style.height = `${baseHeight * scale}px`;
+      gameArea.style.width = `${containerWidth}px`;
+      gameArea.style.height = `${containerWidth / gameAspect}px`;
     }
-
+    
     gameArea.style.fontSize = `${16 * scale}px`;
-
+    
     // Update player position and size
     updatePlayerElement();
+    }
+    
+  function showCheatMessage() {
+    cheatMessage.style.display = 'block';
+    gameArea.style.display = 'none';
+    bounceCount = 0;
+    scoreDisplay.textContent = 'Bounces: 0';
+  }
+
+  function hideCheatMessage() {
+    cheatMessage.style.display = 'none';
+    gameArea.style.display = 'block';
   }
 
   function updatePlayerElement() {
@@ -205,6 +269,7 @@
   }
 
   function updatePosition() {
+    if (cheatMessage.style.display === 'block') return;
     if (!isDragging) {
       let bounced = false;
 
@@ -377,6 +442,8 @@
   
     // Create mist elements in the background
     function createMist() {
+      gameArea.querySelectorAll('.mist').forEach(mist => mist.remove());
+      const mistCount = Math.min(20, Math.floor(20 * scale));
       for (let i = 0; i < 20; i++) {
         const mist = document.createElement('div');
         mist.className = 'mist';
@@ -411,6 +478,8 @@
   
     // Create star elements in the background
     function createStars() {
+      gameArea.querySelectorAll('.star').forEach(star => star.remove());
+      const starCount = Math.min(100, Math.floor(100 * scale));
       for (let i = 0; i < 100; i++) {
         const star = document.createElement('div');
         star.className = 'star';
