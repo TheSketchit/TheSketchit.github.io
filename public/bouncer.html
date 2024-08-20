@@ -311,20 +311,16 @@
       let bounced = false;
 
       // Check horizontal borders (including blurred areas)
-      const nextX = player.x + player.vx;
-      if (nextX - player.radius <= 50 || nextX + player.radius >= baseWidth - 50) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vx *= -bounciness;
+      if (player.x - player.radius <= 50 || player.x + player.radius >= baseWidth - 50) {
+        player.vx *= -0.9;
         bounced = true;
       }
 
       // Check vertical borders (including blurred areas)
-      const nextY = player.y + player.vy;
-      if (nextY - player.radius <= 50 || nextY + player.radius >= baseHeight - 50) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vy *= -bounciness;
-        bounced = true;
-      }
+        if (player.y - player.radius <= 50 || player.y + player.radius >= baseHeight - 50) {
+          player.vy *= -0.9;
+          bounced = true;
+        }
 
       if (bounced) {
         createLightning(player.x * scale, player.y * scale);
@@ -334,39 +330,31 @@
       }
 
       // Update position after checking for bounces
-      player.x += player.vx;
-      player.y += player.vy;
+      player.x += player.vx * 0.02;
+      player.y += player.vy * 0.02;
 
       // Ensure the ball stays within bounds (including blurred areas)
       player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x));
       player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y));
 
-      const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+      // Apply friction
+      player.vx *= 0.99;
+      player.vy *= 0.99;
 
-      if (speed > emberThreshold) {
+      // Create ember trail
+      if (Math.abs(player.vx) > emberThreshold || Math.abs(player.vy) > emberThreshold) {
         createEmberTrail(player.x * scale, player.y * scale, player.vx, player.vy);
       }
 
       interactWithMist(player.x * scale, player.y * scale);
-
-      // Apply energy-based slowdown
-      player.energy *= energyDecay;
-      player.vx *= 0.999;
-      player.vy *= 0.999;
-
-      // Stop the ball if it's moving very slowly
-      if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
-        player.vx = 0;
-        player.vy = 0;
-        player.energy = 0;
-      }
     }
 
     updatePlayerElement();
 
     // Visual feedback for high energy
-    const energyScale = 1 + player.energy * 0.3;
-    const energyRotation = player.energy * 360;
+    const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+    const energyScale = 1 + Math.min(0.3, speed / 1000);
+    const energyRotation = speed * 0.1;
     playerElement.style.transform = `scale(${energyScale * scale}) rotate(${energyRotation}deg)`;
 
     requestAnimationFrame(updatePosition);
@@ -395,10 +383,9 @@
       const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
         isDragging = true;
-        lastMouseX = dragStartX = x;
-        lastMouseY = dragStartY = y;
-        dragStartTime = Date.now();
-        lastMouseMoveTime = dragStartTime;
+        lastMouseX = x;
+        lastMouseY = y;
+        lastUpdateTime = Date.now();
         player.vx = 0;
         player.vy = 0;
         playerElement.style.transform = `scale(${0.8 * scale})`;
@@ -410,24 +397,24 @@
         const rect = gameArea.getBoundingClientRect();
         const x = (event.clientX - rect.left) / scale;
         const y = (event.clientY - rect.top) / scale;
-        const dx = x - lastMouseX;
-        const dy = y - lastMouseY;
-        
-        // Limit the ball's movement to within the game area
-        player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x + dx));
-        player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y + dy));
-
         const currentTime = Date.now();
-        const timeDelta = currentTime - lastMouseMoveTime;
-        
-        if (timeDelta > 0) {
-          dragVelocityX = dx / timeDelta * 1000 * dragSensitivity;
-          dragVelocityY = dy / timeDelta * 1000 * dragSensitivity;
-        }
+        const dt = (currentTime - lastUpdateTime) / 1000; // Time difference in seconds
+
+        // Calculate velocity based on mouse movement
+        player.vx = (x - lastMouseX) / dt;
+        player.vy = (y - lastMouseY) / dt;
+
+        // Update position
+        player.x = x;
+        player.y = y;
+
+        // Limit the ball's movement to within the game area
+        player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x));
+        player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y));
 
         lastMouseX = x;
         lastMouseY = y;
-        lastMouseMoveTime = currentTime;
+        lastUpdateTime = currentTime;
 
         updatePlayerElement();
       }
@@ -438,21 +425,11 @@
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
 
-        const throwDuration = Date.now() - dragStartTime;
-        const throwDistance = Math.sqrt(
-          Math.pow(lastMouseX - dragStartX, 2) + 
-          Math.pow(lastMouseY - dragStartY, 2)
-        );
+        // Adjust velocity for more dramatic effect
+        player.vx *= 0.5;
+        player.vy *= 0.5;
 
-        let throwVelocity = throwDistance / throwDuration * 1000;
-        throwVelocity = Math.max(minThrowVelocity, Math.min(maxThrowVelocity, throwVelocity));
-
-        const velocityMultiplier = throwVelocity / Math.sqrt(dragVelocityX * dragVelocityX + dragVelocityY * dragVelocityY);
-
-        player.vx = dragVelocityX * velocityMultiplier;
-        player.vy = dragVelocityY * velocityMultiplier;
-
-        player.energy = throwVelocity / maxThrowVelocity;
+        player.energy = Math.min(1, Math.sqrt(player.vx * player.vx + player.vy * player.vy) / 1000);
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
         
@@ -466,9 +443,6 @@
       if (isDragging) {
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
-        // Optionally, you can set the ball's velocity to zero here if you don't want it to move when the mouse leaves the game area
-        player.vx = 0;
-        player.vy = 0;
       }
     });
 
