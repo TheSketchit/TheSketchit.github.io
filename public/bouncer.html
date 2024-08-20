@@ -446,17 +446,30 @@ function updatePositionHistory(x, y) {
         let releaseVX = dx * releaseMultiplier * speedFactor;
         let releaseVY = dy * releaseMultiplier * speedFactor;
     
-        // If the total movement was minimal, reduce the velocity drastically
-        if (totalMovement < 10) { // Adjust this threshold based on testing
-          releaseVX *= 0.1;
-          releaseVY *= 0.1;
+        // Define the boundaries using the dimensions of the blurred borders
+        const borderThickness = 50; // Based on your CSS
+        const leftBorder = borderThickness;
+        const rightBorder = baseWidth - borderThickness;
+        const topBorder = borderThickness;
+        const bottomBorder = baseHeight - borderThickness;
+    
+        // Check if the ball is in any corner
+        const isInCorner = 
+          (player.x - player.radius <= leftBorder && player.y - player.radius <= topBorder) ||  // Top-left corner
+          (player.x + player.radius >= rightBorder && player.y - player.radius <= topBorder) ||  // Top-right corner
+          (player.x - player.radius <= leftBorder && player.y + player.radius >= bottomBorder) ||  // Bottom-left corner
+          (player.x + player.radius >= rightBorder && player.y + player.radius >= bottomBorder);  // Bottom-right corner
+    
+        if (isInCorner) {
+          // If in a corner, make the ball drift slowly by setting very low velocity
+          player.vx = releaseVX * 0.05; // Reduce velocity for slow drifting
+          player.vy = releaseVY * 0.05;
           player.energy = 0; // Set energy to zero for minimal bounces
         } else {
+          player.vx = releaseVX;
+          player.vy = releaseVY;
           player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 200 * speedFactor, 1);
         }
-    
-        player.vx = releaseVX;
-        player.vy = releaseVY;
     
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
