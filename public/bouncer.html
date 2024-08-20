@@ -596,6 +596,10 @@
     animatePowerThrow();
   }
 
+  let mouseVelocityX = 0;
+  let mouseVelocityY = 0;
+  let lastMouseMoveTime = 0;
+
   canvas.addEventListener('mousedown', (event) => {
     const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
@@ -606,6 +610,9 @@
       isDragging = true;
       lastMouseX = dragStartX = x;
       lastMouseY = dragStartY = y;
+      lastMouseMoveTime = Date.now();
+      mouseVelocityX = 0;
+      mouseVelocityY = 0;
     }
   });
 
@@ -616,21 +623,31 @@
       const y = (event.clientY - rect.top) / scale;
       const dx = x - lastMouseX;
       const dy = y - lastMouseY;
+      const currentTime = Date.now();
+      const dt = (currentTime - lastMouseMoveTime) / 1000; // Convert to seconds
+
+      if (dt > 0) {
+        mouseVelocityX = dx / dt;
+        mouseVelocityY = dy / dt;
+      }
+
       player.x += dx;
       player.y += dy;
       lastMouseX = x;
       lastMouseY = y;
+      lastMouseMoveTime = currentTime;
     }
   });
 
   canvas.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
-      const releaseX = lastMouseX - dragStartX;
-      const releaseY = lastMouseY - dragStartY;
-      const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
-      player.vx = releaseX * releaseMultiplier;
-      player.vy = releaseY * releaseMultiplier;
+      const releaseVelocityX = mouseVelocityX * releaseMultiplier;
+      const releaseVelocityY = mouseVelocityY * releaseMultiplier;
+      const releaseMagnitude = Math.sqrt(releaseVelocityX * releaseVelocityX + releaseVelocityY * releaseVelocityY);
+
+      player.vx = releaseVelocityX;
+      player.vy = releaseVelocityY;
       player.energy = Math.min(releaseMagnitude / 200, 1);
       bounceCount = 0;
       
