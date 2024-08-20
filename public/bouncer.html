@@ -298,72 +298,75 @@
     playerElement.style.top = `${(player.y - player.radius) * scale}px`;
   }
 
+  const velocityThreshold = 0.1; // Adjust this value as needed
+  
   function updatePosition() {
-    if (cheatMessage.style.display === 'block') return;
-    
-    if (!isDragging) {
-      let bounced = false;
-
-      // Check horizontal borders (including blurred areas)
-      const nextX = player.x + player.vx;
-      if (nextX - player.radius <= 50 || nextX + player.radius >= baseWidth - 50) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vx *= -bounciness;
-        bounced = true;
+      if (cheatMessage.style.display === 'block') return;
+  
+      if (!isDragging) {
+          let bounced = false;
+  
+          // Check horizontal borders
+          const nextX = player.x + player.vx;
+          if (nextX - player.radius <= 50 || nextX + player.radius >= baseWidth - 50) {
+              const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+              player.vx *= -bounciness;
+              bounced = true;
+          }
+  
+          // Check vertical borders
+          const nextY = player.y + player.vy;
+          if (nextY - player.radius <= 50 || nextY + player.radius >= baseHeight - 50) {
+              const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+              player.vy *= -bounciness;
+              bounced = true;
+          }
+  
+          if (bounced) {
+              createLightning(player.x * scale, player.y * scale);
+              impactShake();
+              incrementBounceCount();
+              playPopSound();
+          }
+  
+          // Update position after checking for bounces
+          player.x += player.vx;
+          player.y += player.vy;
+  
+          // Ensure the ball stays within bounds
+          player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x));
+          player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y));
+  
+          const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+  
+          // Stop the ball if the speed is below the threshold
+          if (speed < velocityThreshold) {
+              player.vx = 0;
+              player.vy = 0;
+              player.energy = 0;
+              return; // Stop further processing to prevent unnecessary bounce checks
+          }
+  
+          if (speed > emberThreshold) {
+              createEmberTrail(player.x * scale, player.y * scale, player.vx, player.vy);
+          }
+  
+          interactWithMist(player.x * scale, player.y * scale);
+  
+          // Apply energy-based slowdown
+          player.energy *= energyDecay;
+          player.vx *= 0.999;
+          player.vy *= 0.999;
       }
-
-      // Check vertical borders (including blurred areas)
-      const nextY = player.y + player.vy;
-      if (nextY - player.radius <= 50 || nextY + player.radius >= baseHeight - 50) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vy *= -bounciness;
-        bounced = true;
-      }
-
-      if (bounced) {
-        createLightning(player.x * scale, player.y * scale);
-        impactShake();
-        incrementBounceCount();
-        playPopSound();
-      }
-
-      // Update position after checking for bounces
-      player.x += player.vx;
-      player.y += player.vy;
-
-      // Ensure the ball stays within bounds (including blurred areas)
-      player.x = Math.max(50 + player.radius, Math.min(baseWidth - 50 - player.radius, player.x));
-      player.y = Math.max(50 + player.radius, Math.min(baseHeight - 50 - player.radius, player.y));
-
-      const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-
-      if (speed > emberThreshold) {
-        createEmberTrail(player.x * scale, player.y * scale, player.vx, player.vy);
-      }
-
-      interactWithMist(player.x * scale, player.y * scale);
-
-      // Apply energy-based slowdown
-      player.energy *= energyDecay;
-      player.vx *= 0.999;
-      player.vy *= 0.999;
-
-      // Stop the ball if it's moving very slowly
-      if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
-        player.vx = 0;
-        player.vy = 0;
-        player.energy = 0;
-      }
-    }
-
-    updatePlayerElement();
-
-    // Visual feedback for high energy
-    const energyScale = 1 + player.energy * 0.3;
-    const energyRotation = player.energy * 360;
-    playerElement.style.transform = `scale(${energyScale * scale}) rotate(${energyRotation}deg)`;
-
-    requestAnimationFrame(updatePosition);
+  
+      updatePlayerElement();
+  
+      // Visual feedback for high energy
+      const energyScale = 1 + player.energy * 0.3;
+      const energyRotation = player.energy * 360;
+      playerElement.style.transform = `scale(${energyScale * scale}) rotate(${energyRotation}deg)`;
+  
+      requestAnimationFrame(updatePosition);
   }
 
   function incrementBounceCount() {
