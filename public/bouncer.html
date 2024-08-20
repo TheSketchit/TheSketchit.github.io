@@ -127,6 +127,7 @@
   let gameStarted = false;
   let gameOver = false; 
   let existingScores = new Set();
+  let gameLoopRunning = false;
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -418,23 +419,95 @@
   }
 
   document.getElementById('retry-button').addEventListener('click', () => {
-    document.getElementById('high-score-modal').style.display = 'none';
-    resetGame();
+      console.log("Retry button clicked");
+      
+      // Reset game state
+      gameOver = false;
+      gameStarted = false;
+      highScoreSubmitted = false;
+      bounceCount = 0;
+      ballAnimationTime = 0;
+  
+      // Reset player
+      player.x = baseWidth / 2;
+      player.y = baseHeight / 2;
+      player.vx = 0;
+      player.vy = 0;
+      player.energy = 0;
+      player.alias = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+      player.lastBounceX = player.x;
+      player.lastBounceY = player.y;
+  
+      // Clear particles
+      emberParticles.length = 0;
+      ringParticles.length = 0;
+  
+      // Recreate background elements
+      createMist();
+      createStars();
+  
+      // Re-fetch high scores
+      fetchExistingScores()
+          .then(() => {
+              // Hide high score modal
+              document.getElementById('high-score-modal').style.display = 'none';
+              
+              // Update display
+              updateGameArea();
+              
+              // Restart game loop if it's not already running
+              if (!gameLoopRunning) {
+                  gameLoopRunning = true;
+                  gameLoop(0);
+              }
+          });
+  
+      console.log("Game reset completed");
   });
     
   function resetGame() {
-    bounceCount = 0;
-    player.x = baseWidth / 2;
-    player.y = baseHeight / 2;
-    player.vx = 0;
-    player.vy = 0;
-    player.energy = 0;
-    player.alias = prompt("Enter your player name:", "Space Walker") || "Space Walker";
-    ballAnimationTime = 0;
-    emberParticles.length = 0;
-    createMist();
-    createStars();
-    highScoreSubmitted = false; // Reset the flag when starting a new game
+      // Reset game state
+      gameOver = false;
+      gameStarted = false;
+      highScoreSubmitted = false;
+      bounceCount = 0;
+      ballAnimationTime = 0;
+  
+      // Reset player
+      player.x = baseWidth / 2;
+      player.y = baseHeight / 2;
+      player.vx = 0;
+      player.vy = 0;
+      player.energy = 0;
+      player.alias = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+      player.lastBounceX = player.x;
+      player.lastBounceY = player.y;
+  
+      // Clear particles
+      emberParticles.length = 0;
+      ringParticles.length = 0;
+  
+      // Recreate background elements
+      createMist();
+      createStars();
+  
+      // Re-fetch high scores
+      fetchExistingScores()
+          .then(() => {
+              // Hide high score modal
+              document.getElementById('high-score-modal').style.display = 'none';
+              
+              // Update display
+              updateGameArea();
+              
+              // Restart game loop if it's not already running
+              if (!gameLoopRunning) {
+                  gameLoopRunning = true;
+                  gameLoop(0);
+              }
+          });
+  
+      console.log("Game reset completed");
   }
     
   function incrementBounceCount() {
@@ -765,14 +838,20 @@
   }
 
   let lastTime = 0;
-    
+  let gameLoopRunning = false;
+  
   function gameLoop(currentTime) {
-    const deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
-
-    updatePosition(deltaTime);
-    draw();
-    requestAnimationFrame(gameLoop);
+      gameLoopRunning = true;
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
+  
+      if (!gameOver) {
+          updatePosition(deltaTime);
+          draw();
+          requestAnimationFrame(gameLoop);
+      } else {
+          gameLoopRunning = false;
+      }
   }
 
   function createPowerThrowEffect() {
@@ -892,7 +971,10 @@
       createStars();
       fetchExistingScores()
           .then(() => {
-              gameLoop(0);
+              if (!gameLoopRunning) {
+                  gameLoopRunning = true;
+                  gameLoop(0);
+              }
           });
   }
 
