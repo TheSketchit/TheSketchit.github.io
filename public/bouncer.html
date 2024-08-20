@@ -490,9 +490,17 @@
       }
     });
 
+    // Draw borders
+    ctx.strokeStyle = 'rgba(0, 0, 50, 0.5)';
+    ctx.lineWidth = borderRetraction * 2;
+    ctx.strokeRect(borderRetraction, borderRetraction, baseWidth - borderRetraction * 2, baseHeight - borderRetraction * 2);
+
     // Draw player
     ctx.globalAlpha = 1;
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+    const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
+    playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+    playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
+    ctx.fillStyle = playerGradient;
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
     ctx.fill();
@@ -736,6 +744,9 @@
 
       if (borderParticles.length > 0) {
         requestAnimationFrame(animateBorderRetraction);
+      } else {
+        // Push the ball out if it's still in the retracted space
+        pushBallOutOfBorder(border);
       }
     }
 
@@ -751,87 +762,6 @@
       if (mist.y < 0) mist.y = baseHeight;
       if (mist.y > baseHeight) mist.y = 0;
     });
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw background
-    const gradient = ctx.createRadialGradient(baseWidth/2, baseHeight/2, 0, baseWidth/2, baseHeight/2, baseWidth/2);
-    gradient.addColorStop(0, 'rgb(0, 0, 0)');
-    gradient.addColorStop(1, 'rgb(15, 15, 40)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, baseWidth, baseHeight);
-
-    // Draw stars
-    ctx.fillStyle = 'white';
-    starParticles.forEach(star => {
-      ctx.globalAlpha = star.twinkle ? (Math.sin(Date.now() / 1000) + 1) / 2 * 0.5 + 0.3 : 0.8;
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Draw mist
-    updateMistPositions();
-    mistParticles.forEach(mist => {
-      const gradient = ctx.createRadialGradient(mist.x, mist.y, 0, mist.x, mist.y, mist.size / 2);
-      gradient.addColorStop(0, `hsla(${mist.hue}, 100%, 70%, ${mist.opacity})`);
-      gradient.addColorStop(1, `hsla(${mist.hue}, 100%, 50%, 0)`);
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(mist.x, mist.y, mist.size / 2, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Draw embers
-    ctx.fillStyle = 'orange';
-    emberParticles.forEach((ember, index) => {
-      ctx.globalAlpha = ember.life;
-      ctx.beginPath();
-      ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
-      ctx.fill();
-
-      ember.x += ember.vx;
-      ember.y += ember.vy;
-      ember.life -= 0.02;
-
-      if (ember.life <= 0) {
-        emberParticles.splice(index, 1);
-      }
-    });
-
-    // Draw player
-    ctx.globalAlpha = 1;
-    const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
-    playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
-    playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
-    ctx.fillStyle = playerGradient;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw player glow
-    const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
-    const glowGradient = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, glowSize);
-    glowGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
-    glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-    ctx.fillStyle = glowGradient;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw player alias
-    ctx.fillStyle = '#ffd700';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(player.alias, player.x, player.y - player.radius - 20);
-
-    // Draw score
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Bounces: ${bounceCount}`, 10, 30);
   }
 
   // Start the game
