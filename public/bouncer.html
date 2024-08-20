@@ -111,7 +111,9 @@
     vx: 0,
     vy: 0,
     radius: 20,
-    energy: 0
+    energy: 0,
+    lastBounceX: baseWidth / 2,
+    lastBounceY: baseHeight / 2
   };
 
   // Particle systems
@@ -160,6 +162,8 @@
     canvas.style.display = 'block';
   }
 
+  const minBounceDistance = 50; // Minimum distance required for a bounce to count
+  
   function updatePosition(deltaTime) {
     if (cheatMessage.style.display === 'block') return;
     
@@ -197,13 +201,31 @@
       }
 
       if (bounced) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vx *= bounciness;
-        player.vy *= bounciness;
-        createLightning(player.x, player.y);
-        incrementBounceCount();
-        playPopSound();
-        retractBorder(bouncedBorder);
+        const distanceTraveled = Math.sqrt(
+          Math.pow(player.x - player.lastBounceX, 2) +
+          Math.pow(player.y - player.lastBounceY, 2)
+        );
+
+        if (distanceTraveled >= minBounceDistance) {
+          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+          player.vx *= bounciness;
+          player.vy *= bounciness;
+          createLightning(player.x, player.y);
+          incrementBounceCount();
+          playPopSound();
+          retractBorder(bouncedBorder);
+
+          // Update last bounce position
+          player.lastBounceX = player.x;
+          player.lastBounceY = player.y;
+        } else {
+          // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
+          if (bouncedBorder === 'left' || bouncedBorder === 'right') {
+            player.vx *= -1;
+          } else {
+            player.vy *= -1;
+          }
+        }
       }
 
       const speed = Math.hypot(player.vx, player.vy);
@@ -225,7 +247,6 @@
       }
     }
   }
-
   function incrementBounceCount() {
     bounceCount++;
   }
@@ -650,6 +671,10 @@
       player.vy = releaseVelocityY;
       player.energy = Math.min(releaseMagnitude / 200, 1);
       bounceCount = 0;
+      
+      // Reset last bounce position when the ball is thrown
+      player.lastBounceX = player.x;
+      player.lastBounceY = player.y;
       
       if (player.energy > 0.6) {
         createPowerThrowEffect();
