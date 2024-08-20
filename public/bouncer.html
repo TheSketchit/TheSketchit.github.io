@@ -126,6 +126,7 @@
   let ringParticles = [];
   let gameStarted = false;
   let gameOver = false; 
+  let existingScores = new Set();
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -178,6 +179,29 @@
   const starParticles = [];
   const emberParticles = [];
 
+  function fetchExistingScores() {
+    console.log("Fetching existing scores...");
+    const highScoreRef = database.ref('highScores');
+    
+    return highScoreRef.once('value')
+        .then((snapshot) => {
+            existingScores.clear(); // Clear existing scores before populating
+            snapshot.forEach((childSnapshot) => {
+                const score = childSnapshot.val().score;
+                if (typeof score === 'number' && !isNaN(score)) {
+                    existingScores.add(score);
+                } else {
+                    console.warn(`Invalid score found: ${score}`);
+                }
+            });
+            console.log(`Fetched ${existingScores.size} existing scores.`);
+        })
+        .catch((error) => {
+            console.error("Error fetching existing scores:", error);
+            alert("Failed to fetch existing scores. The game may allow duplicate submissions. Error: " + error.message);
+        });
+  }
+
   function updateGameArea() {
     const containerWidth = gameContainer.clientWidth;
     const containerHeight = gameContainer.clientHeight;
@@ -222,151 +246,145 @@
   const minBounceDistance = 50; // Minimum distance required for a bounce to count
   
   function updatePosition(deltaTime) {
-      if (gameOver || cheatMessage.style.display === 'block') return; // Stop game if it's over or cheating is detected
+      if (gameOver || cheatMessage.style.display === 'block') return;
       
       if (!isDragging) {
-        let bounced = false;
-        let bouncedBorder = null;
+          let bounced = false;
+          let bouncedBorder = null;
   
-        // Only consider the game as started once the player moves the ball
-        if (player.vx !== 0 || player.vy !== 0) {
-          gameStarted = true;
-        }
-    
-        // Update position
-        player.x += player.vx * (deltaTime / 16);
-        player.y += player.vy * (deltaTime / 16);
-    
-        // Check borders and handle collisions
-        if (player.x - player.radius <= borderRetraction) {
-          player.x = borderRetraction + player.radius;
-          player.vx = Math.abs(player.vx);
-          bounced = true;
-          bouncedBorder = 'left';
-        } else if (player.x + player.radius >= baseWidth - borderRetraction) {
-          player.x = baseWidth - borderRetraction - player.radius;
-          player.vx = -Math.abs(player.vx);
-          bounced = true;
-          bouncedBorder = 'right';
-        }
-    
-        if (player.y - player.radius <= borderRetraction) {
-          player.y = borderRetraction + player.radius;
-          player.vy = Math.abs(player.vy);
-          bounced = true;
-          bouncedBorder = 'top';
-        } else if (player.y + player.radius >= baseHeight - borderRetraction) {
-          player.y = baseHeight - borderRetraction - player.radius;
-          player.vy = -Math.abs(player.vy);
-          bounced = true;
-          bouncedBorder = 'bottom';
-        }
-    
-        if (bounced) {
-          const distanceTraveled = Math.sqrt(
-            Math.pow(player.x - player.lastBounceX, 2) +
-            Math.pow(player.y - player.lastBounceY, 2)
-          );
-    
-          if (distanceTraveled >= minBounceDistance) {
-            const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-            player.vx *= bounciness;
-            player.vy *= bounciness;
-            createLightning(player.x, player.y);
-            incrementBounceCount();
-            playPopSound();
-            retractBorder(bouncedBorder);
-            ballAnimationTime = ballAnimationDuration; // Start ball animation
-    
-            // Update last bounce position
-            player.lastBounceX = player.x;
-            player.lastBounceY = player.y;
-          } else {
-            // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
-            if (bouncedBorder === 'left' || bouncedBorder === 'right') {
-              player.vx *= -1;
-            } else {
-              player.vy *= -1;
-            }
+          // Only consider the game as started once the player moves the ball
+          if (player.vx !== 0 || player.vy !== 0) {
+              gameStarted = true;
           }
-        }
-    
-        const speed = Math.hypot(player.vx, player.vy);
   
-        if (speed > emberThreshold) {
-          createEmberTrail(player.x, player.y, player.vx, player.vy);
-        }
+          // Update position
+          player.x += player.vx * (deltaTime / 16);
+          player.y += player.vy * (deltaTime / 16);
   
-        // Apply energy-based slowdown with faster decay
-        player.energy *= Math.pow(energyDecay, deltaTime / 16);
-        player.vx *= Math.pow(velocityDecay, deltaTime / 16);
-        player.vy *= Math.pow(velocityDecay, deltaTime / 16);
+          // Check borders and handle collisions
+          if (player.x - player.radius <= borderRetraction) {
+              player.x = borderRetraction + player.radius;
+              player.vx = Math.abs(player.vx);
+              bounced = true;
+              bouncedBorder = 'left';
+          } else if (player.x + player.radius >= baseWidth - borderRetraction) {
+              player.x = baseWidth - borderRetraction - player.radius;
+              player.vx = -Math.abs(player.vx);
+              bounced = true;
+              bouncedBorder = 'right';
+          }
   
-        // Stop the ball if it's moving very slowly and submit high score only once
-        if (speed < 0.9 && gameStarted && !highScoreSubmitted) {
-          console.log("Ball stopped, submitting high score");
-          player.vx = 0;
-          player.vy = 0;
-          player.energy = 0;
+          if (player.y - player.radius <= borderRetraction) {
+              player.y = borderRetraction + player.radius;
+              player.vy = Math.abs(player.vy);
+              bounced = true;
+              bouncedBorder = 'top';
+          } else if (player.y + player.radius >= baseHeight - borderRetraction) {
+              player.y = baseHeight - borderRetraction - player.radius;
+              player.vy = -Math.abs(player.vy);
+              bounced = true;
+              bouncedBorder = 'bottom';
+          }
   
-          // Submit high score and show high score modal
-          submitHighScore();
-        }
+          if (bounced) {
+              const distanceTraveled = Math.sqrt(
+                  Math.pow(player.x - player.lastBounceX, 2) +
+                  Math.pow(player.y - player.lastBounceY, 2)
+              );
+  
+              if (distanceTraveled >= minBounceDistance) {
+                  const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+                  player.vx *= bounciness;
+                  player.vy *= bounciness;
+                  createLightning(player.x, player.y);
+                  incrementBounceCount();
+                  playPopSound();
+                  retractBorder(bouncedBorder);
+                  ballAnimationTime = ballAnimationDuration; // Start ball animation
+  
+                  // Update last bounce position
+                  player.lastBounceX = player.x;
+                  player.lastBounceY = player.y;
+              } else {
+                  // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
+                  if (bouncedBorder === 'left' || bouncedBorder === 'right') {
+                      player.vx *= -1;
+                  } else {
+                      player.vy *= -1;
+                  }
+              }
+          }
+  
+          const speed = Math.hypot(player.vx, player.vy);
+  
+          if (speed > emberThreshold) {
+              createEmberTrail(player.x, player.y, player.vx, player.vy);
+          }
+  
+          // Apply energy-based slowdown with faster decay
+          player.energy *= Math.pow(energyDecay, deltaTime / 16);
+          player.vx *= Math.pow(velocityDecay, deltaTime / 16);
+          player.vy *= Math.pow(velocityDecay, deltaTime / 16);
+  
+          // Stop the ball if it's moving very slowly and submit high score only once
+          if (speed < 0.05 && gameStarted && !highScoreSubmitted) {
+              player.vx = 0;
+              player.vy = 0;
+              player.energy = 0;
+              submitHighScore();
+          }
       }
   
       // Update ball animation
       if (ballAnimationTime > 0) {
-        ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
+          ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
       }
   }
     
-   function submitHighScore() {
-      if (highScoreSubmitted || gameOver) {
-          return;  // Prevent multiple submissions
+  function submitHighScore() {
+      if (highScoreSubmitted || gameOver || bounceCount <= 0 || existingScores.has(bounceCount)) {
+          console.log("Score submission skipped:", 
+                      highScoreSubmitted ? "already submitted" : 
+                      gameOver ? "game over" : 
+                      bounceCount <= 0 ? "invalid score" :
+                      "score already exists");
+          return;
       }
   
-      gameOver = true;  // Halt the game
-      highScoreSubmitted = true;    // Prevent further submissions
+      gameOver = true;
+      highScoreSubmitted = true;
   
       console.log("Attempting to submit high score:", bounceCount);
   
-      // Check if the score is valid before submitting
-      if (bounceCount > 0) {
-          const highScoreRef = database.ref(`highScores/${bounceCount}`);
-          
-          // Format date as MM-DD-YY HH:MM
-          const now = new Date();
-          const estDate = new Intl.DateTimeFormat('en-US', {
-              timeZone: 'America/New_York',
-              month: '2-digit',
-              day: '2-digit',
-              year: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-          }).format(now);
+      const now = new Date();
+      const estDate = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York',
+          month: '2-digit',
+          day: '2-digit',
+          year: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+      }).format(now);
   
-          // Write the high score with the formatted date
-          highScoreRef.set({
-              playerName: player.alias,
-              timestamp: estDate
-          })
-          .then(() => {
-              console.log("High score submitted successfully");
-              displayHighScores();
-          })
-          .catch((error) => {
-              console.error("Error submitting high score:", error);
-              alert("Failed to submit high score. Error: " + error.message);
-              highScoreSubmitted = false;  // Allow retry if submission fails
-              gameOver = false;  // Allow the game to continue in case of error
-          });
-      } else {
-          console.log("High score not submitted because bounceCount is zero or less.");
-          gameOver = false;  // Reset the flag if submission was skipped
-      }
+      const highScoreRef = database.ref('highScores').push();
+      highScoreRef.set({
+          score: bounceCount,
+          playerName: player.alias,
+          timestamp: estDate
+      })
+      .then(() => {
+          console.log("High score submitted successfully");
+          existingScores.add(bounceCount);  // Add the new score to our local set
+          displayHighScores();
+      })
+      .catch((error) => {
+          console.error("Error submitting high score:", error);
+          alert("Failed to submit high score. Error: " + error.message);
+          highScoreSubmitted = false;
+          gameOver = false;
+      });
   }
-
 
   function displayHighScores() {
     if (gameOver) {
@@ -747,6 +765,7 @@
   }
 
   let lastTime = 0;
+    
   function gameLoop(currentTime) {
     const deltaTime = currentTime - lastTime;
     lastTime = currentTime;
@@ -868,10 +887,13 @@
   });
 
   function initGame() {
-    updateGameArea();
-    createMist();
-    createStars();
-    gameLoop(0);
+      updateGameArea();
+      createMist();
+      createStars();
+      fetchExistingScores()
+          .then(() => {
+              gameLoop(0);
+          });
   }
 
   window.addEventListener('resize', () => {
