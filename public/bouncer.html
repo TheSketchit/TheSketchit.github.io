@@ -113,136 +113,145 @@
   </div>
 
   <script>
-    const gameContainer = document.getElementById('game-container');
-    const gameArea = document.getElementById('game-area');
+  const gameContainer = document.getElementById('game-container');
+  const gameArea = document.getElementById('game-area');
 
-    // Add audio element
-    const popSound = new Audio('../images/pop.mp3');
-    popSound.volume = 0.5; // Adjust volume as needed
+  // Define base dimensions
+  const baseWidth = 800;
+  const baseHeight = 600;
+  let scale = 1;
 
-    // Prompt for player name
-    const playerName = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+  // Add audio element
+  const popSound = new Audio('../images/pop.mp3');
+  popSound.volume = 0.5; // Adjust volume as needed
 
-    // Player object
-    const player = {
-      alias: playerName,
-      x: baseWidth / 2,
-      y: baseHeight / 2,
-      vx: 0,
-      vy: 0,
-      radius: 40,
-      energy: 0
-    };
+  // Prompt for player name
+  const playerName = prompt("Enter your player name:", "Space Walker") || "Space Walker";
 
-    const emberThreshold = 3;
-    const releaseMultiplier = 0.15;
-    const mistSlowdown = 0.995;
-    const energyDecay = 0.9998;
-    const minBounciness = 0.7;
-    const maxBounciness = 1.0;
+  // Game constants
+  const emberThreshold = 3;
+  const releaseMultiplier = 0.15;
+  const mistSlowdown = 0.995;
+  const energyDecay = 0.9998;
+  const minBounciness = 0.7;
+  const maxBounciness = 1.0;
 
-    let isDragging = false;
-    let lastMouseX = 0;
-    let lastMouseY = 0;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let bounceCount = 0;
-    let lastSoundTime = 0;
+  // Game variables
+  let isDragging = false;
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let bounceCount = 0;
+  let lastSoundTime = 0;
 
-    const baseWidth = 800;
-    const baseHeight = 600;
-    let scale = 1;
+  // Player object
+  const player = {
+    alias: playerName,
+    x: baseWidth / 2,
+    y: baseHeight / 2,
+    vx: 0,
+    vy: 0,
+    radius: 40,
+    energy: 0
+  };
 
-    // Create player element
-    const playerElement = document.createElement('div');
-    playerElement.className = 'circle';
-    playerElement.style.left = `${player.x}px`;
-    playerElement.style.top = `${player.y}px`;
+  // Create player element
+  const playerElement = document.createElement('div');
+  playerElement.className = 'circle';
 
-    const aliasLabel = document.createElement('div');
-    aliasLabel.className = 'alias-label';
-    aliasLabel.textContent = player.alias;
+  const aliasLabel = document.createElement('div');
+  aliasLabel.className = 'alias-label';
+  aliasLabel.textContent = player.alias;
 
-    playerElement.appendChild(aliasLabel);
-    gameArea.appendChild(playerElement);
+  playerElement.appendChild(aliasLabel);
 
-    // Create bounce score display
-    const scoreDisplay = document.createElement('div');
-    scoreDisplay.style.position = 'absolute';
-    scoreDisplay.style.top = '10px';
-    scoreDisplay.style.left = '10px';
-    scoreDisplay.style.color = 'white';
-    scoreDisplay.style.fontSize = '24px';
-    scoreDisplay.textContent = 'Bounces: 0';
-    gameArea.appendChild(scoreDisplay);
+  // Create bounce score display
+  const scoreDisplay = document.createElement('div');
+  scoreDisplay.style.position = 'absolute';
+  scoreDisplay.style.top = '10px';
+  scoreDisplay.style.left = '10px';
+  scoreDisplay.style.color = 'white';
+  scoreDisplay.style.fontSize = '24px';
+  scoreDisplay.textContent = 'Bounces: 0';
 
-    function updateGameArea() {
-      const containerWidth = gameContainer.clientWidth;
-      const containerHeight = gameContainer.clientHeight;
-      const containerAspect = containerWidth / containerHeight;
-      const gameAspect = baseWidth / baseHeight;
+  function updateGameArea() {
+    const containerWidth = gameContainer.clientWidth;
+    const containerHeight = gameContainer.clientHeight;
+    const containerAspect = containerWidth / containerHeight;
+    const gameAspect = baseWidth / baseHeight;
 
-      if (containerAspect > gameAspect) {
-        scale = containerHeight / baseHeight;
-        gameArea.style.width = `${baseWidth * scale}px`;
-        gameArea.style.height = `${baseHeight * scale}px`;
-      } else {
-        scale = containerWidth / baseWidth;
-        gameArea.style.width = `${baseWidth * scale}px`;
-        gameArea.style.height = `${baseHeight * scale}px`;
-      }
-
-      gameArea.style.fontSize = `${16 * scale}px`;
+    if (containerAspect > gameAspect) {
+      scale = containerHeight / baseHeight;
+      gameArea.style.width = `${baseWidth * scale}px`;
+      gameArea.style.height = `${baseHeight * scale}px`;
+    } else {
+      scale = containerWidth / baseWidth;
+      gameArea.style.width = `${baseWidth * scale}px`;
+      gameArea.style.height = `${baseHeight * scale}px`;
     }
-  //
+
+    gameArea.style.fontSize = `${16 * scale}px`;
+
+    // Update player position and size
+    updatePlayerElement();
+  }
+
+  function updatePlayerElement() {
+    playerElement.style.width = `${player.radius * 2 * scale}px`;
+    playerElement.style.height = `${player.radius * 2 * scale}px`;
+    playerElement.style.left = `${(player.x - player.radius) * scale}px`;
+    playerElement.style.top = `${(player.y - player.radius) * scale}px`;
+  }
+
   function updatePosition() {
     if (!isDragging) {
       let bounced = false;
-  
+
       // Check horizontal borders
       const nextX = player.x + player.vx;
-      if (nextX - player.radius <= 0 || nextX + player.radius >= gameContainer.clientWidth) {
+      if (nextX - player.radius <= 0 || nextX + player.radius >= baseWidth) {
         const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
         player.vx *= -bounciness;
         bounced = true;
       }
-  
+
       // Check vertical borders
       const nextY = player.y + player.vy;
-      if (nextY - player.radius <= 0 || nextY + player.radius >= gameContainer.clientHeight) {
+      if (nextY - player.radius <= 0 || nextY + player.radius >= baseHeight) {
         const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
         player.vy *= -bounciness;
         bounced = true;
       }
-  
+
       if (bounced) {
-        createLightning(player.x, player.y);
+        createLightning(player.x * scale, player.y * scale);
         impactShake();
         incrementBounceCount();
         playPopSound();
       }
-  
+
       // Update position after checking for bounces
       player.x += player.vx;
       player.y += player.vy;
-  
+
       // Ensure the ball stays within bounds
-      player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
-      player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
-  
+      player.x = Math.max(player.radius, Math.min(baseWidth - player.radius, player.x));
+      player.y = Math.max(player.radius, Math.min(baseHeight - player.radius, player.y));
+
       const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-  
+
       if (speed > emberThreshold) {
-        createEmberTrail(player.x, player.y, player.vx, player.vy);
+        createEmberTrail(player.x * scale, player.y * scale, player.vx, player.vy);
       }
-  
-      interactWithMist(player.x, player.y);
-  
+
+      interactWithMist(player.x * scale, player.y * scale);
+
       // Apply energy-based slowdown
       player.energy *= energyDecay;
       player.vx *= 0.999;
       player.vy *= 0.999;
-  
+
       // Stop the ball if it's moving very slowly
       if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
         player.vx = 0;
@@ -250,15 +259,14 @@
         player.energy = 0;
       }
     }
-  
-    playerElement.style.left = `${player.x - player.radius}px`;
-    playerElement.style.top = `${player.y - player.radius}px`;
-  
+
+    updatePlayerElement();
+
     // Visual feedback for high energy
     const energyScale = 1 + player.energy * 0.3;
     const energyRotation = player.energy * 360;
-    playerElement.style.transform = `scale(${energyScale}) rotate(${energyRotation}deg)`;
-  
+    playerElement.style.transform = `scale(${energyScale * scale}) rotate(${energyRotation}deg)`;
+
     requestAnimationFrame(updatePosition);
   }
 
@@ -481,6 +489,15 @@
       });
     }
 
+    function initGame() {
+      updateGameArea();
+      gameArea.appendChild(playerElement);
+      gameArea.appendChild(scoreDisplay);
+      createMist();
+      createStars();
+      updatePosition();
+    }
+
     // Add window resize event listener
     window.addEventListener('resize', () => {
       updateGameArea();
@@ -488,11 +505,8 @@
       createStars();
     });
     
-    // Start the animation loop
-    updateGameArea();
-    updatePosition();
-    createMist();
-    createStars();
+    // Start the game
+    initGame();
   </script>
 </body>
 </html>
