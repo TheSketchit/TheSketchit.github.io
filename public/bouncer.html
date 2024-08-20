@@ -391,7 +391,9 @@
         isDragging = true;
         lastMouseX = dragStartX = x;
         lastMouseY = dragStartY = y;
-        dragStartTime = performance.now();  // Capture the start time
+        dragStartTime = performance.now();
+        player.vx *= 0.5; // Retain some momentum
+        player.vy *= 0.5;
         playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
@@ -403,6 +405,11 @@
         const y = (event.clientY - rect.top) / scale;
         const dx = x - lastMouseX;
         const dy = y - lastMouseY;
+    
+        // Smooth velocity change during dragging
+        player.vx += (dx * 0.2);
+        player.vy += (dy * 0.2);
+    
         player.x += dx;
         player.y += dy;
         lastMouseX = x;
@@ -415,21 +422,18 @@
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
     
-        const dragEndTime = performance.now();  // Capture the end time
-        const dragDuration = dragEndTime - dragStartTime;  // Calculate duration in ms
+        const dragEndTime = performance.now();
+        const dragDuration = dragEndTime - dragStartTime;
     
         const releaseX = lastMouseX - dragStartX;
         const releaseY = lastMouseY - dragStartY;
         const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
-        
-        // Calculate speed factor: faster drag means higher speed
-        const speedFactor = Math.max(0.1, 500 / dragDuration);  // Adjust 500 to control sensitivity
     
-        // Apply speedFactor to releaseMultiplier
-        player.vx = releaseX * releaseMultiplier * speedFactor;
-        player.vy = releaseY * releaseMultiplier * speedFactor;
+        const speedFactor = Math.max(0.1, 500 / dragDuration);
     
-        // Energy also based on speedFactor
+        player.vx += releaseX * releaseMultiplier * speedFactor; // Use += to continue movement
+        player.vy += releaseY * releaseMultiplier * speedFactor;
+    
         player.energy = Math.min(releaseMagnitude / 200 * speedFactor, 1);
     
         bounceCount = 0;
