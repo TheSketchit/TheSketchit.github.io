@@ -3,22 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enhanced Swirling Ball with Realistic Effects</title>
+  <title>Cosmic Bouncer</title>
   <style>
     body, html {
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background-color: #000;
-      user-select: none; /* Prevents highlighting */
     }
 
     #game-container {
       position: relative;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(15,15,40,1) 100%);
       overflow: hidden;
+    }
+
+    .asteroid {
+      position: absolute;
+      background-color: #555;
+      border-radius: 50%;
+      box-shadow: inset -2px -2px 5px rgba(0,0,0,0.6), 2px 2px 5px rgba(255,255,255,0.1);
     }
 
     .circle {
@@ -111,8 +119,6 @@
   <div id="game-container"></div>
 
   <script>
-    const gameContainer = document.getElementById('game-container');
-
     // Add audio element
     const popSound = new Audio('../images/pop.mp3');
     popSound.volume = 0.5; // Adjust volume as needed
@@ -120,11 +126,58 @@
     // Prompt for player name
     const playerName = prompt("Enter your player name:", "Space Walker") || "Space Walker";
 
+    const gameContainer = document.getElementById('game-container');
+    let gameWidth, gameHeight;
+    const asteroids = [];
+    const asteroidCount = 50; // Number of asteroids in the boundary
+    const boundaryWidth = 40; // Width of the asteroid boundary
+
+    function updateGameSize() {
+      gameWidth = gameContainer.clientWidth;
+      gameHeight = gameContainer.clientHeight;
+      updateAsteroids();
+    }
+
+    window.addEventListener('resize', updateGameSize);
+    // Call this function initially and on window resize
+    
+    
+
+    // Create asteroids for the boundary
+    function createAsteroids() {
+      for (let i = 0; i < asteroidCount; i++) {
+        const asteroid = document.createElement('div');
+        asteroid.className = 'asteroid';
+        asteroid.size = Math.random() * 20 + 10;
+        asteroid.style.width = `${asteroid.size}px`;
+        asteroid.style.height = `${asteroid.size}px`;
+        positionAsteroid(asteroid);
+        gameContainer.appendChild(asteroid);
+        asteroids.push(asteroid);
+      }
+    }
+
+    function positionAsteroid(asteroid) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * boundaryWidth;
+      const x = Math.cos(angle) * (gameWidth / 2 - distance) + gameWidth / 2;
+      const y = Math.sin(angle) * (gameHeight / 2 - distance) + gameHeight / 2;
+      asteroid.style.left = `${x - asteroid.size / 2}px`;
+      asteroid.style.top = `${y - asteroid.size / 2}px`;
+    }
+
+    function updateAsteroids() {
+      asteroids.forEach(positionAsteroid);
+    }
+
+
+    updateGameSize();
+
     // Player object
     const player = {
       alias: playerName,
-      x: gameContainer.clientWidth / 2,
-      y: gameContainer.clientHeight / 2,
+      x: gameWidth / 2,
+      y: gameHeight / 2,
       vx: 0,
       vy: 0,
       radius: 40,
@@ -170,54 +223,45 @@
     gameContainer.appendChild(scoreDisplay);
 
     //
-  function updatePosition() {
-    if (!isDragging) {
-      let bounced = false;
-  
-      // Check horizontal borders
-      const nextX = player.x + player.vx;
-      if (nextX - player.radius <= 0 || nextX + player.radius >= gameContainer.clientWidth) {
+    function updatePosition() {
+      if (!isDragging) {
+      player.x += player.vx;
+      player.y += player.vy;
+
+      const distanceFromCenter = Math.sqrt(
+        Math.pow(player.x - gameWidth / 2, 2) + Math.pow(player.y - gameHeight / 2, 2)
+      );
+
+      if (distanceFromCenter + player.radius > Math.min(gameWidth, gameHeight) / 2 - boundaryWidth) {
+        // Collision with asteroid field
+        const angle = Math.atan2(player.y - gameHeight / 2, player.x - gameWidth / 2);
         const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vx *= -bounciness;
-        bounced = true;
-      }
-  
-      // Check vertical borders
-      const nextY = player.y + player.vy;
-      if (nextY - player.radius <= 0 || nextY + player.radius >= gameContainer.clientHeight) {
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        player.vy *= -bounciness;
-        bounced = true;
-      }
-  
-      if (bounced) {
+        
+        player.vx = -Math.cos(angle) * player.vx * bounciness;
+        player.vy = -Math.sin(angle) * player.vy * bounciness;
+
+        // Move player back inside the boundary
+        player.x = (gameWidth / 2) + (Math.min(gameWidth, gameHeight) / 2 - boundaryWidth - player.radius) * Math.cos(angle);
+        player.y = (gameHeight / 2) + (Math.min(gameWidth, gameHeight) / 2 - boundaryWidth - player.radius) * Math.sin(angle);
+
         createLightning(player.x, player.y);
         impactShake();
         incrementBounceCount();
         playPopSound();
+        shakeNearbyAsteroids(angle);
       }
-  
-      // Update position after checking for bounces
-      player.x += player.vx;
-      player.y += player.vy;
-  
-      // Ensure the ball stays within bounds
-      player.x = Math.max(player.radius, Math.min(gameContainer.clientWidth - player.radius, player.x));
-      player.y = Math.max(player.radius, Math.min(gameContainer.clientHeight - player.radius, player.y));
-  
+
       const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-  
+
       if (speed > emberThreshold) {
         createEmberTrail(player.x, player.y, player.vx, player.vy);
       }
-  
-      interactWithMist(player.x, player.y);
-  
+
       // Apply energy-based slowdown
       player.energy *= energyDecay;
       player.vx *= 0.999;
       player.vy *= 0.999;
-  
+
       // Stop the ball if it's moving very slowly
       if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
         player.vx = 0;
@@ -225,15 +269,15 @@
         player.energy = 0;
       }
     }
-  
+
     playerElement.style.left = `${player.x - player.radius}px`;
     playerElement.style.top = `${player.y - player.radius}px`;
-  
+
     // Visual feedback for high energy
     const energyScale = 1 + player.energy * 0.3;
     const energyRotation = player.energy * 360;
     playerElement.style.transform = `scale(${energyScale}) rotate(${energyRotation}deg)`;
-  
+
     requestAnimationFrame(updatePosition);
   }
 
@@ -250,6 +294,32 @@
     }
     lastSoundTime = currentTime;
   }
+
+  function shakeNearbyAsteroids(collisionAngle) {
+    asteroids.forEach(asteroid => {
+      const asteroidX = parseFloat(asteroid.style.left) + asteroid.size / 2;
+      const asteroidY = parseFloat(asteroid.style.top) + asteroid.size / 2;
+      const dx = asteroidX - player.x;
+      const dy = asteroidY - player.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 100) {
+        const shakeIntensity = (100 - distance) / 100 * 5;
+        const shakeAngle = collisionAngle + Math.PI + (Math.random() - 0.5);
+        const shakeX = Math.cos(shakeAngle) * shakeIntensity;
+        const shakeY = Math.sin(shakeAngle) * shakeIntensity;
+
+        asteroid.animate([
+          { transform: `translate(${shakeX}px, ${shakeY}px)` },
+          { transform: 'translate(0, 0)' }
+        ], {
+          duration: 300,
+          easing: 'ease-out'
+        });
+      }
+    });
+  }
+    createAsteroids();
 
     // Mouse event listeners
     gameContainer.addEventListener('mousedown', (event) => {
@@ -288,6 +358,49 @@
         scoreDisplay.textContent = 'Bounces: 0';
         
         // Visual feedback for powerful throws
+        if (player.energy > 0.6) {
+          createPowerThrowEffect();
+        }
+      }
+    });
+
+    gameContainer.addEventListener('touchstart', (event) => {
+      const touch = event.touches[0];
+      const dx = touch.clientX - player.x;
+      const dy = touch.clientY - player.y;
+      if (dx * dx + dy * dy <= player.radius * player.radius) {
+        isDragging = true;
+        lastMouseX = dragStartX = touch.clientX;
+        lastMouseY = dragStartY = touch.clientY;
+        playerElement.style.transform = 'scale(0.8)';
+      }
+    });
+
+    gameContainer.addEventListener('touchmove', (event) => {
+      if (isDragging) {
+        const touch = event.touches[0];
+        const dx = touch.clientX - lastMouseX;
+        const dy = touch.clientY - lastMouseY;
+        player.x += dx;
+        player.y += dy;
+        lastMouseX = touch.clientX;
+        lastMouseY = touch.clientY;
+      }
+    });
+
+    gameContainer.addEventListener('touchend', () => {
+      if (isDragging) {
+        isDragging = false;
+        playerElement.style.transform = 'scale(1)';
+        const releaseX = lastMouseX - dragStartX;
+        const releaseY = lastMouseY - dragStartY;
+        const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
+        player.vx = releaseX * releaseMultiplier;
+        player.vy = releaseY * releaseMultiplier;
+        player.energy = Math.min(releaseMagnitude / 200, 1);
+        bounceCount = 0;
+        scoreDisplay.textContent = 'Bounces: 0';
+        
         if (player.energy > 0.6) {
           createPowerThrowEffect();
         }
@@ -342,8 +455,8 @@
       for (let i = 0; i < 20; i++) {
         const mist = document.createElement('div');
         mist.className = 'mist';
-        mist.style.left = `${Math.random() * gameContainer.clientWidth}px`;
-        mist.style.top = `${Math.random() * gameContainer.clientHeight}px`;
+        mist.style.left = `${Math.random() * gameWidth}px`;
+        mist.style.top = `${Math.random() * gameHeight}px`;
         mist.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
         mist.style.opacity = Math.random() * 0.5 + 0.2;
     
@@ -376,8 +489,8 @@
       for (let i = 0; i < 100; i++) {
         const star = document.createElement('div');
         star.className = 'star';
-        star.style.left = `${Math.random() * gameContainer.clientWidth}px`;
-        star.style.top = `${Math.random() * gameContainer.clientHeight}px`;
+        star.style.left = `${Math.random() * gameWidth}px`;
+        star.style.top = `${Math.random() * gameHeight}px`;
   
         if (Math.random() > 0.5) {
           star.classList.add('twinkle');
@@ -450,7 +563,7 @@
         easing: 'ease-in-out'
       });
     }
-  
+    
     // Start the animation loop
     updatePosition();
     createMist();
