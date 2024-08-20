@@ -68,6 +68,9 @@
   const cheatMessage = document.getElementById('cheat-message');
   const aspectRatioToggle = document.getElementById('aspect-ratio-toggle');
 
+  let ballAnimationTime = 0;
+  const ballAnimationDuration = 300; // milliseconds
+
   // Define base dimensions
   const baseWidth = 1600;
   const baseHeight = 900;
@@ -211,6 +214,7 @@
           incrementBounceCount();
           playPopSound();
           retractBorder(bouncedBorder);
+          ballAnimationTime = ballAnimationDuration; // Start ball animation
 
           // Update last bounce position
           player.lastBounceX = player.x;
@@ -222,6 +226,9 @@
           } else {
             player.vy *= -1;
           }
+      // Update ball animation
+      if (ballAnimationTime > 0) {
+      ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
         }
       }
 
@@ -528,15 +535,25 @@
     ctx.lineWidth = borderRetraction * 2;
     ctx.strokeRect(borderRetraction, borderRetraction, baseWidth - borderRetraction * 2, baseHeight - borderRetraction * 2);
 
-    // Draw player
+    // Draw player with animation
     ctx.globalAlpha = 1;
     const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
     playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
     playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
     ctx.fillStyle = playerGradient;
+
+    // Apply ball animation
+    const animationProgress = 1 - (ballAnimationTime / ballAnimationDuration);
+    const scaleX = 1 + 0.2 * Math.sin(animationProgress * Math.PI * 4) * (1 - animationProgress);
+    const scaleY = 1 + 0.2 * Math.cos(animationProgress * Math.PI * 4) * (1 - animationProgress);
+    
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.scale(scaleX, scaleY);
     ctx.beginPath();
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
 
     // Draw player glow
     const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
