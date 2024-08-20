@@ -143,7 +143,8 @@
   popSound.volume = 0.5;
 
   // Prompt for player name
-  const playerName = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+  const playerName = prompt("Enter your player name:", getPlayerName()) || "Space Walker";
+  savePlayerName(playerName);
 
   // Game constants
   const emberThreshold = 3;
@@ -160,6 +161,14 @@
   let dragStartY = 0;
   let bounceCount = 0;
   let lastSoundTime = 0;
+
+  function savePlayerName(name) {
+    localStorage.setItem('bounceGamePlayerName', name);
+  }
+
+  function getPlayerName() {
+    return localStorage.getItem('bounceGamePlayerName') || "Space Walker";
+  }
 
   // Player object
   const player = {
@@ -342,12 +351,12 @@
   }
     
   function submitHighScore() {
-      if (highScoreSubmitted || gameOver || bounceCount <= 0 || existingScores.has(bounceCount)) {
+      if (highScoreSubmitted || gameOver || bounceCount <= 0) {
           console.log("Score submission skipped:", 
                       highScoreSubmitted ? "already submitted" : 
                       gameOver ? "game over" : 
-                      bounceCount <= 0 ? "invalid score" :
-                      "score already exists");
+                      "invalid score");
+          displayHighScores();  // Display high scores even if submission is skipped
           return;
       }
   
@@ -367,6 +376,12 @@
           hour12: false
       }).format(now);
   
+      if (existingScores.has(bounceCount)) {
+          console.log("Score already exists, skipping submission");
+          displayHighScores();  // Display high scores even if score already exists
+          return;
+      }
+  
       const highScoreRef = database.ref('highScores').push();
       highScoreRef.set({
           score: bounceCount,
@@ -383,11 +398,11 @@
           alert("Failed to submit high score. Error: " + error.message);
           highScoreSubmitted = false;
           gameOver = false;
+          displayHighScores();  // Display high scores even if submission fails
       });
   }
 
   function displayHighScores() {
-    if (gameOver) {
       console.log("Attempting to display high scores");
       
       const highScoreRef = database.ref('highScores');
@@ -398,7 +413,7 @@
             highScores.push(childSnapshot.val());
           });
       
-          highScores.reverse();  // Reverse to get descending order
+          highScores.sort((a, b) => b.score - a.score);  // Sort in descending order
       
           const highScoreList = document.getElementById('high-score-list');
           highScoreList.innerHTML = '';
@@ -414,8 +429,14 @@
           console.error("Error fetching high scores:", error);
           alert("Failed to fetch high scores. Error: " + error.message);
         });
-    }
+  
+      // Add a reset button to the high score modal
+      const resetButton = document.createElement('button');
+      resetButton.textContent = 'Reset Game';
+      resetButton.addEventListener('click', resetGame);
+      document.getElementById('high-score-modal').appendChild(resetButton);
   }
+
 
   document.getElementById('retry-button').addEventListener('click', () => {
       console.log("Retry button clicked");
@@ -433,7 +454,9 @@
       player.vx = 0;
       player.vy = 0;
       player.energy = 0;
-      player.alias = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+      const savedName = getPlayerName();
+      player.alias = prompt("Enter your player name:", savedName) || savedName;
+      savePlayerName(player.alias);
       player.lastBounceX = player.x;
       player.lastBounceY = player.y;
   
@@ -478,7 +501,9 @@
       player.vx = 0;
       player.vy = 0;
       player.energy = 0;
-      player.alias = prompt("Enter your player name:", "Space Walker") || "Space Walker";
+      const savedName = getPlayerName();
+      player.alias = prompt("Enter your player name:", savedName) || savedName;
+      savePlayerName(player.alias);
       player.lastBounceX = player.x;
       player.lastBounceY = player.y;
   
