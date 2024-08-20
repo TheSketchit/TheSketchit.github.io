@@ -158,6 +158,7 @@
   }
 
   function updatePosition(deltaTime) {
+function updatePosition(deltaTime) {
     if (cheatMessage.style.display === 'block') return;
     
     if (!isDragging) {
@@ -237,11 +238,172 @@
   }
 
   function retractBorder(border) {
-    // Implement visual effect for border retraction
+    const borderParticles = [];
+    const particleCount = 20;
+    let startX, startY, endX, endY;
+
+    switch(border) {
+      case 'left':
+        startX = 0; startY = 0; endX = 0; endY = baseHeight;
+        break;
+      case 'right':
+        startX = baseWidth; startY = 0; endX = baseWidth; endY = baseHeight;
+        break;
+      case 'top':
+        startX = 0; startY = 0; endX = baseWidth; endY = 0;
+        break;
+      case 'bottom':
+        startX = 0; startY = baseHeight; endX = baseWidth; endY = baseHeight;
+        break;
+    }
+
+    for (let i = 0; i < particleCount; i++) {
+      borderParticles.push({
+        x: startX + (endX - startX) * (i / particleCount),
+        y: startY + (endY - startY) * (i / particleCount),
+        originalX: startX + (endX - startX) * (i / particleCount),
+        originalY: startY + (endY - startY) * (i / particleCount),
+        offsetX: 0,
+        offsetY: 0,
+        life: 1
+      });
+    }
+
+    function animateBorderRetraction() {
+      ctx.save();
+      
+      borderParticles.forEach((particle, index) => {
+        if (particle.life > 0.5) {
+          particle.offsetX = (border === 'left' ? -1 : border === 'right' ? 1 : 0) * borderRetraction;
+          particle.offsetY = (border === 'top' ? -1 : border === 'bottom' ? 1 : 0) * borderRetraction;
+        } else {
+          particle.offsetX *= 0.9;
+          particle.offsetY *= 0.9;
+        }
+
+        ctx.beginPath();
+        ctx.arc(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 0, 50, ${particle.life * 0.3})`;
+        ctx.fill();
+
+        particle.life -= 0.02;
+
+        if (particle.life <= 0) {
+          borderParticles.splice(index, 1);
+        }
+      });
+
+      ctx.restore();
+
+      if (borderParticles.length > 0) {
+        requestAnimationFrame(animateBorderRetraction);
+      } else {
+        // Push the ball out if it's still in the retracted space
+        pushBallOutOfBorder(border);
+      }
+    }
+
+    animateBorderRetraction();
   }
 
+  function pushBallOutOfBorder(border) {
+    const pushForce = 2; // Adjust this value to change how strongly the ball is pushed
+
+    switch(border) {
+      case 'left':
+        if (player.x - player.radius < borderRetraction) {
+          player.x = borderRetraction + player.radius;
+          player.vx = Math.abs(player.vx) + pushForce;
+        }
+        break;
+      case 'right':
+        if (player.x + player.radius > baseWidth - borderRetraction) {
+          player.x = baseWidth - borderRetraction - player.radius;
+          player.vx = -Math.abs(player.vx) - pushForce;
+        }
+        break;
+      case 'top':
+        if (player.y - player.radius < borderRetraction) {
+          player.y = borderRetraction + player.radius;
+          player.vy = Math.abs(player.vy) + pushForce;
+        }
+        break;
+      case 'bottom':
+        if (player.y + player.radius > baseHeight - borderRetraction) {
+          player.y = baseHeight - borderRetraction - player.radius;
+          player.vy = -Math.abs(player.vy) - pushForce;
+        }
+        break;
+    }
+  }
+    
   function createLightning(x, y) {
-    // Implement lightning effect
+    const branches = 5;
+    const maxSegments = 10;
+    const maxOffset = 30;
+    const decay = 0.7;
+    const lightningParticles = [];
+
+    function createBranch(startX, startY, angle, depth) {
+      let endX = startX;
+      let endY = startY;
+      const segments = Math.floor(Math.random() * maxSegments) + 5;
+
+      for (let i = 0; i < segments; i++) {
+        const length = (Math.random() * 20 + 10) * Math.pow(decay, depth);
+        endX += Math.cos(angle) * length;
+        endY += Math.sin(angle) * length;
+
+        lightningParticles.push({
+          startX, startY, endX, endY,
+          life: 1,
+          width: (3 - depth * 0.5) * Math.pow(decay, i)
+        });
+
+        startX = endX;
+        startY = endY;
+
+        // Add some randomness to the angle
+        angle += (Math.random() - 0.5) * 1;
+
+        // Occasionally create a new branch
+        if (Math.random() < 0.3 && depth < 3) {
+          createBranch(startX, startY, angle + (Math.random() - 0.5) * Math.PI / 2, depth + 1);
+        }
+      }
+    }
+
+    for (let i = 0; i < branches; i++) {
+      createBranch(x, y, (i / branches) * Math.PI * 2, 0);
+    }
+
+    function animateLightning() {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      
+      lightningParticles.forEach((particle, index) => {
+        ctx.beginPath();
+        ctx.moveTo(particle.startX, particle.startY);
+        ctx.lineTo(particle.endX, particle.endY);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${particle.life})`;
+        ctx.lineWidth = particle.width;
+        ctx.stroke();
+
+        particle.life -= 0.05;
+
+        if (particle.life <= 0) {
+          lightningParticles.splice(index, 1);
+        }
+      });
+
+      ctx.restore();
+
+      if (lightningParticles.length > 0) {
+        requestAnimationFrame(animateLightning);
+      }
+    }
+
+    animateLightning();
   }
 
   function createEmberTrail(x, y, vx, vy) {
