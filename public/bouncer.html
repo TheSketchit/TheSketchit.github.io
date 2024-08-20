@@ -744,7 +744,7 @@
         ctx.fill();
 
         particle.x += particle.vx;
-        particle.y += particley;
+        particle.y += particle.vy;
         particle.life -= 0.02;
 
         if (particle.life <= 0) {
