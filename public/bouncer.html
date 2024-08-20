@@ -133,6 +133,9 @@
   const MAX_THROW_POWER = 500; // Reduced from 1000
   const THROW_POWER_MULTIPLIER = 0.14; // Reduced from 0.2
   const ENERGY_DIVISOR = 1000; // Increased from 500 to reduce energy gain
+  let dragStartTime;
+  let dragStartX, dragStartY;
+
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -321,12 +324,12 @@
                   player.lastBounceX = player.x;
                   player.lastBounceY = player.y;
   
-                  // Prevent corner trapping
+                  // Simple corner escape logic
                   if (isInCorner(player.x, player.y)) {
-                      const cornerEscapeAngle = Math.random() * Math.PI / 2 - Math.PI / 4;
+                      const escapeAngle = Math.random() * Math.PI * 2;
                       const escapeSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-                      player.vx = Math.cos(cornerEscapeAngle) * escapeSpeed;
-                      player.vy = Math.sin(cornerEscapeAngle) * escapeSpeed;
+                      player.vx = Math.cos(escapeAngle) * escapeSpeed;
+                      player.vy = Math.sin(escapeAngle) * escapeSpeed;
                   }
               } else {
                   // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
@@ -344,7 +347,7 @@
               createEmberTrail(player.x, player.y, player.vx, player.vy);
           }
   
-          // Apply energy-based slowdown with faster decay
+          // Apply energy-based slowdown
           player.energy *= Math.pow(energyDecay, deltaTime / 16);
           player.vx *= Math.pow(velocityDecay, deltaTime / 16);
           player.vy *= Math.pow(velocityDecay, deltaTime / 16);
@@ -356,12 +359,6 @@
               player.energy = 0;
               submitHighScore();
           }
-      } else {
-          // Record drag points while dragging
-          dragPoints.push({x: player.x, y: player.y, time: Date.now()});
-          if (dragPoints.length > MAX_DRAG_POINTS) {
-              dragPoints.shift();
-          }
       }
   
       // Update ball animation
@@ -371,13 +368,9 @@
   }
     
   function isInCorner(x, y) {
-    const cornerSize = CORNER_BOUNCE_THRESHOLD;
-    return (
-        (x < cornerSize && y < cornerSize) ||
-        (x < cornerSize && y > baseHeight - cornerSize) ||
-        (x > baseWidth - cornerSize && y < cornerSize) ||
-        (x > baseWidth - cornerSize && y > baseHeight - cornerSize)
-    );
+      const cornerThreshold = 100; // Adjust this value to change what's considered a "corner"
+      return (x < cornerThreshold || x > baseWidth - cornerThreshold) && 
+             (y < cornerThreshold || y > baseHeight - cornerThreshold);
   }
     
   function submitHighScore() {
@@ -954,20 +947,20 @@
   let dragStartTime;
 
   canvas.addEventListener('mousedown', (event) => {
-    if (gameOver) return;  // Stop interaction if game is over
-    const rect = canvas.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / scale;
-    const y = (event.clientY - rect.top) / scale;
-    const dx = x - player.x;
-    const dy = y - player.y;
-    if (dx * dx + dy * dy <= player.radius * player.radius) {
-      isDragging = true;
-      dragStartX = x;
-      dragStartY = y;
-      dragStartTime = Date.now();
-      player.vx = 0;
-      player.vy = 0;
-    }
+      if (gameOver) return;  // Stop interaction if game is over
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / scale;
+      const y = (event.clientY - rect.top) / scale;
+      const dx = x - player.x;
+      const dy = y - player.y;
+      if (dx * dx + dy * dy <= player.radius * player.radius) {
+          isDragging = true;
+          dragStartX = x;
+          dragStartY = y;
+          dragStartTime = Date.now();
+          player.vx = 0;
+          player.vy = 0;
+      }
   });
 
   canvas.addEventListener('mousemove', (event) => {
@@ -986,43 +979,25 @@
           const endX = player.x;
           const endY = player.y;
           const dragEndTime = Date.now();
+          const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
   
-          if (dragPoints.length < 2) {
-              // Not enough points for a good throw
-              return;
-          }
-  
-          const startPoint = dragPoints[0];
-          const endPoint = dragPoints[dragPoints.length - 1];
-          const dragDuration = (dragEndTime - startPoint.time) / 1000; // Convert to seconds
-  
-          const dx = endPoint.x - startPoint.x;
-          const dy = endPoint.y - startPoint.y;
+          const dx = endX - dragStartX;
+          const dy = endY - dragStartY;
           const distance = Math.sqrt(dx * dx + dy * dy);
   
-          // Calculate consistency of the drag
-          let totalAngleChange = 0;
-          for (let i = 1; i < dragPoints.length - 1; i++) {
-              const prev = dragPoints[i - 1];
-              const curr = dragPoints[i];
-              const next = dragPoints[i + 1];
-              
-              const angle1 = Math.atan2(curr.y - prev.y, curr.x - prev.x);
-              const angle2 = Math.atan2(next.y - curr.y, next.x - curr.x);
-              
-              totalAngleChange += Math.abs(angle2 - angle1);
-          }
-          const consistency = 1 - (totalAngleChange / (Math.PI * dragPoints.length));
+          // Calculate throw power based on speed (distance / time)
+          const speed = distance / dragDuration;
+          const maxSpeed = 2000; // Adjust this value to set the upper limit of throw power
+          const throwPower = Math.min(speed, maxSpeed);
   
-          // Adjust throw power calculation
-          const throwPower = Math.min(distance / dragDuration, MAX_THROW_POWER) * (1 + consistency * 0.5);
           const angle = Math.atan2(dy, dx);
   
-          player.vx = Math.cos(angle) * throwPower * THROW_POWER_MULTIPLIER;
-          player.vy = Math.sin(angle) * throwPower * THROW_POWER_MULTIPLIER;
+          // Adjust these multipliers to fine-tune the throw strength
+          player.vx = Math.cos(angle) * throwPower * 0.1;
+          player.vy = Math.sin(angle) * throwPower * 0.1;
   
-          // Adjust energy calculation
-          player.energy = Math.min(throwPower / ENERGY_DIVISOR, 0.8) * (1 + consistency * 0.2);
+          // Set energy based on throw power
+          player.energy = Math.min(throwPower / maxSpeed, 1);
           bounceCount = 0;
           
           // Reset last bounce position when the ball is thrown
@@ -1032,9 +1007,6 @@
           if (player.energy > 0.6) {
               createPowerThrowEffect();
           }
-  
-          // Clear drag points
-          dragPoints = [];
       }
   });
 
