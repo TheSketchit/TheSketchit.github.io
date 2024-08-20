@@ -372,6 +372,7 @@
   }
 
 let positionHistory = [];
+let totalMovement = 0; // Variable to track total movement
 
 function updatePositionHistory(x, y) {
   const timestamp = performance.now();
@@ -401,7 +402,8 @@ function updatePositionHistory(x, y) {
         isDragging = true;
         lastMouseX = x;
         lastMouseY = y;
-        positionHistory = [{ x, y, timestamp: performance.now() }]; // Reset history
+        positionHistory = [{ x, y, timestamp: performance.now() }];
+        totalMovement = 0; // Reset total movement
         playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
@@ -419,10 +421,13 @@ function updatePositionHistory(x, y) {
         lastMouseX = x;
         lastMouseY = y;
     
+        totalMovement += Math.sqrt(dx * dx + dy * dy); // Track the total movement
+    
         // Update position history
         updatePositionHistory(player.x, player.y);
       }
     });
+
 
     gameContainer.addEventListener('mouseup', () => {
       if (isDragging) {
@@ -437,11 +442,21 @@ function updatePositionHistory(x, y) {
         const dx = player.x - oldestPosition.x;
         const dy = player.y - oldestPosition.y;
     
-        const speedFactor = Math.max(0.1, 1000 / timeDelta); // Normalize to 1 second
-        player.vx = dx * releaseMultiplier * speedFactor;
-        player.vy = dy * releaseMultiplier * speedFactor;
+        const speedFactor = Math.max(0.1, 1000 / timeDelta);
+        let releaseVX = dx * releaseMultiplier * speedFactor;
+        let releaseVY = dy * releaseMultiplier * speedFactor;
     
-        player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 200 * speedFactor, 1);
+        // If the total movement was minimal, reduce the velocity drastically
+        if (totalMovement < 10) { // Adjust this threshold based on testing
+          releaseVX *= 0.1;
+          releaseVY *= 0.1;
+          player.energy = 0; // Set energy to zero for minimal bounces
+        } else {
+          player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 200 * speedFactor, 1);
+        }
+    
+        player.vx = releaseVX;
+        player.vy = releaseVY;
     
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
