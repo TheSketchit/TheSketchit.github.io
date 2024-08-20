@@ -204,10 +204,10 @@
 
   // Game constants
   const emberThreshold = 3;
-  const releaseMultiplier = 0.11;
+  const releaseMultiplier = 0.05;
   const mistSlowdown = 0.995;
   const energyDecay = 0.9996;
-  const minBounciness = 0.3;
+  const minBounciness = 0.1;
   const maxBounciness = 1.0;
 
   // Game variables
@@ -345,8 +345,8 @@
 
       // Apply energy-based slowdown
       player.energy *= energyDecay;
-      player.vx *= 0.997;
-      player.vy *= 0.997;
+      player.vx *= 0.95;
+      player.vy *= 0.95;
 
       // Stop the ball if it's moving very slowly
       if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
@@ -359,8 +359,8 @@
     updatePlayerElement();
 
     // Visual feedback for high energy
-    const energyScale = 1 + player.energy * 0.3;
-    const energyRotation = player.energy * 360;
+    const energyScale = 1 + player.energy * 0.2;
+    const energyRotation = player.energy * 150;
     playerElement.style.transform = `scale(${energyScale * scale}) rotate(${energyRotation}deg)`;
 
     requestAnimationFrame(updatePosition);
@@ -462,19 +462,19 @@ function updatePositionHistory(x, y) {
     
         if (isInCorner) {
           // If in a corner, make the ball drift slowly by setting very low velocity
-          player.vx = releaseVX * 0.05; // Reduce velocity for slow drifting
-          player.vy = releaseVY * 0.05;
+          player.vx = releaseVX * 0.005; // Reduce velocity for slow drifting
+          player.vy = releaseVY * 0.005;
           player.energy = 0; // Set energy to zero for minimal bounces
         } else {
           player.vx = releaseVX;
           player.vy = releaseVY;
-          player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 200 * speedFactor, 1);
+          player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 150 * speedFactor, 1);
         }
     
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
     
-        if (player.energy > 0.6) {
+        if (player.energy > 0.9) {
           createPowerThrowEffect();
         }
       }
