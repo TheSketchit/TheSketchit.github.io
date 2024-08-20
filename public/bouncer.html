@@ -127,6 +127,9 @@
   let gameStarted = false;
   let gameOver = false; 
   let existingScores = new Set();
+  let dragPoints = [];
+  const MAX_DRAG_POINTS = 10;
+  const CORNER_BOUNCE_THRESHOLD = 50;
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -314,6 +317,14 @@
                   // Update last bounce position
                   player.lastBounceX = player.x;
                   player.lastBounceY = player.y;
+  
+                  // Prevent corner trapping
+                  if (isInCorner(player.x, player.y)) {
+                      const cornerEscapeAngle = Math.random() * Math.PI / 2 - Math.PI / 4;
+                      const escapeSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+                      player.vx = Math.cos(cornerEscapeAngle) * escapeSpeed;
+                      player.vy = Math.sin(cornerEscapeAngle) * escapeSpeed;
+                  }
               } else {
                   // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
                   if (bouncedBorder === 'left' || bouncedBorder === 'right') {
@@ -342,12 +353,28 @@
               player.energy = 0;
               submitHighScore();
           }
+      } else {
+          // Record drag points while dragging
+          dragPoints.push({x: player.x, y: player.y, time: Date.now()});
+          if (dragPoints.length > MAX_DRAG_POINTS) {
+              dragPoints.shift();
+          }
       }
   
       // Update ball animation
       if (ballAnimationTime > 0) {
           ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
       }
+  }
+    
+  function isInCorner(x, y) {
+    const cornerSize = CORNER_BOUNCE_THRESHOLD;
+    return (
+        (x < cornerSize && y < cornerSize) ||
+        (x < cornerSize && y > baseHeight - cornerSize) ||
+        (x > baseWidth - cornerSize && y < cornerSize) ||
+        (x > baseWidth - cornerSize && y > baseHeight - cornerSize)
+    );
   }
     
   function submitHighScore() {
@@ -423,18 +450,17 @@
             highScoreList.appendChild(li);
           });
       
+          // Ensure the retry button is visible
+          const retryButton = document.getElementById('retry-button');
+          retryButton.style.display = 'block';
+  
+          // Display the high score modal
           document.getElementById('high-score-modal').style.display = 'block';
         })
         .catch((error) => {
           console.error("Error fetching high scores:", error);
           alert("Failed to fetch high scores. Error: " + error.message);
         });
-  
-      // Add a reset button to the high score modal
-      const resetButton = document.createElement('button');
-      resetButton.textContent = 'Reset Game';
-      resetButton.addEventListener('click', resetGame);
-      document.getElementById('high-score-modal').appendChild(resetButton);
   }
 
 
@@ -952,34 +978,59 @@
   });
 
   canvas.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      const endX = player.x;
-      const endY = player.y;
-      const dragEndTime = Date.now();
-      const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
-
-      const dx = endX - dragStartX;
-      const dy = endY - dragStartY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      const throwPower = Math.min(distance / dragDuration, 1000); // Cap the throw power
-      const angle = Math.atan2(dy, dx);
-
-      player.vx = Math.cos(angle) * throwPower * 0.2; // Adjust multiplier for desired throw strength
-      player.vy = Math.sin(angle) * throwPower * 0.2;
-
-      player.energy = Math.min(throwPower / 500, 1);
-      bounceCount = 0;
-      
-      // Reset last bounce position when the ball is thrown
-      player.lastBounceX = player.x;
-      player.lastBounceY = player.y;
-      
-      if (player.energy > 0.6) {
-        createPowerThrowEffect();
+      if (isDragging) {
+          isDragging = false;
+          const endX = player.x;
+          const endY = player.y;
+          const dragEndTime = Date.now();
+  
+          if (dragPoints.length < 2) {
+              // Not enough points for a good throw
+              return;
+          }
+  
+          const startPoint = dragPoints[0];
+          const endPoint = dragPoints[dragPoints.length - 1];
+          const dragDuration = (dragEndTime - startPoint.time) / 1000; // Convert to seconds
+  
+          const dx = endPoint.x - startPoint.x;
+          const dy = endPoint.y - startPoint.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+  
+          // Calculate consistency of the drag
+          let totalAngleChange = 0;
+          for (let i = 1; i < dragPoints.length - 1; i++) {
+              const prev = dragPoints[i - 1];
+              const curr = dragPoints[i];
+              const next = dragPoints[i + 1];
+              
+              const angle1 = Math.atan2(curr.y - prev.y, curr.x - prev.x);
+              const angle2 = Math.atan2(next.y - curr.y, next.x - curr.x);
+              
+              totalAngleChange += Math.abs(angle2 - angle1);
+          }
+          const consistency = 1 - (totalAngleChange / (Math.PI * dragPoints.length));
+  
+          const throwPower = Math.min(distance / dragDuration, 1000) * (1 + consistency);
+          const angle = Math.atan2(dy, dx);
+  
+          player.vx = Math.cos(angle) * throwPower * 0.2;
+          player.vy = Math.sin(angle) * throwPower * 0.2;
+  
+          player.energy = Math.min(throwPower / 500, 1) * (1 + consistency * 0.5);
+          bounceCount = 0;
+          
+          // Reset last bounce position when the ball is thrown
+          player.lastBounceX = player.x;
+          player.lastBounceY = player.y;
+          
+          if (player.energy > 0.6) {
+              createPowerThrowEffect();
+          }
+  
+          // Clear drag points
+          dragPoints = [];
       }
-    }
   });
 
   aspectRatioToggle.addEventListener('click', () => {
