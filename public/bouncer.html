@@ -132,7 +132,7 @@
   const CORNER_BOUNCE_THRESHOLD = 50;
   const MAX_THROW_POWER = 500; // Reduced from 1000
   const THROW_POWER_MULTIPLIER = 0.14; //
-  const ENERGY_DIVISOR = 1000; // Increased from 500 to reduce energy gain
+  const ENERGY_DIVISOR = 900; // Increased from 500 to reduce energy gain
   let dragStartTime;
   let dragStartX, dragStartY;
 
@@ -157,7 +157,7 @@
 
   // Game constants
   const emberThreshold = 3;
-  const energyDecay = 0.998;
+  const energyDecay = 0.999;
   const velocityDecay = 0.995;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
@@ -351,7 +351,7 @@
           player.vy *= Math.pow(velocityDecay, deltaTime / 16);
   
           // Stop the ball if it's moving very slowly and submit high score only once
-          if (speed < 0.05 && gameStarted && !highScoreSubmitted) {
+          if (speed < 0.1 && gameStarted && !highScoreSubmitted) {
               player.vx = 0;
               player.vy = 0;
               player.energy = 0;
@@ -988,18 +988,18 @@
           const angle = Math.atan2(dy, dx);
   
           // Adjust these multipliers to fine-tune the throw strength
-          player.vx = Math.cos(angle) * throwPower * 0.12;
-          player.vy = Math.sin(angle) * throwPower * 0.12;
+          player.vx = Math.cos(angle) * throwPower * 0.15;
+          player.vy = Math.sin(angle) * throwPower * 0.15;
   
           // Set energy based on throw power
-          player.energy = Math.min(throwPower / maxSpeed, 1);
+          player.energy = Math.min(throwPower / maxSpeed, .9);
           bounceCount = 0;
           
           // Reset last bounce position when the ball is thrown
           player.lastBounceX = player.x;
           player.lastBounceY = player.y;
           
-          if (player.energy > 0.2) {
+          if (player.energy > 0.1) {
               createPowerThrowEffect();
           }
       }
