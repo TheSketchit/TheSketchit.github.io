@@ -128,10 +128,10 @@
   let gameOver = false; 
   let existingScores = new Set();
   let dragPoints = [];
-  const MAX_DRAG_POINTS = 20;
+  const MAX_DRAG_POINTS = 50;
   const CORNER_BOUNCE_THRESHOLD = 50;
   const MAX_THROW_POWER = 500; // Reduced from 1000
-  const THROW_POWER_MULTIPLIER = 0.14; // Reduced from 0.2
+  const THROW_POWER_MULTIPLIER = 0.16; // Reduced from 0.2
   const ENERGY_DIVISOR = 1000; // Increased from 500 to reduce energy gain
   let dragStartTime;
   let dragStartX, dragStartY;
@@ -157,7 +157,7 @@
 
   // Game constants
   const emberThreshold = 3;
-  const energyDecay = 0.995;
+  const energyDecay = 0.998;
   const velocityDecay = 0.99;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
