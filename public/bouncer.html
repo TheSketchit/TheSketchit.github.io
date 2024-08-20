@@ -125,6 +125,7 @@
   const ballAnimationDuration = 300; // milliseconds
   let ringParticles = [];
   let gameStarted = false;
+  let gameOver = false; 
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -221,7 +222,7 @@
   const minBounceDistance = 50; // Minimum distance required for a bounce to count
   
   function updatePosition(deltaTime) {
-      if (cheatMessage.style.display === 'block') return;
+      if (gameOver || cheatMessage.style.display === 'block') return; // Stop game if it's over or cheating is detected
       
       if (!isDragging) {
         let bounced = false;
@@ -302,7 +303,7 @@
         player.vy *= Math.pow(velocityDecay, deltaTime / 16);
   
         // Stop the ball if it's moving very slowly and submit high score only once
-        if (speed < 0.1 && gameStarted && !highScoreSubmitted) {
+        if (speed < 0.9 && gameStarted && !highScoreSubmitted) {
           console.log("Ball stopped, submitting high score");
           player.vx = 0;
           player.vy = 0;
@@ -320,63 +321,94 @@
   }
 
   function submitHighScore() {
-      if (highScoreSubmitted) {
+      if (highScoreSubmitted || gameOver) {
           return;  // Prevent multiple submissions
       }
   
+      gameOver = true;  // Halt the game
+      highScoreSubmitted = true;    // Prevent further submissions
+  
       console.log("Attempting to submit high score:", bounceCount);
   
-      // Check if the score is valid before submitting
+      // Check if the score is valid and unique before submitting
       if (bounceCount > 0) {
-          const highScoreRef = database.ref('highScores');
-          return highScoreRef.push({
-              score: bounceCount,
-              playerName: player.alias,
-              timestamp: Date.now()
-          })
-          .then(() => {
-              console.log("High score submitted successfully");
-              displayHighScores();
-          })
-          .catch((error) => {
-              console.error("Error submitting high score:", error);
-              alert("Failed to submit high score. Error: " + error.message);
-          })
-          .finally(() => {
-              highScoreSubmitted = true;  // Mark submission as done
+          const highScoreRef = database.ref(`highScores/${bounceCount}`);
+          
+          // Check if this score already exists
+          highScoreRef.once('value').then(snapshot => {
+              if (snapshot.exists()) {
+                  console.log(`Score of ${bounceCount} already exists. Not submitting.`);
+                  displayHighScores();
+              } else {
+                  // Format date as MM-DD-YY HH:MM EST
+                  const now = new Date();
+                  const estDate = new Intl.DateTimeFormat('en-US', {
+                      timeZone: 'America/New_York',
+                      month: '2-digit',
+                      day: '2-digit',
+                      year: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                  }).format(now);
+  
+                  // Write the high score with the formatted date
+                  highScoreRef.set({
+                      playerName: player.alias,
+                      timestamp: estDate
+                  })
+                  .then(() => {
+                      console.log("High score submitted successfully");
+                      displayHighScores();
+                  })
+                  .catch((error) => {
+                      console.error("Error submitting high score:", error);
+                      alert("Failed to submit high score. Error: " + error.message);
+                      highScoreSubmitted = false;  // Allow retry if submission fails
+                      gameOver = false;  // Allow the game to continue in case of error
+                  });
+              }
+          }).catch(error => {
+              console.error("Error checking for existing score:", error);
+              alert("Failed to check existing score. Error: " + error.message);
+              highScoreSubmitted = false;
+              gameOver = false;
           });
       } else {
           console.log("High score not submitted because bounceCount is zero or less.");
+          gameOver = false;  // Reset the flag if submission was skipped
       }
   }
 
   function displayHighScores() {
-    console.log("Attempting to display high scores");
-    
-    const highScoreRef = database.ref('highScores');
-    highScoreRef.orderByChild('score').limitToLast(10).once('value')
-      .then((snapshot) => {
-        const highScores = [];
-        snapshot.forEach((childSnapshot) => {
-          highScores.push(childSnapshot.val());
+    if (gameOver) {
+      console.log("Attempting to display high scores");
+      
+      const highScoreRef = database.ref('highScores');
+      highScoreRef.orderByChild('score').limitToLast(10).once('value')
+        .then((snapshot) => {
+          const highScores = [];
+          snapshot.forEach((childSnapshot) => {
+            highScores.push(childSnapshot.val());
+          });
+      
+          highScores.reverse();  // Reverse to get descending order
+      
+          const highScoreList = document.getElementById('high-score-list');
+          highScoreList.innerHTML = '';
+          highScores.forEach((score) => {
+            const li = document.createElement('li');
+            li.textContent = `${score.playerName}: ${score.score}`;
+            highScoreList.appendChild(li);
+          });
+      
+          document.getElementById('high-score-modal').style.display = 'block';
+        })
+        .catch((error) => {
+          console.error("Error fetching high scores:", error);
+          alert("Failed to fetch high scores. Error: " + error.message);
         });
-    
-        highScores.reverse();  // Reverse to get descending order
-    
-        const highScoreList = document.getElementById('high-score-list');
-        highScoreList.innerHTML = '';
-        highScores.forEach((score) => {
-          const li = document.createElement('li');
-          li.textContent = `${score.playerName}: ${score.score}`;
-          highScoreList.appendChild(li);
-        });
-    
-        document.getElementById('high-score-modal').style.display = 'block';
-      })
-      .catch((error) => {
-        console.error("Error fetching high scores:", error);
-        alert("Failed to fetch high scores. Error: " + error.message);
-      });
+    }
   }
 
   document.getElementById('retry-button').addEventListener('click', () => {
@@ -783,6 +815,7 @@
   let dragStartTime;
 
   canvas.addEventListener('mousedown', (event) => {
+    if (gameOver) return;  // Stop interaction if game is over
     const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) / scale;
     const y = (event.clientY - rect.top) / scale;
