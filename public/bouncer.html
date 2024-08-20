@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Canvas-Optimized Regret Bouncy Ball</title>
+  <title>Regret Bouncy Ball with Visible Retractable Borders</title>
   <style>
     body, html {
       margin: 0;
@@ -143,6 +143,9 @@
       canvas.height = containerWidth / gameAspect;
     }
 
+    // Reset the scale transformation
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Apply the new scale
     ctx.scale(scale, scale);
   }
 
@@ -335,7 +338,7 @@
         break;
     }
   }
-    
+
   function createLightning(x, y) {
     const branches = 5;
     const maxSegments = 10;
@@ -443,8 +446,19 @@
     }
   }
 
+  function updateMistPositions() {
+    mistParticles.forEach(mist => {
+      mist.x += (Math.random() - 0.5) * 0.5;
+      mist.y += (Math.random() - 0.5) * 0.5;
+      if (mist.x < 0) mist.x = baseWidth;
+      if (mist.x > baseWidth) mist.x = 0;
+      if (mist.y < 0) mist.y = baseHeight;
+      if (mist.y > baseHeight) mist.y = 0;
+    });
+  }
+
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, baseWidth, baseHeight);
 
     // Draw background
     const gradient = ctx.createRadialGradient(baseWidth/2, baseHeight/2, 0, baseWidth/2, baseHeight/2, baseWidth/2);
@@ -463,6 +477,7 @@
     });
 
     // Draw mist
+    updateMistPositions();
     mistParticles.forEach(mist => {
       const gradient = ctx.createRadialGradient(mist.x, mist.y, 0, mist.x, mist.y, mist.size / 2);
       gradient.addColorStop(0, `hsla(${mist.hue}, 100%, 70%, ${mist.opacity})`);
@@ -505,6 +520,16 @@
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
     ctx.fill();
 
+    // Draw player glow
+    const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
+    const glowGradient = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, glowSize);
+    glowGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+    glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
+    ctx.fill();
+
     // Draw player alias
     ctx.fillStyle = '#ffd700';
     ctx.font = '16px Arial';
@@ -526,6 +551,49 @@
     updatePosition(deltaTime);
     draw();
     requestAnimationFrame(gameLoop);
+  }
+
+  function createPowerThrowEffect() {
+    const ringParticles = [];
+    const particleCount = 20;
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      ringParticles.push({
+        x: player.x + Math.cos(angle) * player.radius,
+        y: player.y + Math.sin(angle) * player.radius,
+        vx: Math.cos(angle) * 5,
+        vy: Math.sin(angle) * 5,
+        life: 1
+      });
+    }
+
+    function animatePowerThrow() {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      
+      ringParticles.forEach((particle, index) => {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
+        ctx.fill();
+
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.life -= 0.02;
+
+        if (particle.life <= 0) {
+          ringParticles.splice(index, 1);
+        }
+      });
+
+      ctx.restore();
+
+      if (ringParticles.length > 0) {
+        requestAnimationFrame(animatePowerThrow);
+      }
+    }
+
+    animatePowerThrow();
   }
 
   canvas.addEventListener('mousedown', (event) => {
@@ -572,10 +640,6 @@
     }
   });
 
-  function createPowerThrowEffect() {
-    // Implement power throw effect using canvas
-  }
-
   aspectRatioToggle.addEventListener('click', () => {
     isWidescreen = !isWidescreen;
     updateGameArea();
@@ -595,177 +659,9 @@
     createMist();
     createStars();
   });
-  
-  function createPowerThrowEffect() {
-    const ringParticles = [];
-    const particleCount = 20;
-    for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2;
-      ringParticles.push({
-        x: player.x + Math.cos(angle) * player.radius,
-        y: player.y + Math.sin(angle) * player.radius,
-        vx: Math.cos(angle) * 5,
-        vy: Math.sin(angle) * 5,
-        life: 1
-      });
-    }
-
-    function animatePowerThrow() {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      
-      ringParticles.forEach((particle, index) => {
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
-        ctx.fill();
-
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.life -= 0.02;
-
-        if (particle.life <= 0) {
-          ringParticles.splice(index, 1);
-        }
-      });
-
-      ctx.restore();
-
-      if (ringParticles.length > 0) {
-        requestAnimationFrame(animatePowerThrow);
-      }
-    }
-
-    animatePowerThrow();
-  }
-
-  function createLightning(x, y) {
-    const lightningParticles = [];
-    const branchCount = 5;
-
-    for (let i = 0; i < branchCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const length = Math.random() * 50 + 50;
-      lightningParticles.push({
-        x: x,
-        y: y,
-        endX: x + Math.cos(angle) * length,
-        endY: y + Math.sin(angle) * length,
-        life: 1
-      });
-    }
-
-    function animateLightning() {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      
-      lightningParticles.forEach((particle, index) => {
-        ctx.beginPath();
-        ctx.moveTo(particle.x, particle.y);
-        ctx.lineTo(particle.endX, particle.endY);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${particle.life})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        particle.life -= 0.1;
-
-        if (particle.life <= 0) {
-          lightningParticles.splice(index, 1);
-        }
-      });
-
-      ctx.restore();
-
-      if (lightningParticles.length > 0) {
-        requestAnimationFrame(animateLightning);
-      }
-    }
-
-    animateLightning();
-  }
-
-  function retractBorder(border) {
-    const borderParticles = [];
-    const particleCount = 10;
-    let startX, startY, endX, endY;
-
-    switch(border) {
-      case 'left':
-        startX = 0; startY = 0; endX = 0; endY = baseHeight;
-        break;
-      case 'right':
-        startX = baseWidth; startY = 0; endX = baseWidth; endY = baseHeight;
-        break;
-      case 'top':
-        startX = 0; startY = 0; endX = baseWidth; endY = 0;
-        break;
-      case 'bottom':
-        startX = 0; startY = baseHeight; endX = baseWidth; endY = baseHeight;
-        break;
-    }
-
-    for (let i = 0; i < particleCount; i++) {
-      borderParticles.push({
-        x: startX + (endX - startX) * (i / particleCount),
-        y: startY + (endY - startY) * (i / particleCount),
-        originalX: startX + (endX - startX) * (i / particleCount),
-        originalY: startY + (endY - startY) * (i / particleCount),
-        offsetX: 0,
-        offsetY: 0,
-        life: 1
-      });
-    }
-
-    function animateBorderRetraction() {
-      ctx.save();
-      
-      borderParticles.forEach((particle, index) => {
-        if (particle.life > 0.5) {
-          particle.offsetX = (border === 'left' ? -1 : border === 'right' ? 1 : 0) * borderRetraction;
-          particle.offsetY = (border === 'top' ? -1 : border === 'bottom' ? 1 : 0) * borderRetraction;
-        } else {
-          particle.offsetX *= 0.9;
-          particle.offsetY *= 0.9;
-        }
-
-        ctx.beginPath();
-        ctx.arc(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY, 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 0, 50, ${particle.life * 0.3})`;
-        ctx.fill();
-
-        particle.life -= 0.02;
-
-        if (particle.life <= 0) {
-          borderParticles.splice(index, 1);
-        }
-      });
-
-      ctx.restore();
-
-      if (borderParticles.length > 0) {
-        requestAnimationFrame(animateBorderRetraction);
-      } else {
-        // Push the ball out if it's still in the retracted space
-        pushBallOutOfBorder(border);
-      }
-    }
-
-    animateBorderRetraction();
-  }
-
-  function updateMistPositions() {
-    mistParticles.forEach(mist => {
-      mist.x += (Math.random() - 0.5) * 0.5;
-      mist.y += (Math.random() - 0.5) * 0.5;
-      if (mist.x < 0) mist.x = baseWidth;
-      if (mist.x > baseWidth) mist.x = 0;
-      if (mist.y < 0) mist.y = baseHeight;
-      if (mist.y > baseHeight) mist.y = 0;
-    });
-  }
 
   // Start the game
   initGame();
-</script>
+  </script>
 </body>
 </html>
