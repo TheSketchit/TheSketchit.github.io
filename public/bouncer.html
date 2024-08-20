@@ -130,6 +130,9 @@
   let dragPoints = [];
   const MAX_DRAG_POINTS = 10;
   const CORNER_BOUNCE_THRESHOLD = 50;
+  const MAX_THROW_POWER = 500; // Reduced from 1000
+  const THROW_POWER_MULTIPLIER = 0.1; // Reduced from 0.2
+  const ENERGY_DIVISOR = 1000; // Increased from 500 to reduce energy gain
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -1011,13 +1014,15 @@
           }
           const consistency = 1 - (totalAngleChange / (Math.PI * dragPoints.length));
   
-          const throwPower = Math.min(distance / dragDuration, 1000) * (1 + consistency);
+          // Adjust throw power calculation
+          const throwPower = Math.min(distance / dragDuration, MAX_THROW_POWER) * (1 + consistency * 0.5);
           const angle = Math.atan2(dy, dx);
   
-          player.vx = Math.cos(angle) * throwPower * 0.2;
-          player.vy = Math.sin(angle) * throwPower * 0.2;
+          player.vx = Math.cos(angle) * throwPower * THROW_POWER_MULTIPLIER;
+          player.vy = Math.sin(angle) * throwPower * THROW_POWER_MULTIPLIER;
   
-          player.energy = Math.min(throwPower / 500, 1) * (1 + consistency * 0.5);
+          // Adjust energy calculation
+          player.energy = Math.min(throwPower / ENERGY_DIVISOR, 0.8) * (1 + consistency * 0.2);
           bounceCount = 0;
           
           // Reset last bounce position when the ball is thrown
