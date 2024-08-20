@@ -319,8 +319,8 @@
         ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
       }
   }
-
-  function submitHighScore() {
+    
+   function submitHighScore() {
       if (highScoreSubmitted || gameOver) {
           return;  // Prevent multiple submissions
       }
@@ -330,49 +330,36 @@
   
       console.log("Attempting to submit high score:", bounceCount);
   
-      // Check if the score is valid and unique before submitting
+      // Check if the score is valid before submitting
       if (bounceCount > 0) {
           const highScoreRef = database.ref(`highScores/${bounceCount}`);
           
-          // Check if this score already exists
-          highScoreRef.once('value').then(snapshot => {
-              if (snapshot.exists()) {
-                  console.log(`Score of ${bounceCount} already exists. Not submitting.`);
-                  displayHighScores();
-              } else {
-                  // Format date as MM-DD-YY HH:MM EST
-                  const now = new Date();
-                  const estDate = new Intl.DateTimeFormat('en-US', {
-                      timeZone: 'America/New_York',
-                      month: '2-digit',
-                      day: '2-digit',
-                      year: '2-digit',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false
-                  }).format(now);
+          // Format date as MM-DD-YY HH:MM
+          const now = new Date();
+          const estDate = new Intl.DateTimeFormat('en-US', {
+              timeZone: 'America/New_York',
+              month: '2-digit',
+              day: '2-digit',
+              year: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+          }).format(now);
   
-                  // Write the high score with the formatted date
-                  highScoreRef.set({
-                      playerName: player.alias,
-                      timestamp: estDate
-                  })
-                  .then(() => {
-                      console.log("High score submitted successfully");
-                      displayHighScores();
-                  })
-                  .catch((error) => {
-                      console.error("Error submitting high score:", error);
-                      alert("Failed to submit high score. Error: " + error.message);
-                      highScoreSubmitted = false;  // Allow retry if submission fails
-                      gameOver = false;  // Allow the game to continue in case of error
-                  });
-              }
-          }).catch(error => {
-              console.error("Error checking for existing score:", error);
-              alert("Failed to check existing score. Error: " + error.message);
-              highScoreSubmitted = false;
-              gameOver = false;
+          // Write the high score with the formatted date
+          highScoreRef.set({
+              playerName: player.alias,
+              timestamp: estDate
+          })
+          .then(() => {
+              console.log("High score submitted successfully");
+              displayHighScores();
+          })
+          .catch((error) => {
+              console.error("Error submitting high score:", error);
+              alert("Failed to submit high score. Error: " + error.message);
+              highScoreSubmitted = false;  // Allow retry if submission fails
+              gameOver = false;  // Allow the game to continue in case of error
           });
       } else {
           console.log("High score not submitted because bounceCount is zero or less.");
