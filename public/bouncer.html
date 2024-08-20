@@ -170,11 +170,11 @@
     if (!isDragging) {
       let bounced = false;
       let bouncedBorder = null;
-
+  
       // Update position
       player.x += player.vx * (deltaTime / 16);
       player.y += player.vy * (deltaTime / 16);
-
+  
       // Check borders and handle collisions
       if (player.x - player.radius <= borderRetraction) {
         player.x = borderRetraction + player.radius;
@@ -187,7 +187,7 @@
         bounced = true;
         bouncedBorder = 'right';
       }
-
+  
       if (player.y - player.radius <= borderRetraction) {
         player.y = borderRetraction + player.radius;
         player.vy = Math.abs(player.vy);
@@ -199,13 +199,13 @@
         bounced = true;
         bouncedBorder = 'bottom';
       }
-
+  
       if (bounced) {
         const distanceTraveled = Math.sqrt(
           Math.pow(player.x - player.lastBounceX, 2) +
           Math.pow(player.y - player.lastBounceY, 2)
         );
-
+  
         if (distanceTraveled >= minBounceDistance) {
           const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
           player.vx *= bounciness;
@@ -215,7 +215,7 @@
           playPopSound();
           retractBorder(bouncedBorder);
           ballAnimationTime = ballAnimationDuration; // Start ball animation
-
+  
           // Update last bounce position
           player.lastBounceX = player.x;
           player.lastBounceY = player.y;
@@ -226,23 +226,20 @@
           } else {
             player.vy *= -1;
           }
-      // Update ball animation
-      if (ballAnimationTime > 0) {
-      ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
         }
       }
-
+  
       const speed = Math.hypot(player.vx, player.vy);
-
+  
       if (speed > emberThreshold) {
         createEmberTrail(player.x, player.y, player.vx, player.vy);
       }
-
+  
       // Apply energy-based slowdown
       player.energy *= Math.pow(energyDecay, deltaTime / 16);
       player.vx *= Math.pow(0.999, deltaTime / 16);
       player.vy *= Math.pow(0.999, deltaTime / 16);
-
+  
       // Stop the ball if it's moving very slowly
       if (speed < 0.05) {
         player.vx = 0;
@@ -250,7 +247,13 @@
         player.energy = 0;
       }
     }
+  
+    // Update ball animation
+    if (ballAnimationTime > 0) {
+      ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
+    }
   }
+    
   function incrementBounceCount() {
     bounceCount++;
   }
