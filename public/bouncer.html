@@ -135,9 +135,12 @@
     function updateGameSize() {
       gameWidth = gameContainer.clientWidth;
       gameHeight = gameContainer.clientHeight;
-      if (player) {
-        player.x = gameWidth / 2;
-        player.y = gameHeight / 2;
+      if (window.player) {
+        const maxRadius = Math.min(gameWidth, gameHeight) / 2 - boundaryWidth;
+        const angle = Math.atan2(player.y - gameHeight / 2, player.x - gameWidth / 2);
+        const distanceFromCenter = Math.min(Math.sqrt(Math.pow(player.x - gameWidth / 2, 2) + Math.pow(player.y - gameHeight / 2, 2)), maxRadius - player.radius);
+        player.x = gameWidth / 2 + distanceFromCenter * Math.cos(angle);
+        player.y = gameHeight / 2 + distanceFromCenter * Math.sin(angle);
         playerElement.style.left = `${player.x - player.radius}px`;
         playerElement.style.top = `${player.y - player.radius}px`;
       }
@@ -146,10 +149,8 @@
       createStars();
     }
 
-
-    
-
     window.addEventListener('resize', updateGameSize);
+
     // Call this function initially and on window resize
     
     // Create asteroids for the boundary
@@ -177,23 +178,6 @@
       asteroid.style.top = `${y - asteroid.size / 2}px`;
     }
 
-    function updateAsteroids() {
-      asteroids.forEach(positionAsteroid);
-    }
-
-    updateGameSize();
-    
-    // Player object
-    const player = {
-      alias: playerName,
-      x: gameWidth / 2,
-      y: gameHeight / 2,
-      vx: 0,
-      vy: 0,
-      radius: 40,
-      energy: 0
-    };
-
     const emberThreshold = 3;
     const releaseMultiplier = 0.15;
     const mistSlowdown = 0.995;
@@ -209,28 +193,46 @@
     let bounceCount = 0;
     let lastSoundTime = 0;
 
-    // Create player element
-    const playerElement = document.createElement('div');
-    playerElement.className = 'circle';
-    playerElement.style.left = `${player.x - player.radius}px`;
-    playerElement.style.top = `${player.y - player.radius}px`;
+    function initializeGame() {
+      updateGameSize();
+    
+      // Player object
+      window.player = {
+        alias: playerName,
+        x: gameWidth / 2,
+        y: gameHeight / 2,
+        vx: 0,
+        vy: 0,
+        radius: 40,
+        energy: 0
+      };
+    
+      // Create player element
+      playerElement = document.createElement('div');
+      playerElement.className = 'circle';
+      playerElement.style.left = `${player.x - player.radius}px`;
+      playerElement.style.top = `${player.y - player.radius}px`;
+    
+      const aliasLabel = document.createElement('div');
+      aliasLabel.className = 'alias-label';
+      aliasLabel.textContent = player.alias;
+    
+      playerElement.appendChild(aliasLabel);
+      gameContainer.appendChild(playerElement);
+    
+      // Create bounce score display
+      scoreDisplay = document.createElement('div');
+      scoreDisplay.style.position = 'absolute';
+      scoreDisplay.style.top = '10px';
+      scoreDisplay.style.left = '10px';
+      scoreDisplay.style.color = 'white';
+      scoreDisplay.style.fontSize = '24px';
+      scoreDisplay.textContent = 'Bounces: 0';
+      gameContainer.appendChild(scoreDisplay);
+    
+      updatePosition();
+    }
 
-    const aliasLabel = document.createElement('div');
-    aliasLabel.className = 'alias-label';
-    aliasLabel.textContent = player.alias;
-
-    playerElement.appendChild(aliasLabel);
-    gameContainer.appendChild(playerElement);
-
-    // Create bounce score display
-    const scoreDisplay = document.createElement('div');
-    scoreDisplay.style.position = 'absolute';
-    scoreDisplay.style.top = '10px';
-    scoreDisplay.style.left = '10px';
-    scoreDisplay.style.color = 'white';
-    scoreDisplay.style.fontSize = '24px';
-    scoreDisplay.textContent = 'Bounces: 0';
-    gameContainer.appendChild(scoreDisplay);
 
     //
     function updatePosition() {
@@ -443,8 +445,6 @@
       }, 550);
     }
 
-
-  
     // Create lightning effect shooting from the ball
     function createLightning(x, y) {
       for (let i = 0; i < 5; i++) {
@@ -576,11 +576,7 @@
       });
     }
 
-    // Start the animation loop
-    updateGameSize();
-    updatePosition();
-
-
+    initializeGame();
   </script>
 </body>
 </html>
