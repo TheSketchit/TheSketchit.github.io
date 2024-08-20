@@ -371,6 +371,16 @@
     scoreDisplay.textContent = `Bounces: ${bounceCount}`;
   }
 
+let positionHistory = [];
+
+function updatePositionHistory(x, y) {
+  const timestamp = performance.now();
+  positionHistory.push({ x, y, timestamp });
+
+  // Remove positions older than 1 second
+  positionHistory = positionHistory.filter(pos => timestamp - pos.timestamp <= 1000);
+}
+
   function playPopSound() {
       const currentTime = Date.now();
       if (currentTime - lastSoundTime > 50) {
@@ -389,11 +399,9 @@
       const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
         isDragging = true;
-        lastMouseX = dragStartX = x;
-        lastMouseY = dragStartY = y;
-        dragStartTime = performance.now();
-        player.vx *= 0.5; // Retain some momentum
-        player.vy *= 0.5;
+        lastMouseX = x;
+        lastMouseY = y;
+        positionHistory = [{ x, y, timestamp: performance.now() }]; // Reset history
         playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
@@ -406,14 +414,13 @@
         const dx = x - lastMouseX;
         const dy = y - lastMouseY;
     
-        // Smooth velocity change during dragging
-        player.vx += (dx * 0.2);
-        player.vy += (dy * 0.2);
-    
         player.x += dx;
         player.y += dy;
         lastMouseX = x;
         lastMouseY = y;
+    
+        // Update position history
+        updatePositionHistory(player.x, player.y);
       }
     });
 
@@ -422,19 +429,19 @@
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
     
-        const dragEndTime = performance.now();
-        const dragDuration = dragEndTime - dragStartTime;
+        const currentTime = performance.now();
+        const oldestPosition = positionHistory[0];
     
-        const releaseX = lastMouseX - dragStartX;
-        const releaseY = lastMouseY - dragStartY;
-        const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
+        // Calculate the velocity based on the movement in the last second
+        const timeDelta = currentTime - oldestPosition.timestamp;
+        const dx = player.x - oldestPosition.x;
+        const dy = player.y - oldestPosition.y;
     
-        const speedFactor = Math.max(0.1, 500 / dragDuration);
+        const speedFactor = Math.max(0.1, 1000 / timeDelta); // Normalize to 1 second
+        player.vx = dx * releaseMultiplier * speedFactor;
+        player.vy = dy * releaseMultiplier * speedFactor;
     
-        player.vx += releaseX * releaseMultiplier * speedFactor; // Use += to continue movement
-        player.vy += releaseY * releaseMultiplier * speedFactor;
-    
-        player.energy = Math.min(releaseMagnitude / 200 * speedFactor, 1);
+        player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 200 * speedFactor, 1);
     
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
