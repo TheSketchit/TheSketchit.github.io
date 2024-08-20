@@ -312,26 +312,23 @@
     }
   }
 
-  function submitHighScore() {
+    function submitHighScore() {
     console.log("Attempting to submit high score:", bounceCount);
-      .then(() => {
-        console.log("Anonymous auth successful");
-        const highScoreRef = database.ref('highScores');
-        return highScoreRef.push({
-          score: bounceCount,
-          playerName: player.alias,
-          timestamp: Date.now()
-        });
-      })
-      .then(() => {
+    const highScoreRef = database.ref('highScores');
+    return highScoreRef.push({
+        score: bounceCount,
+        playerName: player.alias,
+        timestamp: Date.now()
+    })
+    .then(() => {
         console.log("High score submitted successfully");
         displayHighScores();
-      })
-      .catch((error) => {
-        console.error("Error submitting high score:", error);
+    })
+    .catch((error) => {
+        console.error("Error submitting high score:",);
         alert("Failed to submit high score. Error: " + error.message);
-      });
-  }
+    });
+    }
 
   function displayHighScores() {
     console.log("Attempting to display high scores");
@@ -719,6 +716,7 @@
     requestAnimationFrame(gameLoop);
   }
 
+
   function createPowerThrowEffect() {
     const ringParticles = [];
     const particleCount = 20;
@@ -732,35 +730,37 @@
         life: 1
       });
     }
-
+    return ringParticles;
+  }
+    
     function animatePowerThrow() {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      
-      ringParticles.forEach((particle, index) => {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    ringParticles.forEach((particle, index) => {
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
         ctx.fill();
 
         particle.x += particle.vx;
-        particle.y += particle.vy;
+        particle.y += particley;
         particle.life -= 0.02;
 
         if (particle.life <= 0) {
-          ringParticles.splice(index, 1);
+        ringParticles.splice(index, 1);
         }
-      });
+    });
 
-      ctx.restore();
+    ctx.restore();
 
-      if (ringParticles.length > 0) {
+    if (ringParticles.length > 0) {
         requestAnimationFrame(animatePowerThrow);
-      }
+    }
     }
 
     animatePowerThrow();
-  }
+
 
   let dragStartTime;
 
