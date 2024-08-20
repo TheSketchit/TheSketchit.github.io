@@ -204,10 +204,10 @@
 
   // Game constants
   const emberThreshold = 3;
-  const releaseMultiplier = 0.05;
+  const releaseMultiplier = 0.15;
   const mistSlowdown = 0.995;
-  const energyDecay = 0.9996;
-  const minBounciness = 0.1;
+  const energyDecay = 0.9998;
+  const minBounciness = 0.7;
   const maxBounciness = 1.0;
 
   // Game variables
@@ -345,8 +345,8 @@
 
       // Apply energy-based slowdown
       player.energy *= energyDecay;
-      player.vx *= 0.95;
-      player.vy *= 0.95;
+      player.vx *= 0.999;
+      player.vy *= 0.999;
 
       // Stop the ball if it's moving very slowly
       if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
@@ -359,8 +359,8 @@
     updatePlayerElement();
 
     // Visual feedback for high energy
-    const energyScale = 1 + player.energy * 0.2;
-    const energyRotation = player.energy * 150;
+    const energyScale = 1 + player.energy * 0.3;
+    const energyRotation = player.energy * 360;
     playerElement.style.transform = `scale(${energyScale * scale}) rotate(${energyRotation}deg)`;
 
     requestAnimationFrame(updatePosition);
@@ -370,17 +370,6 @@
     bounceCount++;
     scoreDisplay.textContent = `Bounces: ${bounceCount}`;
   }
-
-let positionHistory = [];
-let totalMovement = 0; // Variable to track total movement
-
-function updatePositionHistory(x, y) {
-  const timestamp = performance.now();
-  positionHistory.push({ x, y, timestamp });
-
-  // Remove positions older than 1 second
-  positionHistory = positionHistory.filter(pos => timestamp - pos.timestamp <= 1000);
-}
 
   function playPopSound() {
       const currentTime = Date.now();
@@ -400,10 +389,8 @@ function updatePositionHistory(x, y) {
       const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
         isDragging = true;
-        lastMouseX = x;
-        lastMouseY = y;
-        positionHistory = [{ x, y, timestamp: performance.now() }];
-        totalMovement = 0; // Reset total movement
+        lastMouseX = dragStartX = x;
+        lastMouseY = dragStartY = y;
         playerElement.style.transform = `scale(${0.8 * scale})`;
       }
     });
@@ -415,66 +402,27 @@ function updatePositionHistory(x, y) {
         const y = (event.clientY - rect.top) / scale;
         const dx = x - lastMouseX;
         const dy = y - lastMouseY;
-    
         player.x += dx;
         player.y += dy;
         lastMouseX = x;
         lastMouseY = y;
-    
-        totalMovement += Math.sqrt(dx * dx + dy * dy); // Track the total movement
-    
-        // Update position history
-        updatePositionHistory(player.x, player.y);
       }
     });
-
 
     gameContainer.addEventListener('mouseup', () => {
       if (isDragging) {
         isDragging = false;
         playerElement.style.transform = `scale(${scale})`;
-    
-        const currentTime = performance.now();
-        const oldestPosition = positionHistory[0];
-    
-        // Calculate the velocity based on the movement in the last second
-        const timeDelta = currentTime - oldestPosition.timestamp;
-        const dx = player.x - oldestPosition.x;
-        const dy = player.y - oldestPosition.y;
-    
-        const speedFactor = Math.max(0.1, 1000 / timeDelta);
-        let releaseVX = dx * releaseMultiplier * speedFactor;
-        let releaseVY = dy * releaseMultiplier * speedFactor;
-    
-        // Define the boundaries using the dimensions of the blurred borders
-        const borderThickness = 50; // Based on your CSS
-        const leftBorder = borderThickness;
-        const rightBorder = baseWidth - borderThickness;
-        const topBorder = borderThickness;
-        const bottomBorder = baseHeight - borderThickness;
-    
-        // Check if the ball is in any corner
-        const isInCorner = 
-          (player.x - player.radius <= leftBorder && player.y - player.radius <= topBorder) ||  // Top-left corner
-          (player.x + player.radius >= rightBorder && player.y - player.radius <= topBorder) ||  // Top-right corner
-          (player.x - player.radius <= leftBorder && player.y + player.radius >= bottomBorder) ||  // Bottom-left corner
-          (player.x + player.radius >= rightBorder && player.y + player.radius >= bottomBorder);  // Bottom-right corner
-    
-        if (isInCorner) {
-          // If in a corner, make the ball drift slowly by setting very low velocity
-          player.vx = releaseVX * 0.005; // Reduce velocity for slow drifting
-          player.vy = releaseVY * 0.005;
-          player.energy = 0; // Set energy to zero for minimal bounces
-        } else {
-          player.vx = releaseVX;
-          player.vy = releaseVY;
-          player.energy = Math.min(Math.sqrt(dx * dx + dy * dy) / 150 * speedFactor, 1);
-        }
-    
+        const releaseX = lastMouseX - dragStartX;
+        const releaseY = lastMouseY - dragStartY;
+        const releaseMagnitude = Math.sqrt(releaseX * releaseX + releaseY * releaseY);
+        player.vx = releaseX * releaseMultiplier;
+        player.vy = releaseY * releaseMultiplier;
+        player.energy = Math.min(releaseMagnitude / 200, 1);
         bounceCount = 0;
         scoreDisplay.textContent = 'Bounces: 0';
-    
-        if (player.energy > 0.9) {
+        
+        if (player.energy > 0.6) {
           createPowerThrowEffect();
         }
       }
