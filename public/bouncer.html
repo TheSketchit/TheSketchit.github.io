@@ -16,8 +16,8 @@
 
     #game-container {
       position: relative;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(15,15,40,1) 100%);
       overflow: hidden;
     }
@@ -135,15 +135,18 @@
     function updateGameSize() {
       gameWidth = gameContainer.clientWidth;
       gameHeight = gameContainer.clientHeight;
-      // If player object exists, update its position
       if (player) {
-        player.x = Math.min(Math.max(player.x, player.radius), gameWidth - player.radius);
-        player.y = Math.min(Math.max(player.y, player.radius), gameHeight - player.radius);
+        player.x = gameWidth / 2;
+        player.y = gameHeight / 2;
+        playerElement.style.left = `${player.x - player.radius}px`;
+        playerElement.style.top = `${player.y - player.radius}px`;
       }
       createAsteroids();
+      createMist();
+      createStars();
     }
 
-    updateGameSize();
+
     
 
     window.addEventListener('resize', updateGameSize);
@@ -178,7 +181,8 @@
       asteroids.forEach(positionAsteroid);
     }
 
-
+    updateGameSize();
+    
     // Player object
     const player = {
       alias: playerName,
@@ -208,8 +212,8 @@
     // Create player element
     const playerElement = document.createElement('div');
     playerElement.className = 'circle';
-    playerElement.style.left = `${player.x}px`;
-    playerElement.style.top = `${player.y}px`;
+    playerElement.style.left = `${player.x - player.radius}px`;
+    playerElement.style.top = `${player.y - player.radius}px`;
 
     const aliasLabel = document.createElement('div');
     aliasLabel.className = 'alias-label';
@@ -571,11 +575,12 @@
         easing: 'ease-in-out'
       });
     }
-    createAsteroids();
+
     // Start the animation loop
+    updateGameSize();
     updatePosition();
-    createMist();
-    createStars();
+
+
   </script>
 </body>
 </html>
