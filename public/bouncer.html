@@ -87,7 +87,6 @@
 
   // Game constants
   const emberThreshold = 3;
-  const releaseMultiplier = 1.0;
   const energyDecay = 0.9998;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
@@ -96,8 +95,6 @@
 
   // Game variables
   let isDragging = false;
-  let lastMouseX = 0;
-  let lastMouseY = 0;
   let dragStartX = 0;
   let dragStartY = 0;
   let bounceCount = 0;
@@ -617,9 +614,7 @@
     animatePowerThrow();
   }
 
-  let mouseVelocityX = 0;
-  let mouseVelocityY = 0;
-  let lastMouseMoveTime = 0;
+  let dragStartTime;
 
   canvas.addEventListener('mousedown', (event) => {
     const rect = canvas.getBoundingClientRect();
@@ -629,11 +624,11 @@
     const dy = y - player.y;
     if (dx * dx + dy * dy <= player.radius * player.radius) {
       isDragging = true;
-      lastMouseX = dragStartX = x;
-      lastMouseY = dragStartY = y;
-      lastMouseMoveTime = Date.now();
-      mouseVelocityX = 0;
-      mouseVelocityY = 0;
+      dragStartX = x;
+      dragStartY = y;
+      dragStartTime = Date.now();
+      player.vx = 0;
+      player.vy = 0;
     }
   });
 
@@ -642,37 +637,30 @@
       const rect = canvas.getBoundingClientRect();
       const x = (event.clientX - rect.left) / scale;
       const y = (event.clientY - rect.top) / scale;
-      const dx = x - lastMouseX;
-      const dy = y - lastMouseY;
-      const currentTime = Date.now();
-      const dt = (currentTime - lastMouseMoveTime) / 1000; // Convert to seconds
-
-      if (dt > 0) {
-        mouseVelocityX = dx / dt;
-        mouseVelocityY = dy / dt;
-      }
-
-      player.x += dx;
-      player.y += dy;
-      lastMouseX = x;
-      lastMouseY = y;
-      lastMouseMoveTime = currentTime;
+      player.x = x;
+      player.y = y;
     }
   });
 
   canvas.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
-      const maxVelocity = 150; // Adjust this value as needed
-      player.vx = Math.min(Math.max(releaseVelocityX, -maxVelocity), maxVelocity);
-      player.vy = Math.min(Math.max(releaseVelocityY, -maxVelocity), maxVelocity);
-      const releaseVelocityX = mouseVelocityX * releaseMultiplier;
-      const releaseVelocityY = mouseVelocityY * releaseMultiplier;
-      const releaseMagnitude = Math.sqrt(releaseVelocityX * releaseVelocityX + releaseVelocityY * releaseVelocityY);
+      const endX = player.x;
+      const endY = player.y;
+      const dragEndTime = Date.now();
+      const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
 
-      player.vx = releaseVelocityX;
-      player.vy = releaseVelocityY;
-      player.energy = Math.min(releaseMagnitude / 200, 1);
+      const dx = endX - dragStartX;
+      const dy = endY - dragStartY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      const throwPower = Math.min(distance / dragDuration, 1000); // Cap the throw power
+      const angle = Math.atan2(dy, dx);
+
+      player.vx = Math.cos(angle) * throwPower * 0.2; // Adjust multiplier for desired throw strength
+      player.vy = Math.sin(angle) * throwPower * 0.2;
+
+      player.energy = Math.min(throwPower / 500, 1);
       bounceCount = 0;
       
       // Reset last bounce position when the ball is thrown
