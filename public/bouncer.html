@@ -982,14 +982,14 @@
   
           // Calculate throw power based on speed (distance / time)
           const speed = distance / dragDuration;
-          const maxSpeed = 2000; // Adjust this value to set the upper limit of throw power
+          const maxSpeed = 3000; // Adjust this value to set the upper limit of throw power
           const throwPower = Math.min(speed, maxSpeed);
   
           const angle = Math.atan2(dy, dx);
   
           // Adjust these multipliers to fine-tune the throw strength
-          player.vx = Math.cos(angle) * throwPower * 0.1;
-          player.vy = Math.sin(angle) * throwPower * 0.1;
+          player.vx = Math.cos(angle) * throwPower * 0.4;
+          player.vy = Math.sin(angle) * throwPower * 0.4;
   
           // Set energy based on throw power
           player.energy = Math.min(throwPower / maxSpeed, 1);
