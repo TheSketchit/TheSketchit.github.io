@@ -204,10 +204,10 @@
 
   // Game constants
   const emberThreshold = 3;
-  const releaseMultiplier = 0.15;
+  const releaseMultiplier = 0.11;
   const mistSlowdown = 0.995;
-  const energyDecay = 0.9998;
-  const minBounciness = 0.7;
+  const energyDecay = 0.9996;
+  const minBounciness = 0.3;
   const maxBounciness = 1.0;
 
   // Game variables
@@ -345,8 +345,8 @@
 
       // Apply energy-based slowdown
       player.energy *= energyDecay;
-      player.vx *= 0.999;
-      player.vy *= 0.999;
+      player.vx *= 0.997;
+      player.vy *= 0.997;
 
       // Stop the ball if it's moving very slowly
       if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
