@@ -580,7 +580,7 @@ function updatePosition(deltaTime) {
     updateGameArea();
     createMist();
     createStars();
-    requestAnimationFrame(gameLoop);
+    gameLoop(0);
   }
 
   window.addEventListener('resize', () => {
