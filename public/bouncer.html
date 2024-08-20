@@ -135,16 +135,24 @@
     function updateGameSize() {
       gameWidth = gameContainer.clientWidth;
       gameHeight = gameContainer.clientHeight;
-      updateAsteroids();
+      // If player object exists, update its position
+      if (player) {
+        player.x = Math.min(Math.max(player.x, player.radius), gameWidth - player.radius);
+        player.y = Math.min(Math.max(player.y, player.radius), gameHeight - player.radius);
+      }
+      createAsteroids();
     }
+
+    updateGameSize();
+    
 
     window.addEventListener('resize', updateGameSize);
     // Call this function initially and on window resize
     
-    
-
     // Create asteroids for the boundary
     function createAsteroids() {
+      asteroids.forEach(asteroid => gameContainer.removeChild(asteroid));
+      asteroids.length = 0;
       for (let i = 0; i < asteroidCount; i++) {
         const asteroid = document.createElement('div');
         asteroid.className = 'asteroid';
@@ -170,8 +178,6 @@
       asteroids.forEach(positionAsteroid);
     }
 
-
-    updateGameSize();
 
     // Player object
     const player = {
@@ -225,61 +231,62 @@
     //
     function updatePosition() {
       if (!isDragging) {
-      player.x += player.vx;
-      player.y += player.vy;
-
-      const distanceFromCenter = Math.sqrt(
-        Math.pow(player.x - gameWidth / 2, 2) + Math.pow(player.y - gameHeight / 2, 2)
-      );
-
-      if (distanceFromCenter + player.radius > Math.min(gameWidth, gameHeight) / 2 - boundaryWidth) {
-        // Collision with asteroid field
-        const angle = Math.atan2(player.y - gameHeight / 2, player.x - gameWidth / 2);
-        const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-        
-        player.vx = -Math.cos(angle) * player.vx * bounciness;
-        player.vy = -Math.sin(angle) * player.vy * bounciness;
-
-        // Move player back inside the boundary
-        player.x = (gameWidth / 2) + (Math.min(gameWidth, gameHeight) / 2 - boundaryWidth - player.radius) * Math.cos(angle);
-        player.y = (gameHeight / 2) + (Math.min(gameWidth, gameHeight) / 2 - boundaryWidth - player.radius) * Math.sin(angle);
-
-        createLightning(player.x, player.y);
-        impactShake();
-        incrementBounceCount();
-        playPopSound();
-        shakeNearbyAsteroids(angle);
+        player.x += player.vx;
+        player.y += player.vy;
+    
+        const distanceFromCenter = Math.sqrt(
+          Math.pow(player.x - gameWidth / 2, 2) + Math.pow(player.y - gameHeight / 2, 2)
+        );
+    
+        if (distanceFromCenter + player.radius > Math.min(gameWidth, gameHeight) / 2 - boundaryWidth) {
+          // Collision with asteroid field
+          const angle = Math.atan2(player.y - gameHeight / 2, player.x - gameWidth / 2);
+          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+          
+          player.vx = -Math.cos(angle) * player.vx * bounciness;
+          player.vy = -Math.sin(angle) * player.vy * bounciness;
+    
+          // Move player back inside the boundary
+          player.x = (gameWidth / 2) + (Math.min(gameWidth, gameHeight) / 2 - boundaryWidth - player.radius) * Math.cos(angle);
+          player.y = (gameHeight / 2) + (Math.min(gameWidth, gameHeight) / 2 - boundaryWidth - player.radius) * Math.sin(angle);
+    
+          createLightning(player.x, player.y);
+          impactShake();
+          incrementBounceCount();
+          playPopSound();
+          shakeNearbyAsteroids(angle);
+        }
+    
+        const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+    
+        if (speed > emberThreshold) {
+          createEmberTrail(player.x, player.y, player.vx, player.vy);
+        }
+    
+        // Apply energy-based slowdown
+        player.energy *= energyDecay;
+        player.vx *= 0.999;
+        player.vy *= 0.999;
+    
+        // Stop the ball if it's moving very slowly
+        if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
+          player.vx = 0;
+          player.vy = 0;
+          player.energy = 0;
+        }
       }
-
-      const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-
-      if (speed > emberThreshold) {
-        createEmberTrail(player.x, player.y, player.vx, player.vy);
-      }
-
-      // Apply energy-based slowdown
-      player.energy *= energyDecay;
-      player.vx *= 0.999;
-      player.vy *= 0.999;
-
-      // Stop the ball if it's moving very slowly
-      if (Math.abs(player.vx) < 0.05 && Math.abs(player.vy) < 0.05) {
-        player.vx = 0;
-        player.vy = 0;
-        player.energy = 0;
-      }
+    
+      // Update player element position
+      playerElement.style.left = `${player.x - player.radius}px`;
+      playerElement.style.top = `${player.y - player.radius}px`;
+    
+      // Visual feedback for high energy
+      const energyScale = 1 + player.energy * 0.3;
+      const energyRotation = player.energy * 360;
+      playerElement.style.transform = `scale(${energyScale}) rotate(${energyRotation}deg)`;
+    
+      requestAnimationFrame(updatePosition);
     }
-
-    playerElement.style.left = `${player.x - player.radius}px`;
-    playerElement.style.top = `${player.y - player.radius}px`;
-
-    // Visual feedback for high energy
-    const energyScale = 1 + player.energy * 0.3;
-    const energyRotation = player.energy * 360;
-    playerElement.style.transform = `scale(${energyScale}) rotate(${energyRotation}deg)`;
-
-    requestAnimationFrame(updatePosition);
-  }
 
   function incrementBounceCount() {
     bounceCount++;
@@ -319,26 +326,27 @@
       }
     });
   }
-    createAsteroids();
 
     // Mouse event listeners
     gameContainer.addEventListener('mousedown', (event) => {
-      const dx = event.clientX - player.x;
-      const dy = event.clientY - player.y;
+      const dx = event.clientX - (player.x + player.radius);
+      const dy = event.clientY - (player.y + player.radius);
       if (dx * dx + dy * dy <= player.radius * player.radius) {
         isDragging = true;
         lastMouseX = dragStartX = event.clientX;
         lastMouseY = dragStartY = event.clientY;
         playerElement.style.transform = 'scale(0.8)';
+        bounceCount = 0; // Reset bounce count
+        scoreDisplay.textContent = 'Bounces: 0';
       }
     });
-
+    
     gameContainer.addEventListener('mousemove', (event) => {
       if (isDragging) {
         const dx = event.clientX - lastMouseX;
         const dy = event.clientY - lastMouseY;
-        player.x += dx;
-        player.y += dy;
+        player.x = Math.max(player.radius, Math.min(gameWidth - player.radius, player.x + dx));
+        player.y = Math.max(player.radius, Math.min(gameHeight - player.radius, player.y + dy));
         lastMouseX = event.clientX;
         lastMouseY = event.clientY;
       }
@@ -563,7 +571,7 @@
         easing: 'ease-in-out'
       });
     }
-    
+    createAsteroids();
     // Start the animation loop
     updatePosition();
     createMist();
