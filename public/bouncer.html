@@ -124,6 +124,7 @@
   let highScoreSubmitted = false;
   const ballAnimationDuration = 300; // milliseconds
   let ringParticles = [];
+  let gameStarted = false;
 
   // Define base dimensions
   const baseWidth = 1600;
@@ -220,101 +221,109 @@
   const minBounceDistance = 50; // Minimum distance required for a bounce to count
   
   function updatePosition(deltaTime) {
-    if (cheatMessage.style.display === 'block') return;
+      if (cheatMessage.style.display === 'block') return;
+      
+      if (!isDragging) {
+        let bounced = false;
+        let bouncedBorder = null;
+  
+        // Only consider the game as started once the player moves the ball
+        if (player.vx !== 0 || player.vy !== 0) {
+          gameStarted = true;
+        }
     
-    if (!isDragging) {
-      let bounced = false;
-      let bouncedBorder = null;
-  
-      // Update position
-      player.x += player.vx * (deltaTime / 16);
-      player.y += player.vy * (deltaTime / 16);
-  
-      // Check borders and handle collisions
-      if (player.x - player.radius <= borderRetraction) {
-        player.x = borderRetraction + player.radius;
-        player.vx = Math.abs(player.vx);
-        bounced = true;
-        bouncedBorder = 'left';
-      } else if (player.x + player.radius >= baseWidth - borderRetraction) {
-        player.x = baseWidth - borderRetraction - player.radius;
-        player.vx = -Math.abs(player.vx);
-        bounced = true;
-        bouncedBorder = 'right';
-      }
-  
-      if (player.y - player.radius <= borderRetraction) {
-        player.y = borderRetraction + player.radius;
-        player.vy = Math.abs(player.vy);
-        bounced = true;
-        bouncedBorder = 'top';
-      } else if (player.y + player.radius >= baseHeight - borderRetraction) {
-        player.y = baseHeight - borderRetraction - player.radius;
-        player.vy = -Math.abs(player.vy);
-        bounced = true;
-        bouncedBorder = 'bottom';
-      }
-  
-      if (bounced) {
-        const distanceTraveled = Math.sqrt(
-          Math.pow(player.x - player.lastBounceX, 2) +
-          Math.pow(player.y - player.lastBounceY, 2)
-        );
-  
-        if (distanceTraveled >= minBounceDistance) {
-          const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-          player.vx *= bounciness;
-          player.vy *= bounciness;
-          createLightning(player.x, player.y);
-          incrementBounceCount();
-          playPopSound();
-          retractBorder(bouncedBorder);
-          ballAnimationTime = ballAnimationDuration; // Start ball animation
-  
-          // Update last bounce position
-          player.lastBounceX = player.x;
-          player.lastBounceY = player.y;
-        } else {
-          // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
-          if (bouncedBorder === 'left' || bouncedBorder === 'right') {
-            player.vx *= -1;
+        // Update position
+        player.x += player.vx * (deltaTime / 16);
+        player.y += player.vy * (deltaTime / 16);
+    
+        // Check borders and handle collisions
+        if (player.x - player.radius <= borderRetraction) {
+          player.x = borderRetraction + player.radius;
+          player.vx = Math.abs(player.vx);
+          bounced = true;
+          bouncedBorder = 'left';
+        } else if (player.x + player.radius >= baseWidth - borderRetraction) {
+          player.x = baseWidth - borderRetraction - player.radius;
+          player.vx = -Math.abs(player.vx);
+          bounced = true;
+          bouncedBorder = 'right';
+        }
+    
+        if (player.y - player.radius <= borderRetraction) {
+          player.y = borderRetraction + player.radius;
+          player.vy = Math.abs(player.vy);
+          bounced = true;
+          bouncedBorder = 'top';
+        } else if (player.y + player.radius >= baseHeight - borderRetraction) {
+          player.y = baseHeight - borderRetraction - player.radius;
+          player.vy = -Math.abs(player.vy);
+          bounced = true;
+          bouncedBorder = 'bottom';
+        }
+    
+        if (bounced) {
+          const distanceTraveled = Math.sqrt(
+            Math.pow(player.x - player.lastBounceX, 2) +
+            Math.pow(player.y - player.lastBounceY, 2)
+          );
+    
+          if (distanceTraveled >= minBounceDistance) {
+            const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+            player.vx *= bounciness;
+            player.vy *= bounciness;
+            createLightning(player.x, player.y);
+            incrementBounceCount();
+            playPopSound();
+            retractBorder(bouncedBorder);
+            ballAnimationTime = ballAnimationDuration; // Start ball animation
+    
+            // Update last bounce position
+            player.lastBounceX = player.x;
+            player.lastBounceY = player.y;
           } else {
-            player.vy *= -1;
+            // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
+            if (bouncedBorder === 'left' || bouncedBorder === 'right') {
+              player.vx *= -1;
+            } else {
+              player.vy *= -1;
+            }
           }
+        }
+    
+        const speed = Math.hypot(player.vx, player.vy);
+  
+        if (speed > emberThreshold) {
+          createEmberTrail(player.x, player.y, player.vx, player.vy);
+        }
+  
+        // Apply energy-based slowdown with faster decay
+        player.energy *= Math.pow(energyDecay, deltaTime / 16);
+        player.vx *= Math.pow(velocityDecay, deltaTime / 16);
+        player.vy *= Math.pow(velocityDecay, deltaTime / 16);
+  
+        // Stop the ball if it's moving very slowly and submit high score only once
+        if (speed < 0.1 && gameStarted && !highScoreSubmitted) {
+          console.log("Ball stopped, submitting high score");
+          player.vx = 0;
+          player.vy = 0;
+          player.energy = 0;
+  
+          // Submit high score and show high score modal
+          submitHighScore();
         }
       }
   
-      const speed = Math.hypot(player.vx, player.vy);
-
-      if (speed > emberThreshold) {
-        createEmberTrail(player.x, player.y, player.vx, player.vy);
+      // Update ball animation
+      if (ballAnimationTime > 0) {
+        ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
       }
-
-      // Apply energy-based slowdown with faster decay
-      player.energy *= Math.pow(energyDecay, deltaTime / 16);
-      player.vx *= Math.pow(velocityDecay, deltaTime / 16);
-      player.vy *= Math.pow(velocityDecay, deltaTime / 16);
-
-      // Stop the ball if it's moving very slowly and submit high score only once
-      if (speed < 0.1 && !highScoreSubmitted) {
-        console.log("Ball stopped, submitting high score");
-        player.vx = 0;
-        player.vy = 0;
-        player.energy = 0;
-
-        // Submit high score and show high score modal
-        submitHighScore();
-        highScoreSubmitted = true; // Set the flag to prevent multiple submissions
-      }
-    }
-
-    // Update ball animation
-    if (ballAnimationTime > 0) {
-      ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
-    }
   }
 
   function submitHighScore() {
+      if (highScoreSubmitted) {
+          return;  // Prevent multiple submissions
+      }
+  
       console.log("Attempting to submit high score:", bounceCount);
   
       // Check if the score is valid before submitting
@@ -332,6 +341,9 @@
           .catch((error) => {
               console.error("Error submitting high score:", error);
               alert("Failed to submit high score. Error: " + error.message);
+          })
+          .finally(() => {
+              highScoreSubmitted = true;  // Mark submission as done
           });
       } else {
           console.log("High score not submitted because bounceCount is zero or less.");
