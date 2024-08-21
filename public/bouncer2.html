@@ -95,9 +95,25 @@
     let dragStartX, dragStartY, dragStartTime;
     let existingScores = new Set();
     let gameLoopRunning = false;
+    const borderPoints = {
+      left: [], right: [], top: [], bottom: []
+    };
+    const borderSegments = 20; // Number of segments per border
+    const borderSpringiness = 0.03; // Adjust for more or less bounce
+    const borderDamping = 0.7; // Adjust for faster or slower settle
 
     // Particle systems
     let mistParticles = [], starParticles = [], emberParticles = [], ringParticles = [];
+
+    function initBorderPoints() {
+      const { baseWidth, baseHeight, borderRetraction } = GAME_CONFIG;
+      for (let i = 0; i <= borderSegments; i++) {
+        borderPoints.left.push({ x: borderRetraction, y: (i / borderSegments) * baseHeight, vx: 0, vy: 0 });
+        borderPoints.right.push({ x: baseWidth - borderRetraction, y: (i / borderSegments) * baseHeight, vx: 0, vy: 0 });
+        borderPoints.top.push({ x: (i / borderSegments) * baseWidth, y: borderRetraction, vx: 0, vy: 0 });
+        borderPoints.bottom.push({ x: (i / borderSegments) * baseWidth, y: baseHeight - borderRetraction, vx: 0, vy: 0 });
+      }
+    }
 
     // Player object
     const player = {
@@ -117,6 +133,7 @@
       canvas = document.getElementById('game-canvas');
       ctx = canvas.getContext('2d');
       updateGameArea();
+      initBorderPoints();
       createMist();
       createStars();
       fetchExistingScores().then(startGameLoop);
@@ -129,6 +146,7 @@
       lastTime = currentTime;
       if (!gameOver) {
         updatePosition(deltaTime);
+        updateBorders(deltaTime);
         draw();
         requestAnimationFrame(gameLoop);
       }
@@ -156,6 +174,24 @@
       }
     }
 
+    // Update border animation
+    function updateBorders(deltaTime) {
+      Object.values(borderPoints).forEach(border => {
+        border.forEach(point => {
+          const dx = point.x - point.originalX;
+          const dy = point.y - point.originalY;
+          const accelerationX = -dx * borderSpringiness;
+          const accelerationY = -dy * borderSpringiness;
+          point.vx += accelerationX;
+          point.vy += accelerationY;
+          point.vx *= borderDamping;
+          point.vy *= borderDamping;
+          point.x += point.vx * deltaTime / 16;
+          point.y += point.vy * deltaTime / 16;
+        });
+      });
+    }
+
     // Handle border collisions
     function handleBorderCollisions() {
       const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
@@ -165,10 +201,11 @@
         { check: () => player.y - player.radius <= borderRetraction, update: () => { player.y = borderRetraction + player.radius; player.vy = Math.abs(player.vy); }, type: 'top' },
         { check: () => player.y + player.radius >= baseHeight - borderRetraction, update: () => { player.y = baseHeight - borderRetraction - player.radius; player.vy = -Math.abs(player.vy); }, type: 'bottom' }
       ];
-
+    
       borders.forEach(border => {
         if (border.check()) {
           border.update();
+          retractBorder(border.type);
           handleBounce(border.type);
         }
       });
@@ -278,82 +315,17 @@
 
     // Draw borders
     function drawBorders() {
-      const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
-      
-      // Create a gradient for a more interesting border
-      const gradientSize = 10;
-      const topGradient = ctx.createLinearGradient(0, 0, 0, borderRetraction);
-      const bottomGradient = ctx.createLinearGradient(0, baseHeight - borderRetraction, 0, baseHeight);
-      const leftGradient = ctx.createLinearGradient(0, 0, borderRetraction, 0);
-      const rightGradient = ctx.createLinearGradient(baseWidth - borderRetraction, 0, baseWidth, 0);
+      ctx.strokeStyle = 'rgba(0, 100, 255, 0.5)';
+      ctx.lineWidth = 4;
     
-      [topGradient, bottomGradient, leftGradient, rightGradient].forEach(gradient => {
-        gradient.addColorStop(0, 'rgba(0, 100, 255, 0.1)');
-        gradient.addColorStop(1, 'rgba(0, 100, 255, 0)');
+      Object.values(borderPoints).forEach(border => {
+        ctx.beginPath();
+        ctx.moveTo(border[0].x, border[0].y);
+        for (let i = 1; i < border.length; i++) {
+          ctx.lineTo(border[i].x, border[i].y);
+        }
+        ctx.stroke();
       });
-    
-      ctx.lineWidth = 2;
-    
-      // Draw top border
-      ctx.beginPath();
-      ctx.moveTo(0, borderRetraction);
-      ctx.lineTo(baseWidth, borderRetraction);
-      ctx.strokeStyle = topGradient;
-      ctx.stroke();
-    
-      // Draw bottom border
-      ctx.beginPath();
-      ctx.moveTo(0, baseHeight - borderRetraction);
-      ctx.lineTo(baseWidth, baseHeight - borderRetraction);
-      ctx.strokeStyle = bottomGradient;
-      ctx.stroke();
-    
-      // Draw left border
-      ctx.beginPath();
-      ctx.moveTo(borderRetraction, 0);
-      ctx.lineTo(borderRetraction, baseHeight);
-      ctx.strokeStyle = leftGradient;
-      ctx.stroke();
-    
-      // Draw right border
-      ctx.beginPath();
-      ctx.moveTo(baseWidth - borderRetraction, 0);
-      ctx.lineTo(baseWidth - borderRetraction, baseHeight);
-      ctx.strokeStyle = rightGradient;
-      ctx.stroke();
-    
-      // Draw corner accents
-      const cornerSize = 20;
-      ctx.strokeStyle = 'rgba(0, 100, 255, 0.3)';
-      ctx.lineWidth = 3;
-    
-      // Top-left corner
-      ctx.beginPath();
-      ctx.moveTo(borderRetraction, borderRetraction + cornerSize);
-      ctx.lineTo(borderRetraction, borderRetraction);
-      ctx.lineTo(borderRetraction + cornerSize, borderRetraction);
-      ctx.stroke();
-    
-      // Top-right corner
-      ctx.beginPath();
-      ctx.moveTo(baseWidth - borderRetraction - cornerSize, borderRetraction);
-      ctx.lineTo(baseWidth - borderRetraction, borderRetraction);
-      ctx.lineTo(baseWidth - borderRetraction, borderRetraction + cornerSize);
-      ctx.stroke();
-    
-      // Bottom-left corner
-      ctx.beginPath();
-      ctx.moveTo(borderRetraction, baseHeight - borderRetraction - cornerSize);
-      ctx.lineTo(borderRetraction, baseHeight - borderRetraction);
-      ctx.lineTo(borderRetraction + cornerSize, baseHeight - borderRetraction);
-      ctx.stroke();
-    
-      // Bottom-right corner
-      ctx.beginPath();
-      ctx.moveTo(baseWidth - borderRetraction - cornerSize, baseHeight - borderRetraction);
-      ctx.lineTo(baseWidth - borderRetraction, baseHeight - borderRetraction);
-      ctx.lineTo(baseWidth - borderRetraction, baseHeight - borderRetraction - cornerSize);
-      ctx.stroke();
     }
 
     // Draw player
@@ -536,39 +508,25 @@
 
     // Retract border
     function retractBorder(border) {
-      const borderParticles = [];
-      const particleCount = 50; // Increased for smoother animation
-      let startX, startY, endX, endY;
+      const retraction = GAME_CONFIG.borderRetraction * 2; // Increase for more visible effect
+      const borderToAnimate = borderPoints[border];
       
-      switch(border) {
-        case 'left':
-          startX = 0; startY = 0; endX = 0; endY = GAME_CONFIG.baseHeight;
-          break;
-        case 'right':
-          startX = GAME_CONFIG.baseWidth; startY = 0; endX = GAME_CONFIG.baseWidth; endY = GAME_CONFIG.baseHeight;
-          break;
-        case 'top':
-          startX = 0; startY = 0; endX = GAME_CONFIG.baseWidth; endY = 0;
-          break;
-        case 'bottom':
-          startX = 0; startY = GAME_CONFIG.baseHeight; endX = GAME_CONFIG.baseWidth; endY = GAME_CONFIG.baseHeight;
-          break;
-      }
-      
-      for (let i = 0; i < particleCount; i++) {
-        borderParticles.push({
-          x: startX + (endX - startX) * (i / particleCount),
-          y: startY + (endY - startY) * (i / particleCount),
-          originalX: startX + (endX - startX) * (i / particleCount),
-          originalY: startY + (endY - startY) * (i / particleCount),
-          offsetX: 0,
-          offsetY: 0,
-          phase: i / particleCount * Math.PI * 2, // Add phase for wave effect
-          life: 1
-        });
-      }
-      
-      animateBorderRetraction(borderParticles, border);
+      borderToAnimate.forEach(point => {
+        switch(border) {
+          case 'left':
+            point.vx -= retraction;
+            break;
+          case 'right':
+            point.vx += retraction;
+            break;
+          case 'top':
+            point.vy -= retraction;
+            break;
+          case 'bottom':
+            point.vy += retraction;
+            break;
+        }
+      });
     }
 
     // Animate border retraction
