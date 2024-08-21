@@ -94,6 +94,7 @@
     let lastTime = 0, bounceCount = 0, highScoreSubmitted = false;
     let dragStartX, dragStartY, dragStartTime;
     let existingScores = new Set();
+    let gameLoopRunning = false;
 
     // Particle systems
     let mistParticles = [], starParticles = [], emberParticles = [], ringParticles = [];
