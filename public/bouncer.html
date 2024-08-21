@@ -457,56 +457,7 @@
         });
   }
 
-
-  document.getElementById('retry-button').addEventListener('click', () => {
-      console.log("Retry button clicked");
-      
-      // Reset game state
-      gameOver = false;
-      gameStarted = false;
-      highScoreSubmitted = false;
-      bounceCount = 0;
-      ballAnimationTime = 0;
-  
-      // Reset player
-      player.x = baseWidth / 2;
-      player.y = baseHeight / 2;
-      player.vx = 0;
-      player.vy = 0;
-      player.energy = 0;
-      const savedName = getPlayerName();
-      player.alias = prompt("Enter your player name:", savedName) || savedName;
-      savePlayerName(player.alias);
-      player.lastBounceX = player.x;
-      player.lastBounceY = player.y;
-  
-      // Clear particles
-      emberParticles.length = 0;
-      ringParticles.length = 0;
-  
-      // Recreate background elements
-      createMist();
-      createStars();
-  
-      // Re-fetch high scores
-      fetchExistingScores()
-          .then(() => {
-              // Hide high score modal
-              document.getElementById('high-score-modal').style.display = 'none';
-              
-              // Update display
-              updateGameArea();
-              
-              // Restart game loop if it's not already running
-              if (!gameLoopRunning) {
-                  gameLoopRunning = true;
-                  gameLoop(0);
-              }
-          });
-  
-      console.log("Game reset completed");
-  });
-    
+  // Define the resetGame function
   function resetGame() {
       // Reset game state
       gameOver = false;
@@ -553,6 +504,12 @@
   
       console.log("Game reset completed");
   }
+  
+  // Attach resetGame to retry button click event
+  document.getElementById('retry-button').addEventListener('click', () => {
+      console.log("Retry button clicked");
+      resetGame();
+  });
     
   function incrementBounceCount() {
     bounceCount++;
