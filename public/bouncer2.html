@@ -508,25 +508,21 @@
 
     // Retract border
     function retractBorder(border) {
-      const retraction = GAME_CONFIG.borderRetraction * 2; // Increase for more visible effect
+      const retraction = GAME_CONFIG.borderRetraction * 4; // Increase for more visible effect
       const borderToAnimate = borderPoints[border];
       
-      borderToAnimate.forEach(point => {
-        switch(border) {
-          case 'left':
-            point.vx -= retraction;
-            break;
-          case 'right':
-            point.vx += retraction;
-            break;
-          case 'top':
-            point.vy -= retraction;
-            break;
-          case 'bottom':
-            point.vy += retraction;
-            break;
-        }
-      });
+      const particles = borderToAnimate.map(point => ({
+        originalX: point.x,
+        originalY: point.y,
+        x: point.x,
+        y: point.y,
+        offsetX: 0,
+        offsetY: 0,
+        phase: Math.random() * Math.PI * 2, // Random starting phase for each particle
+        life: 1
+      }));
+    
+      animateBorderRetraction(particles, border);
     }
 
     // Animate border retraction
