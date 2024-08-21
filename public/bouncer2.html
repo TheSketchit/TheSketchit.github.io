@@ -210,7 +210,7 @@
       borders.forEach(border => {
         if (border.check()) {
           border.update();
-          retractBorder(border.type);
+          createBorderWave(border.type);
           handleBounce(border.type);
         }
       });
@@ -262,32 +262,62 @@
       if (player.y < GAME_CONFIG.borderRetraction + player.radius) player.y += cornerPush;
       if (player.y > GAME_CONFIG.baseHeight - GAME_CONFIG.borderRetraction - player.radius) player.y -= cornerPush;
     }
-
-  function createBorderWave(border) {
-    const waveAmplitude = GAME_CONFIG.borderRetraction * 2;
-    const waveLength = Math.PI / 2; // Adjust for different wave shapes
-    const decayFactor = 0.95;
     
-    const borderToAnimate = borderPoints[border];
-    borderToAnimate.forEach((point, index) => {
-      const offset = Math.sin(index * waveLength) * waveAmplitude;
-      const decay = Math.pow(decayFactor, index);
+    function createBorderWave(border) {
+      const waveAmplitude = GAME_CONFIG.borderRetraction * 2;
+      const waveLength = Math.PI / 2; // Adjust for different wave shapes
+      const decayFactor = 0.95;
+      
+      const borderToAnimate = borderPoints[border];
+      borderToAnimate.forEach((point, index) => {
+        const offset = Math.sin(index * waveLength) * waveAmplitude;
+        const decay = Math.pow(decayFactor, index);
+        switch(border) {
+          case 'left':
+            point.vx -= offset * decay;
+            break;
+          case 'right':
+            point.vx += offset * decay;
+            break;
+          case 'top':
+            point.vy -= offset * decay;
+            break;
+          case 'bottom':
+            point.vy += offset * decay;
+            break;
+        }
+      });
+
+      const pushForce = 5;
+      const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
+      
       switch(border) {
         case 'left':
-          point.vx -= offset * decay;
+          if (player.x - player.radius < borderRetraction) {
+            player.x = borderRetraction + player.radius;
+            player.vx = Math.max(Math.abs(player.vx), pushForce);
+          }
           break;
         case 'right':
-          point.vx += offset * decay;
+          if (player.x + player.radius > baseWidth - borderRetraction) {
+            player.x = baseWidth - borderRetraction - player.radius;
+            player.vx = -Math.max(Math.abs(player.vx), pushForce);
+          }
           break;
         case 'top':
-          point.vy -= offset * decay;
+          if (player.y - player.radius < borderRetraction) {
+            player.y = borderRetraction + player.radius;
+            player.vy = Math.max(Math.abs(player.vy), pushForce);
+          }
           break;
         case 'bottom':
-          point.vy += offset * decay;
+          if (player.y + player.radius > baseHeight - borderRetraction) {
+            player.y = baseHeight - borderRetraction - player.radius;
+            player.vy = -Math.max(Math.abs(player.vy), pushForce);
+          }
           break;
       }
-    });
-  }
+    }
 
     // Draw game elements
     function draw() {
@@ -539,115 +569,6 @@
       }
 
       draw();
-    }
-
-    // Retract border
-    function retractBorder(border) {
-      const retraction = GAME_CONFIG.borderRetraction * 4;
-      const borderToAnimate = borderPoints[border];
-      
-      borderToAnimate.forEach((point, index) => {
-        const offset = Math.sin(index / borderToAnimate.length * Math.PI) * retraction;
-        switch(border) {
-          case 'left':
-            point.vx -= offset;
-            break;
-          case 'right':
-            point.vx += offset;
-            break;
-          case 'top':
-            point.vy -= offset;
-            break;
-          case 'bottom':
-            point.vy += offset;
-            break;
-        }
-      });
-    }
-
-    // Animate border retraction
-    function animateBorderRetraction(particles, border) {
-      let time = 0;
-      const animationDuration = 1000; // Animation duration in milliseconds
-      
-      function draw() {
-        ctx.save();
-        ctx.beginPath();
-        
-        particles.forEach((particle, index) => {
-          const waveAmplitude = GAME_CONFIG.borderRetraction * 1.5; // Increase amplitude for more pronounced effect
-          const frequency = 3; // Adjust for faster/slower waves
-          
-          // Calculate wave offset
-          const waveOffset = Math.sin(particle.phase + time * frequency) * waveAmplitude * particle.life;
-          
-          // Apply offset based on border
-          if (border === 'left' || border === 'right') {
-            particle.offsetX = (border === 'left' ? -1 : 1) * waveOffset;
-          } else {
-            particle.offsetY = (border === 'top' ? -1 : 1) * waveOffset;
-          }
-          
-          // Draw line between particles
-          if (index === 0) {
-            ctx.moveTo(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY);
-          } else {
-            ctx.lineTo(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY);
-          }
-          
-          particle.life -= 1 / (animationDuration / 16); // Decrease life based on frame rate
-        });
-        
-        // Draw the border
-        ctx.strokeStyle = `rgba(0, 100, 255, ${Math.min(1, particles[0].life * 2)})`; // Blue color with fade out
-        ctx.lineWidth = 4;
-        ctx.stroke();
-        
-        ctx.restore();
-        
-        time += 16; // Assume 60 FPS
-        
-        if (particles[0].life > 0) {
-          requestAnimationFrame(draw);
-        } else {
-          pushBallOutOfBorder(border);
-        }
-      }
-      
-      draw();
-    }
-
-    // Push ball out of border
-    function pushBallOutOfBorder(border) {
-      const pushForce = 5; // Reduced from 50
-      const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
-      
-      switch(border) {
-        case 'left':
-          if (player.x - player.radius < borderRetraction) {
-            player.x = borderRetraction + player.radius;
-            player.vx = Math.max(Math.abs(player.vx), pushForce);
-          }
-          break;
-        case 'right':
-          if (player.x + player.radius > baseWidth - borderRetraction) {
-            player.x = baseWidth - borderRetraction - player.radius;
-            player.vx = -Math.max(Math.abs(player.vx), pushForce);
-          }
-          break;
-        case 'top':
-          if (player.y - player.radius < borderRetraction) {
-            player.y = borderRetraction + player.radius;
-            player.vy = Math.max(Math.abs(player.vy), pushForce);
-          }
-          break;
-        case 'bottom':
-          if (player.y + player.radius > baseHeight - borderRetraction) {
-            player.y = baseHeight - borderRetraction - player.radius;
-            player.vy = -Math.max(Math.abs(player.vy), pushForce);
-          }
-          break;
-      }
     }
 
     // Play pop sound
