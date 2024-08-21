@@ -278,11 +278,82 @@
 
     // Draw borders
     function drawBorders() {
-      ctx.strokeStyle = 'rgba(0, 0, 50, 0.5)';
-      ctx.lineWidth = GAME_CONFIG.borderRetraction * 2;
-      ctx.strokeRect(GAME_CONFIG.borderRetraction, GAME_CONFIG.borderRetraction, 
-                     GAME_CONFIG.baseWidth - GAME_CONFIG.borderRetraction * 2, 
-                     GAME_CONFIG.baseHeight - GAME_CONFIG.borderRetraction * 2);
+      const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
+      
+      // Create a gradient for a more interesting border
+      const gradientSize = 10;
+      const topGradient = ctx.createLinearGradient(0, 0, 0, borderRetraction);
+      const bottomGradient = ctx.createLinearGradient(0, baseHeight - borderRetraction, 0, baseHeight);
+      const leftGradient = ctx.createLinearGradient(0, 0, borderRetraction, 0);
+      const rightGradient = ctx.createLinearGradient(baseWidth - borderRetraction, 0, baseWidth, 0);
+    
+      [topGradient, bottomGradient, leftGradient, rightGradient].forEach(gradient => {
+        gradient.addColorStop(0, 'rgba(0, 100, 255, 0.1)');
+        gradient.addColorStop(1, 'rgba(0, 100, 255, 0)');
+      });
+    
+      ctx.lineWidth = 2;
+    
+      // Draw top border
+      ctx.beginPath();
+      ctx.moveTo(0, borderRetraction);
+      ctx.lineTo(baseWidth, borderRetraction);
+      ctx.strokeStyle = topGradient;
+      ctx.stroke();
+    
+      // Draw bottom border
+      ctx.beginPath();
+      ctx.moveTo(0, baseHeight - borderRetraction);
+      ctx.lineTo(baseWidth, baseHeight - borderRetraction);
+      ctx.strokeStyle = bottomGradient;
+      ctx.stroke();
+    
+      // Draw left border
+      ctx.beginPath();
+      ctx.moveTo(borderRetraction, 0);
+      ctx.lineTo(borderRetraction, baseHeight);
+      ctx.strokeStyle = leftGradient;
+      ctx.stroke();
+    
+      // Draw right border
+      ctx.beginPath();
+      ctx.moveTo(baseWidth - borderRetraction, 0);
+      ctx.lineTo(baseWidth - borderRetraction, baseHeight);
+      ctx.strokeStyle = rightGradient;
+      ctx.stroke();
+    
+      // Draw corner accents
+      const cornerSize = 20;
+      ctx.strokeStyle = 'rgba(0, 100, 255, 0.3)';
+      ctx.lineWidth = 3;
+    
+      // Top-left corner
+      ctx.beginPath();
+      ctx.moveTo(borderRetraction, borderRetraction + cornerSize);
+      ctx.lineTo(borderRetraction, borderRetraction);
+      ctx.lineTo(borderRetraction + cornerSize, borderRetraction);
+      ctx.stroke();
+    
+      // Top-right corner
+      ctx.beginPath();
+      ctx.moveTo(baseWidth - borderRetraction - cornerSize, borderRetraction);
+      ctx.lineTo(baseWidth - borderRetraction, borderRetraction);
+      ctx.lineTo(baseWidth - borderRetraction, borderRetraction + cornerSize);
+      ctx.stroke();
+    
+      // Bottom-left corner
+      ctx.beginPath();
+      ctx.moveTo(borderRetraction, baseHeight - borderRetraction - cornerSize);
+      ctx.lineTo(borderRetraction, baseHeight - borderRetraction);
+      ctx.lineTo(borderRetraction + cornerSize, baseHeight - borderRetraction);
+      ctx.stroke();
+    
+      // Bottom-right corner
+      ctx.beginPath();
+      ctx.moveTo(baseWidth - borderRetraction - cornerSize, baseHeight - borderRetraction);
+      ctx.lineTo(baseWidth - borderRetraction, baseHeight - borderRetraction);
+      ctx.lineTo(baseWidth - borderRetraction, baseHeight - borderRetraction - cornerSize);
+      ctx.stroke();
     }
 
     // Draw player
@@ -466,9 +537,9 @@
     // Retract border
     function retractBorder(border) {
       const borderParticles = [];
-      const particleCount = 20;
+      const particleCount = 50; // Increased for smoother animation
       let startX, startY, endX, endY;
-
+      
       switch(border) {
         case 'left':
           startX = 0; startY = 0; endX = 0; endY = GAME_CONFIG.baseHeight;
@@ -483,7 +554,7 @@
           startX = 0; startY = GAME_CONFIG.baseHeight; endX = GAME_CONFIG.baseWidth; endY = GAME_CONFIG.baseHeight;
           break;
       }
-
+      
       for (let i = 0; i < particleCount; i++) {
         borderParticles.push({
           x: startX + (endX - startX) * (i / particleCount),
@@ -492,45 +563,63 @@
           originalY: startY + (endY - startY) * (i / particleCount),
           offsetX: 0,
           offsetY: 0,
+          phase: i / particleCount * Math.PI * 2, // Add phase for wave effect
           life: 1
         });
       }
-
+      
       animateBorderRetraction(borderParticles, border);
     }
 
     // Animate border retraction
     function animateBorderRetraction(particles, border) {
+      let time = 0;
+      const animationDuration = 1000; // Animation duration in milliseconds
+      
       function draw() {
         ctx.save();
+        ctx.beginPath();
         
-        particles = particles.filter((particle, index) => {
-          if (particle.life > 0.5) {
-            particle.offsetX = (border === 'left' ? -1 : border === 'right' ? 1 : 0) * GAME_CONFIG.borderRetraction;
-            particle.offsetY = (border === 'top' ? -1 : border === 'bottom' ? 1 : 0) * GAME_CONFIG.borderRetraction;
+        particles.forEach((particle, index) => {
+          const waveAmplitude = GAME_CONFIG.borderRetraction * 1.5; // Increase amplitude for more pronounced effect
+          const frequency = 3; // Adjust for faster/slower waves
+          
+          // Calculate wave offset
+          const waveOffset = Math.sin(particle.phase + time * frequency) * waveAmplitude * particle.life;
+          
+          // Apply offset based on border
+          if (border === 'left' || border === 'right') {
+            particle.offsetX = (border === 'left' ? -1 : 1) * waveOffset;
           } else {
-            particle.offsetX *= 0.9;
-            particle.offsetY *= 0.9;
+            particle.offsetY = (border === 'top' ? -1 : 1) * waveOffset;
           }
-
-          ctx.beginPath();
-          ctx.arc(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY, 2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(0, 0, 50, ${particle.life * 0.3})`;
-          ctx.fill();
-
-          particle.life -= 0.02;
-          return particle.life > 0;
+          
+          // Draw line between particles
+          if (index === 0) {
+            ctx.moveTo(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY);
+          } else {
+            ctx.lineTo(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY);
+          }
+          
+          particle.life -= 1 / (animationDuration / 16); // Decrease life based on frame rate
         });
-
+        
+        // Draw the border
+        ctx.strokeStyle = `rgba(0, 100, 255, ${Math.min(1, particles[0].life * 2)})`; // Blue color with fade out
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        
         ctx.restore();
-
-        if (particles.length > 0) {
+        
+        time += 16; // Assume 60 FPS
+        
+        if (particles[0].life > 0) {
           requestAnimationFrame(draw);
         } else {
           pushBallOutOfBorder(border);
         }
       }
-
+      
       draw();
     }
 
@@ -538,7 +627,7 @@
     function pushBallOutOfBorder(border) {
       const pushForce = 15;
       const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
-
+      
       switch(border) {
         case 'left':
           if (player.x - player.radius < borderRetraction) {
