@@ -42,6 +42,7 @@
       border-radius: 10px;
       z-index: 1000;
     }
+    
   </style>
 </head>
 <body>
@@ -106,6 +107,9 @@
     const borderSegments = 20; // Number of segments per border
     const borderSpringiness = 0.03; // Adjust for more or less bounce
     const borderDamping = 0.7; // Adjust for faster or slower settle
+    const FPS = 60;
+    const FRAME_TIME = 1000 / FPS;
+    let lastFrameTime = 0;
 
     // Particle systems
     let mistParticles = [], starParticles = [], emberParticles = [], ringParticles = [];
@@ -173,35 +177,50 @@
       }
     }
 
+    function gameLoop(currentTime) {
+      if (currentTime - lastFrameTime < FRAME_TIME) {
+        requestAnimationFrame(gameLoop);
+        return;
+      }
+      lastFrameTime = currentTime;
+        if (!gameOver) {
+          updatePosition(deltaTime);
+          updateBorders(deltaTime);
+          updateParticles(deltaTime);
+          draw();
+          requestAnimationFrame(gameLoop);
+    }
+
     // Update player position
     function updatePosition(deltaTime) {
-      if (gameOver || isDragging) return;
-      
-      if (player.vx !== 0 || player.vy !== 0) gameStarted = true;
-      
-      player.x += player.vx * (deltaTime / 16);
-      player.y += player.vy * (deltaTime / 16);
-
-      if (Math.hypot(player.vx, player.vy) > GAME_CONFIG.emberThreshold) {
-        createEmberTrail(player.x, player.y, player.vx, player.vy);
-      }
-      
-      handleBorderCollisions();
-      updateParticles();
-      
-      player.energy *= Math.pow(GAME_CONFIG.energyDecay, deltaTime / 16);
-      player.vx *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
-      player.vy *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
-      
-      if (Math.hypot(player.vx, player.vy) < 0.1 && gameStarted && !highScoreSubmitted) {
-        player.vx = player.vy = player.energy = 0;
-        submitHighScore();
-      }
+        if (gameOver || isDragging) return;
+        
+        if (player.vx !== 0 || player.vy !== 0) gameStarted = true;
+        
+        player.x += player.vx * (deltaTime / 16);
+        player.y += player.vy * (deltaTime / 16);
+    
+        if (Math.hypot(player.vx, player.vy) > GAME_CONFIG.emberThreshold) {
+            createEmberTrail(player.x, player.y, player.vx, player.vy);
+        }
+        
+        handleBorderCollisions();
+        updateParticles();
+        
+        player.energy *= Math.pow(GAME_CONFIG.energyDecay, deltaTime / 16);
+        player.vx *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
+        player.vy *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
+        
+        interactWithMist(player.x + player.radius, player.y + player.radius);
+    
+        if (Math.hypot(player.vx, player.vy) < 0.1 && gameStarted && !highScoreSubmitted) {
+            player.vx = player.vy = player.energy = 0;
+            submitHighScore();
+        }
     }
 
     // Define the updateParticles function
     function updateParticles(deltaTime) {
-      updateMistPositions();
       updateEmberParticles();
       // Add any other particle system updates here
     }
@@ -378,15 +397,17 @@
 
     // Draw mist
     function drawMist() {
-      mistParticles.forEach(mist => {
-        const gradient = ctx.createRadialGradient(mist.x, mist.y, 0, mist.x, mist.y, mist.size / 2);
-        gradient.addColorStop(0, `hsla(${mist.hue}, 100%, 70%, ${mist.opacity})`);
-        gradient.addColorStop(1, `hsla(${mist.hue}, 100%, 50%, 0)`);
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(mist.x, mist.y, mist.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
+        mistParticles.forEach(mist => {
+            const gradient = ctx.createRadialGradient(
+                mist.x + mist.width/2, mist.y + mist.height/2, 0,
+                mist.x + mist.width/2, mist.y + mist.height/2, mist.width/2
+            );
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${mist.opacity})`);
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(mist.x, mist.y, mist.width, mist.height);
+        });
     }
 
     // Draw embers
@@ -467,17 +488,16 @@
 
     // Create mist particles
     function createMist() {
-      mistParticles = [];
-      const mistCount = Math.min(20, Math.floor(20 * scale));
-      for (let i = 0; i < mistCount; i++) {
-        mistParticles.push({
-          x: Math.random() * GAME_CONFIG.baseWidth,
-          y: Math.random() * GAME_CONFIG.baseHeight,
-          size: Math.random() * 150 + 50,
-          opacity: Math.random() * 0.5 + 0.2,
-          hue: Math.random() * 60 + 180
-        });
-      }
+        const mistCount = 50;
+        for (let i = 0; i < mistCount; i++) {
+            mistParticles.push({
+                x: Math.random() * GAME_CONFIG.baseWidth,
+                y: Math.random() * GAME_CONFIG.baseHeight,
+                width: Math.random() * 200 + 100,
+                height: Math.random() * 200 + 100,
+                opacity: 0.3
+            });
+        }
     }
 
     // Create star particles
@@ -495,15 +515,20 @@
     }
 
     // Update mist positions
-    function updateMistPositions() {
-      mistParticles.forEach(mist => {
-        mist.x += (Math.random() - 0.5) * 0.5;
-        mist.y += (Math.random() - 0.5) * 0.5;
-        if (mist.x < 0) mist.x = GAME_CONFIG.baseWidth;
-        if (mist.x > GAME_CONFIG.baseWidth) mist.x = 0;
-        if (mist.y < 0) mist.y = GAME_CONFIG.baseHeight;
-        if (mist.y > GAME_CONFIG.baseHeight) mist.y = 0;
-      });
+    function interactWithMist(playerX, playerY) {
+        mistParticles.forEach(mist => {
+            const dx = (mist.x + mist.width/2) - playerX;
+            const dy = (mist.y + mist.height/2) - playerY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+    
+            if (distance < 150) {
+                mist.x += dx * 0.01;
+                mist.y += dy * 0.01;
+                mist.opacity = 0.5;
+            } else {
+                mist.opacity = Math.max(0.3, mist.opacity - 0.01);
+            }
+        });
     }
 
     // Update ember particles
