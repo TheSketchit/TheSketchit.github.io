@@ -43,21 +43,21 @@
       z-index: 1000;
     }
     #game-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: hidden;
-    background-color: #000;
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #000;
     }
     .mist-layer {
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    right: -50%;
-    bottom: -50%;
-    opacity: 0.3;
-    filter: blur(60px);
-    animation: mistMove 60s linear infinite, colorShift 30s ease-in-out infinite;
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      right: -50%;
+      bottom: -50%;
+      opacity: 0.3;
+      filter: blur(60px);
+      animation: mistMove 60s linear infinite, colorShift 30s ease-in-out infinite;
     }
     
     .mist-layer:nth-child(1) {
@@ -86,9 +86,9 @@
 </head>
 <body>
   <div id="game-container">
+    <div class="mist-layer"></div>
+    <div class="mist-layer"></div>
     <canvas id="game-canvas"></canvas>
-    <div class="mist-layer"></div>
-    <div class="mist-layer"></div>
     <button id="aspect-ratio-toggle">Toggle 16:9 / 4:3</button>
     <button id="retry-button">Retry</button>
     <div id="high-score-modal">
@@ -241,7 +241,6 @@
         }
         
         handleBorderCollisions();
-        updateParticles();
         
         player.energy *= Math.pow(GAME_CONFIG.energyDecay, deltaTime / 16);
         player.vx *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
@@ -393,7 +392,6 @@
 
     // Draw game elements
     function draw() {
-      console.log("Drawing frame");
       ctx.save();
       ctx.scale(scale, scale);
       
@@ -528,23 +526,17 @@
     // Create mist particles
     function createMist() {
         mistParticles = [];
-        for (let i = 0; i < MIST_PARTICLE_COUNT; i++) {
-            addMistParticle();
+        for (let i = 0; i < 30; i++) {
+            mistParticles.push({
+                x: Math.random() * GAME_CONFIG.baseWidth,
+                y: Math.random() * GAME_CONFIG.baseHeight,
+                size: Math.random() * 200 + 100,
+                opacity: Math.random() * 0.2 + 0.1,
+                speed: Math.random() * 0.2 + 0.1,
+                angle: Math.random() * Math.PI * 2
+            });
         }
     }
-
-     function addMistParticle() {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * MIST_INTERACTION_RADIUS;
-        mistParticles.push({
-            x: player.x + Math.cos(angle) * distance,
-            y: player.y + Math.sin(angle) * distance,
-            size: Math.random() * 50 + 25,
-            opacity: Math.random() * 0.2 + 0.1,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5,
-        });
-    }   
 
     // Create star particles
     function createStars() {
@@ -562,32 +554,15 @@
 
     // Update mist positions
     function updateMist(deltaTime) {
-        for (let i = mistParticles.length - 1; i >= 0; i--) {
-            const mist = mistParticles[i];
-            mist.x += mist.vx * deltaTime;
-            mist.y += mist.vy * deltaTime;
+        mistParticles.forEach(mist => {
+            mist.x += Math.cos(mist.angle) * mist.speed * deltaTime;
+            mist.y += Math.sin(mist.angle) * mist.speed * deltaTime;
     
-            const dx = mist.x - player.x;
-            const dy = mist.y - player.y;
-            const distanceSquared = dx * dx + dy * dy;
-    
-            if (distanceSquared > MIST_INTERACTION_RADIUS * MIST_INTERACTION_RADIUS) {
-                mistParticles.splice(i, 1);
-                addMistParticle();
-            } else {
-                // Move mist away from player
-                const force = 0.01 / (distanceSquared + 1);
-                mist.vx += dx * force;
-                mist.vy += dy * force;
-    
-                // Dampen velocity
-                mist.vx *= 0.99;
-                mist.vy *= 0.99;
-    
-                // Fade out as it moves away from player
-                mist.opacity = Math.max(0.1, 0.3 - Math.sqrt(distanceSquared) / MIST_INTERACTION_RADIUS);
-            }
-        }
+            if (mist.x < -mist.size) mist.x = GAME_CONFIG.baseWidth + mist.size;
+            if (mist.x > GAME_CONFIG.baseWidth + mist.size) mist.x = -mist.size;
+            if (mist.y < -mist.size) mist.y = GAME_CONFIG.baseHeight + mist.size;
+            if (mist.y > GAME_CONFIG.baseHeight + mist.size) mist.y = -mist.size;
+        });
     }
 
     // Update ember particles
