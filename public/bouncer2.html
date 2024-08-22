@@ -90,8 +90,8 @@
     };
 
     // Game variables
-    const canvas = document.getElementById('game-canvas');
-    const ctx = canvas.getContext('2d');
+    let canvas;
+    let ctx;
     let scale = 1;
     let isWidescreen = true;
     let gameStarted = false, gameOver = false, isDragging = false;
