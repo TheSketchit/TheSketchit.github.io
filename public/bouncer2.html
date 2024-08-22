@@ -96,6 +96,7 @@
     let dragStartX, dragStartY, dragStartTime;
     let existingScores = new Set();
     let gameLoopRunning = false;
+    let scale = 1;
     const borderPoints = {
       left: [], right: [], top: [], bottom: []
     };
@@ -133,23 +134,34 @@
     function initGame() {
       canvas = document.getElementById('game-canvas');
       ctx = canvas.getContext('2d');
+      console.log("Canvas context:", ctx);
       updateGameArea();
       initBorderPoints();
       createMist();
       createStars();
-      fetchExistingScores().then(startGameLoop);
+      fetchExistingScores().then(() => {
+        console.log("Starting game loop");
+        startGameLoop();
+      });
       setupEventListeners();
     }
 
     // Game loop
     function gameLoop(currentTime) {
-      const deltaTime = currentTime - lastTime;
-      lastTime = currentTime;
-      if (!gameOver) {
-        updatePosition(deltaTime);
-        updateBorders(deltaTime);
-        draw();
-        requestAnimationFrame(gameLoop);
+      try {
+        console.log("Game loop running", currentTime);
+        const deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+        if (!gameOver) {
+          updatePosition(deltaTime);
+          updateBorders(deltaTime);
+          updateParticles(deltaTime);
+          draw();
+          requestAnimationFrame(gameLoop);
+        }
+      } catch (error) {
+        console.error("Error in game loop:", error);
+        gameOver = true;
       }
     }
 
@@ -177,6 +189,13 @@
         player.vx = player.vy = player.energy = 0;
         submitHighScore();
       }
+    }
+
+    // Define the updateParticles function
+    function updateParticles(deltaTime) {
+      updateMistPositions();
+      updateEmberParticles();
+      // Add any other particle system updates here
     }
 
     // Update border animation
@@ -274,19 +293,20 @@
         const decay = Math.pow(decayFactor, index);
         switch(border) {
           case 'left':
-            point.vx -= offset * decay;
+            point.x = point.originalX - offset * decay;
             break;
           case 'right':
-            point.vx += offset * decay;
+            point.x = point.originalX + offset * decay;
             break;
           case 'top':
-            point.vy -= offset * decay;
+            point.y = point.originalY - offset * decay;
             break;
           case 'bottom':
-            point.vy += offset * decay;
+            point.y = point.originalY + offset * decay;
             break;
         }
       });
+
 
       const pushForce = 5;
       const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
@@ -321,6 +341,10 @@
 
     // Draw game elements
     function draw() {
+      console.log("Drawing frame");
+      ctx.save();
+      ctx.scale(scale, scale);
+      
       ctx.clearRect(0, 0, GAME_CONFIG.baseWidth, GAME_CONFIG.baseHeight);
       drawBackground();
       drawStars();
@@ -329,6 +353,8 @@
       drawBorders();
       drawPlayer();
       drawScore();
+      
+      ctx.restore();
     }
 
     // Draw background
