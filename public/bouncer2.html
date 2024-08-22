@@ -160,8 +160,12 @@
 
     // Game loop
     function gameLoop(currentTime) {
+      if (currentTime - lastFrameTime < FRAME_TIME) {
+        requestAnimationFrame(gameLoop);
+        return;
+      }
+      lastFrameTime = currentTime;
       try {
-        console.log("Game loop running", currentTime);
         const deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         if (!gameOver) {
@@ -169,26 +173,12 @@
           updateBorders(deltaTime);
           updateParticles(deltaTime);
           draw();
-          requestAnimationFrame(gameLoop);
         }
       } catch (error) {
         console.error("Error in game loop:", error);
         gameOver = true;
       }
-    }
-
-    function gameLoop(currentTime) {
-      if (currentTime - lastFrameTime < FRAME_TIME) {
-        requestAnimationFrame(gameLoop);
-        return;
-      }
-      lastFrameTime = currentTime;
-        if (!gameOver) {
-          updatePosition(deltaTime);
-          updateBorders(deltaTime);
-          updateParticles(deltaTime);
-          draw();
-          requestAnimationFrame(gameLoop);
+      requestAnimationFrame(gameLoop);
     }
 
     // Update player position
