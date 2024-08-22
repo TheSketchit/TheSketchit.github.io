@@ -833,6 +833,12 @@
 
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(scale, scale);
+
+      GAME_CONFIG.baseWidth = canvas.width / scale;
+      GAME_CONFIG.baseHeight = canvas.height / scale;
+      player.x = Math.min(Math.max(player.x, GAME_CONFIG.borderRetraction), GAME_CONFIG.baseWidth - GAME_CONFIG.borderRetraction);
+      player.y = Math.min(Math.max(player.y, GAME_CONFIG.borderRetraction), GAME_CONFIG.baseHeight - GAME_CONFIG.borderRetraction);
+      initBorderPoints();
     }
 
     // Setup event listeners
@@ -925,6 +931,8 @@
       updateGameArea();
       createMist();
       createStars();
+      player.x = GAME_CONFIG.baseWidth / 2;
+      player.y = GAME_CONFIG.baseHeight / 2;
     }
 
     // Create power throw effect
@@ -946,31 +954,38 @@
 
     // Animate power throw
     function animatePowerThrow() {
-      function draw() {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-
-        ringParticles = ringParticles.filter(particle => {
-          ctx.beginPath();
-          ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
-          ctx.fill();
-
-          particle.x += particle.vx;
-          particle.y += particle.vy;
-          particle.life -= 0.02;
-
-          return particle.life > 0;
-        });
-
-        ctx.restore();
-
-        if (ringParticles.length > 0) {
-          requestAnimationFrame(draw);
+        function drawParticles() {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            
+            for (let i = ringParticles.length - 1; i >= 0; i--) {
+                const particle = ringParticles[i];
+                
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
+                ctx.fill();
+                
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life -= 0.02;
+                
+                if (particle.life <= 0) {
+                    ringParticles.splice(i, 1);
+                }
+            }
+            
+            ctx.restore();
         }
-      }
-
-      draw();
+    
+        function animate() {
+            if (ringParticles.length > 0) {
+                drawParticles();
+                requestAnimationFrame(animate);
+            }
+        }
+    
+        animate();
     }
 
     // Get player name from local storage
