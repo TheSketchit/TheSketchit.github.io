@@ -810,17 +810,17 @@
     function updateGameArea() {
       const containerWidth = window.innerWidth;
       const containerHeight = window.innerHeight;
-
+    
       if (containerWidth < GAME_CONFIG.minWidth || containerHeight < GAME_CONFIG.minHeight) {
         canvas.style.display = 'none';
         return;
       }
-
+    
       canvas.style.display = 'block';
-
+    
       const containerAspect = containerWidth / containerHeight;
       const gameAspect = isWidescreen ? 16 / 9 : 4 / 3;
-
+    
       if (containerAspect > gameAspect) {
         scale = containerHeight / GAME_CONFIG.baseHeight;
         canvas.width = containerHeight * gameAspect;
@@ -830,15 +830,9 @@
         canvas.width = containerWidth;
         canvas.height = containerWidth / gameAspect;
       }
-
+    
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(scale, scale);
-
-      GAME_CONFIG.baseWidth = canvas.width / scale;
-      GAME_CONFIG.baseHeight = canvas.height / scale;
-      player.x = Math.min(Math.max(player.x, GAME_CONFIG.borderRetraction), GAME_CONFIG.baseWidth - GAME_CONFIG.borderRetraction);
-      player.y = Math.min(Math.max(player.y, GAME_CONFIG.borderRetraction), GAME_CONFIG.baseHeight - GAME_CONFIG.borderRetraction);
-      initBorderPoints();
     }
 
     // Setup event listeners
@@ -931,8 +925,6 @@
       updateGameArea();
       createMist();
       createStars();
-      player.x = GAME_CONFIG.baseWidth / 2;
-      player.y = GAME_CONFIG.baseHeight / 2;
     }
 
     // Create power throw effect
