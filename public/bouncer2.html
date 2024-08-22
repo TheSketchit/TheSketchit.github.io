@@ -90,13 +90,16 @@
     };
 
     // Game variables
-    let canvas, ctx, scale, isWidescreen = true;
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    let scale = 1;
+    let isWidescreen = true;
     let gameStarted = false, gameOver = false, isDragging = false;
     let lastTime = 0, bounceCount = 0, highScoreSubmitted = false;
+    let popSound;
     let dragStartX, dragStartY, dragStartTime;
-    let existingScores = new Set();
+    const existingScores = new Set();
     let gameLoopRunning = false;
-    let scale = 1;
     const borderPoints = {
       left: [], right: [], top: [], bottom: []
     };
@@ -132,18 +135,23 @@
 
     // Initialize game
     function initGame() {
-      canvas = document.getElementById('game-canvas');
-      ctx = canvas.getContext('2d');
-      console.log("Canvas context:", ctx);
-      updateGameArea();
-      initBorderPoints();
-      createMist();
-      createStars();
-      fetchExistingScores().then(() => {
-        console.log("Starting game loop");
-        startGameLoop();
-      });
-      setupEventListeners();
+        canvas = document.getElementById('game-canvas');
+        ctx = canvas.getContext('2d');
+        console.log("Canvas context:", ctx);
+        
+        // Initialize pop sound
+        popSound = new Audio('../images/pop.mp3');
+        popSound.volume = 0.5;
+        
+        updateGameArea();
+        initBorderPoints();
+        createMist();
+        createStars();
+        fetchExistingScores().then(() => {
+            console.log("Starting game loop");
+            startGameLoop();
+        });
+        setupEventListeners();
     }
 
     // Game loop
@@ -237,26 +245,17 @@
 
     // Handle bounce
     function handleBounce(borderType) {
-      const distanceTraveled = Math.hypot(player.x - player.lastBounceX, player.y - player.lastBounceY);
-      if (distanceTraveled >= GAME_CONFIG.minBounceDistance) {
-        const bounciness = GAME_CONFIG.minBounciness + (GAME_CONFIG.maxBounciness - GAME_CONFIG.minBounciness) * player.energy;
-        player.vx *= bounciness;
-        player.vy *= bounciness;
-        createLightning(player.x, player.y);
-        bounceCount++;
-        playPopSound();
-        createBorderWave(borderType); // Replace retractBorder with createBorderWave
-        player.lastBounceX = player.x;
-        player.lastBounceY = player.y;
-        if (isInCorner(player.x, player.y)) {
-          applyCornerEscape();
-        }
-      } else {
-        if (borderType === 'left' || borderType === 'right') {
-          player.vx *= -1;
-        } else {
-          player.vy *= -1;
-        }
+      const bounciness = GAME_CONFIG.minBounciness + (GAME_CONFIG.maxBounciness - GAME_CONFIG.minBounciness) * player.energy;
+      player.vx *= bounciness;
+      player.vy *= bounciness;
+      createLightning(player.x, player.y);
+      bounceCount++;
+      playPopSound();
+      createBorderWave(borderType);
+      player.lastBounceX = player.x;
+      player.lastBounceY = player.y;
+      if (isInCorner(player.x, player.y)) {
+        applyCornerEscape();
       }
     }
 
@@ -599,9 +598,11 @@
 
     // Play pop sound
     function playPopSound() {
-      const popSound = new Audio('../images/pop.mp3');
-      popSound.volume = 0.5;
-      popSound.play();
+        if (popSound.paused) {
+            popSound.play();
+        } else {
+            popSound.currentTime = 0;
+        }
     }
 
     // Submit high score
@@ -693,7 +694,19 @@
       player.lastBounceY = player.y;
       
       const savedName = getPlayerName();
-      player.alias = prompt("Enter your player name:", savedName) || savedName;
+      let newName = savedName;
+      let attempts = 0;
+      const maxAttempts = 3;
+    
+      while (attempts < maxAttempts) {
+        newName = prompt("Enter your player name:", savedName);
+        if (newName !== null && newName.trim() !== "") {
+          break;
+        }
+        attempts++;
+      }
+    
+      player.alias = newName || "Anonymous Player";
       savePlayerName(player.alias);
       
       emberParticles = [];
