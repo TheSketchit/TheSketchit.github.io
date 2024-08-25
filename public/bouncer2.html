@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Regret Bouncy Ball with Visible Retractable Borders</title>
   <style>
+    :root {
+      --border-width: 20px;
+    }
+
     body, html {
       margin: 0;
       padding: 0;
@@ -65,10 +69,12 @@
       border-radius: 10px;
       z-index: 1000;
     }
+
     #high-score-list {
       list-style-type: none;
       padding: 0;
     }
+
     #retry-button {
       margin-top: 10px;
       padding: 5px 10px;
@@ -78,83 +84,80 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    /* Styles for the bouncy borders */
+
     .bouncy-border {
       position: absolute;
       background: rgba(0, 0, 50, 0.5);
       transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    
+
     .bouncy-border-left, .bouncy-border-right {
-      width: 20px;
+      width: var(--border-width);
       height: 100%;
       top: 0;
     }
-    
+
     .bouncy-border-top, .bouncy-border-bottom {
       width: 100%;
-      height: 20px;
+      height: var(--border-width);
       left: 0;
     }
-    
+
     .bouncy-border-left {
       left: 0;
       transform-origin: left center;
     }
-    
+
     .bouncy-border-right {
       right: 0;
       transform-origin: right center;
     }
-    
+
     .bouncy-border-top {
       top: 0;
       transform-origin: center top;
     }
-    
+
     .bouncy-border-bottom {
       bottom: 0;
       transform-origin: center bottom;
     }
-    
-    /* Animation classes */
+
     .bounce-left {
       animation: bounceLeft 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    
+
     .bounce-right {
       animation: bounceRight 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    
+
     .bounce-top {
       animation: bounceTop 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    
+
     .bounce-bottom {
       animation: bounceBottom 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    
-    /* Keyframe animations */
+
     @keyframes bounceLeft {
       0%, 100% { transform: scaleX(1); }
       50% { transform: scaleX(1.2); }
     }
-    
+
     @keyframes bounceRight {
       0%, 100% { transform: scaleX(1); }
       50% { transform: scaleX(1.2); }
     }
-    
+
     @keyframes bounceTop {
       0%, 100% { transform: scaleY(1); }
       50% { transform: scaleY(1.2); }
     }
-    
+
     @keyframes bounceBottom {
       0%, 100% { transform: scaleY(1); }
       50% { transform: scaleY(1.2); }
     }
-    
   </style>
 </head>
 <body>
@@ -180,338 +183,646 @@
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
   <script>
-    
-  var firebaseConfig = {
-    apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
-    authDomain: "wowsr-9ec27.firebaseapp.com",
-    projectId: "wowsr-9ec27",
-    storageBucket: "wowsr-9ec27.appspot.com",
-    messagingSenderId: "1037521583710",
-    appId: "1037521583710:web:290e85c6bde4e047337ecf",
-    databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
-  };
+    // Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+      authDomain: "wowsr-9ec27.firebaseapp.com",
+      projectId: "wowsr-9ec27",
+      storageBucket: "wowsr-9ec27.appspot.com",
+      messagingSenderId: "1037521583710",
+      appId: "1037521583710:web:290e85c6bde4e047337ecf",
+      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+    };
 
-  firebase.initializeApp(firebaseConfig);
-  const database = firebase.database();
-    
-  const gameContainer = document.getElementById('game-container');
-  const canvas = document.getElementById('game-canvas');
-  const ctx = canvas.getContext('2d');
-  const cheatMessage = document.getElementById('cheat-message');
-  const aspectRatioToggle = document.getElementById('aspect-ratio-toggle');
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-  let ballAnimationTime = 0;
-  let highScoreSubmitted = false;
-  const ballAnimationDuration = 300; // milliseconds
-  let ringParticles = [];
-  let gameStarted = false;
-  let gameOver = false; 
-  let existingScores = new Set();
-  let dragPoints = [];
-  const MAX_DRAG_POINTS = 40;
-  const CORNER_BOUNCE_THRESHOLD = 50;
-  const MAX_THROW_POWER = 500; // Reduced from 1000
-  const THROW_POWER_MULTIPLIER = 0.14; //
-  const ENERGY_DIVISOR = 900; // Increased from 500 to reduce energy gain
-  let dragStartTime;
-  let dragStartX, dragStartY;
+    // Constants
+    const BORDER_WIDTH = 20;
+    const BASE_WIDTH = 1600;
+    const BASE_HEIGHT = 900;
+    const MIN_WIDTH = 955;
+    const MIN_HEIGHT = 542;
+    const EMBER_THRESHOLD = 3;
+    const ENERGY_DECAY = 0.999;
+    const VELOCITY_DECAY = 0.995;
+    const MIN_BOUNCINESS = 0.4;
+    const MAX_BOUNCINESS = 1.0;
+    const MIN_BOUNCE_DISTANCE = 50;
+    const CORNER_THRESHOLD = 100;
+    const MAX_THROW_POWER = 500;
+    const THROW_POWER_MULTIPLIER = 0.14;
+    const ENERGY_DIVISOR = 900;
+    const BALL_ANIMATION_DURATION = 300;
 
+    // DOM Elements
+    const gameContainer = document.getElementById('game-container');
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const cheatMessage = document.getElementById('cheat-message');
+    const aspectRatioToggle = document.getElementById('aspect-ratio-toggle');
 
-  // Define base dimensions
-  const baseWidth = 1600;
-  const baseHeight = 900;
-  let scale = 1;
-  let isWidescreen = true;
+    // Game state
+    let gameState = {
+      isRunning: false,
+      isOver: false,
+      hasStarted: false,
+      highScoreSubmitted: false,
+      scale: 1,
+      isWidescreen: true,
+      bounceCount: 0,
+      lastSoundTime: 0,
+      ballAnimationTime: 0,
+      isDragging: false,
+      dragStartTime: 0,
+      dragStartX: 0,
+      dragStartY: 0,
+      lastTime: 0
+    };
 
-  // Minimum allowed dimensions
-  const minWidth = 955;
-  const minHeight = 542;
+    // Player object
+    const player = {
+      alias: "",
+      x: BASE_WIDTH / 2,
+      y: BASE_HEIGHT / 2,
+      vx: 0,
+      vy: 0,
+      radius: 40,
+      energy: 0,
+      lastBounceX: BASE_WIDTH / 2,
+      lastBounceY: BASE_HEIGHT / 2
+    };
 
-  // Add audio element
-  const popSound = new Audio('../images/pop.mp3');
-  popSound.volume = 0.5;
+    // Particle systems
+    const particles = {
+      mist: [],
+      stars: [],
+      embers: [],
+      lightning: [],
+      ring: []
+    };
 
-  // Prompt for player name
-  const playerName = prompt("Enter your player name:", getPlayerName()) || "Space Walker";
-  savePlayerName(playerName);
+    // Audio
+    const popSound = new Audio('../images/pop.mp3');
+    popSound.volume = 0.5;
 
-  // Game constants
-  const emberThreshold = 3;
-  const energyDecay = 0.999;
-  const velocityDecay = 0.995;
-  const minBounciness = 0.4;
-  const maxBounciness = 1.0;
+    // Set of existing scores
+    let existingScores = new Set();
 
-  // Game variables
-  let isDragging = false;
-  let bounceCount = 0;
-  let lastSoundTime = 0;
+    // Functions
+    function savePlayerName(name) {
+      localStorage.setItem('bounceGamePlayerName', name);
+    }
 
-  function savePlayerName(name) {
-    localStorage.setItem('bounceGamePlayerName', name);
-  }
+    function getPlayerName() {
+      return localStorage.getItem('bounceGamePlayerName') || "Space Walker";
+    }
 
-  function getPlayerName() {
-    return localStorage.getItem('bounceGamePlayerName') || "Space Walker";
-  }
+    function updateGameArea() {
+      const containerWidth = gameContainer.clientWidth;
+      const containerHeight = gameContainer.clientHeight;
 
-  // Player object
-  const player = {
-    alias: playerName,
-    x: baseWidth / 2,
-    y: baseHeight / 2,
-    vx: 0,
-    vy: 0,
-    radius: 40,
-    energy: 0,
-    lastBounceX: baseWidth / 2,
-    lastBounceY: baseHeight / 2
-  };
+      if (containerWidth < MIN_WIDTH || containerHeight < MIN_HEIGHT) {
+        showCheatMessage();
+        return;
+      }
 
-  // Particle systems
-  const mistParticles = [];
-  const starParticles = [];
-  const emberParticles = [];
+      hideCheatMessage();
 
-  function fetchExistingScores() {
-    console.log("Fetching existing scores...");
-    const highScoreRef = database.ref('highScores');
-    
-    return highScoreRef.once('value')
+      const containerAspect = containerWidth / containerHeight;
+      const gameAspect = gameState.isWidescreen ? 16 / 9 : 4 / 3;
+
+      if (containerAspect > gameAspect) {
+        gameState.scale = containerHeight / BASE_HEIGHT;
+        canvas.width = containerHeight * gameAspect;
+        canvas.height = containerHeight;
+      } else {
+        gameState.scale = containerWidth / BASE_WIDTH;
+        canvas.width = containerWidth;
+        canvas.height = containerWidth / gameAspect;
+      }
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(gameState.scale, gameState.scale);
+
+      updateBorderPositions();
+    }
+
+    function updateBorderPositions() {
+      const borders = document.querySelectorAll('.bouncy-border');
+      borders.forEach(border => {
+        const type = border.classList[1].split('-')[2];
+        switch(type) {
+          case 'left':
+          case 'right':
+            border.style.height = `${canvas.height / gameState.scale}px`;
+            border.style.width = `${BORDER_WIDTH}px`;
+            if (type === 'right') border.style.left = `${canvas.width / gameState.scale - BORDER_WIDTH}px`;
+            break;
+          case 'top':
+          case 'bottom':
+            border.style.width = `${canvas.width / gameState.scale}px`;
+            border.style.height = `${BORDER_WIDTH}px`;
+            if (type === 'bottom') border.style.top = `${canvas.height / gameState.scale - BORDER_WIDTH}px`;
+            break;
+        }
+      });
+    }
+
+    function showCheatMessage() {
+      cheatMessage.style.display = 'block';
+      canvas.style.display = 'none';
+      gameState.bounceCount = 0;
+    }
+
+    function hideCheatMessage() {
+      cheatMessage.style.display = 'none';
+      canvas.style.display = 'block';
+    }
+
+    function updatePosition(deltaTime) {
+      if (gameState.isOver || cheatMessage.style.display === 'block') return;
+
+      if (!gameState.isDragging) {
+        let bounced = false;
+        let bouncedBorder = null;
+
+        if (player.vx !== 0 || player.vy !== 0) {
+          gameState.hasStarted = true;
+        }
+
+        player.x += player.vx * (deltaTime / 1000);
+        player.y += player.vy * (deltaTime / 1000);
+
+        const scaledBorderWidth = BORDER_WIDTH / gameState.scale;
+
+        if (player.x - player.radius <= scaledBorderWidth) {
+          player.x = scaledBorderWidth + player.radius;
+          player.vx = Math.abs(player.vx);
+          bounced = true;
+          bouncedBorder = 'left';
+        } else if (player.x + player.radius >= BASE_WIDTH - scaledBorderWidth) {
+          player.x = BASE_WIDTH - scaledBorderWidth - player.radius;
+          player.vx = -Math.abs(player.vx);
+          bounced = true;
+          bouncedBorder = 'right';
+        }
+
+        if (player.y - player.radius <= scaledBorderWidth) {
+          player.y = scaledBorderWidth + player.radius;
+          player.vy = Math.abs(player.vy);
+          bounced = true;
+          bouncedBorder = 'top';
+        } else if (player.y + player.radius >= BASE_HEIGHT - scaledBorderWidth) {
+          player.y = BASE_HEIGHT - scaledBorderWidth - player.radius;
+          player.vy = -Math.abs(player.vy);
+          bounced = true;
+          bouncedBorder = 'bottom';
+        }
+
+        if (bounced) {
+          handleBounce(bouncedBorder);
+        }
+
+        const speed = Math.hypot(player.vx, player.vy);
+
+        if (speed > EMBER_THRESHOLD) {
+          createEmberTrail(player.x, player.y, player.vx, player.vy);
+        }
+
+        player.energy *= Math.pow(ENERGY_DECAY, deltaTime / 1000);
+        player.vx *= Math.pow(VELOCITY_DECAY, deltaTime / 1000);
+        player.vy *= Math.pow(VELOCITY_DECAY, deltaTime / 1000);
+
+        if (speed < 0.1 && gameState.hasStarted && !gameState.highScoreSubmitted) {
+          player.vx = 0;
+          player.vy = 0;
+          player.energy = 0;
+          submitHighScore();
+        }
+      }
+
+      // Update ball animation
+      if (gameState.ballAnimationTime > 0) {
+        gameState.ballAnimationTime = Math.max(0, gameState.ballAnimationTime - deltaTime);
+      }
+    }
+
+    function handleBounce(bouncedBorder) {
+      const distanceTraveled = Math.hypot(player.x - player.lastBounceX, player.y - player.lastBounceY);
+
+      if (distanceTraveled >= MIN_BOUNCE_DISTANCE) {
+        const bounciness = MIN_BOUNCINESS + (MAX_BOUNCINESS - MIN_BOUNCINESS) * player.energy;
+        player.vx *= bounciness;
+        player.vy *= bounciness;
+        createLightning(player.x, player.y);
+        incrementBounceCount();
+        playPopSound();
+        retractBorder(bouncedBorder);
+        gameState.ballAnimationTime = BALL_ANIMATION_DURATION;
+
+        player.lastBounceX = player.x;
+        player.lastBounceY = player.y;
+
+        if (isInCorner(player.x, player.y)) {
+          const escapeAngle = Math.random() * Math.PI * 2;
+          const escapeSpeed = Math.hypot(player.vx, player.vy);
+          player.vx = Math.cos(escapeAngle) * escapeSpeed;
+          player.vy = Math.sin(escapeAngle) * escapeSpeed;
+        }
+      } else {
+        if (bouncedBorder === 'left' || bouncedBorder === 'right') {
+          player.vx *= -1;
+        } else {
+          player.vy *= -1;
+        }
+      }
+    }
+
+    function isInCorner(x, y) {
+      return (x < CORNER_THRESHOLD || x > BASE_WIDTH - CORNER_THRESHOLD) && 
+             (y < CORNER_THRESHOLD || y > BASE_HEIGHT - CORNER_THRESHOLD);
+    }
+
+    function createLightning(x, y) {
+      const branches = 5;
+      const maxSegments = 10;
+      const decay = 0.7;
+
+      function createBranch(startX, startY, angle, depth) {
+        let endX = startX;
+        let endY = startY;
+        const segments = Math.floor(Math.random() * maxSegments) + 5;
+
+        for (let i = 0; i < segments; i++) {
+          const length = (Math.random() * 20 + 10) * Math.pow(decay, depth);
+          endX += Math.cos(angle) * length;
+          endY += Math.sin(angle) * length;
+
+          particles.lightning.push({
+            startX, startY, endX, endY,
+            life: 1,
+            width: (3 - depth * 0.5) * Math.pow(decay, i)
+          });
+
+          startX = endX;
+          startY = endY;
+
+          angle += (Math.random() - 0.5) * 1;
+
+          if (Math.random() < 0.3 && depth < 3) {
+            createBranch(startX, startY, angle + (Math.random() - 0.5) * Math.PI / 2, depth + 1);
+          }
+        }
+      }
+
+      for (let i = 0; i < branches; i++) {
+        createBranch(x, y, (i / branches) * Math.PI * 2, 0);
+      }
+    }
+
+    function createEmberTrail(x, y, vx, vy) {
+      particles.embers.push({
+        x, y,
+        vx: vx * 0.1,
+        vy: vy * 0.1,
+        size: Math.random() * 5 + 3,
+        life: 1
+      });
+    }
+
+    function updateParticles(deltaTime) {
+      updateEmbers(deltaTime);
+      updateMist(deltaTime);
+      updateLightning(deltaTime);
+      updateRingParticles(deltaTime);
+    }
+
+    function updateEmbers(deltaTime) {
+      particles.embers = particles.embers.filter(ember => {
+        ember.x += ember.vx * (deltaTime / 1000);
+        ember.y += ember.vy * (deltaTime / 1000);
+        ember.life -= 0.02 * (deltaTime / 16);
+        return ember.life > 0;
+      });
+    }
+
+    function updateMist(deltaTime) {
+      particles.mist.forEach(mist => {
+        mist.x += (Math.random() - 0.5) * 0.5 * (deltaTime / 16);
+        mist.y += (Math.random() - 0.5) * 0.5 * (deltaTime / 16);
+        if (mist.x < 0) mist.x = BASE_WIDTH;
+        if (mist.x > BASE_WIDTH) mist.x = 0;
+        if (mist.y < 0) mist.y = BASE_HEIGHT;
+        if (mist.y > BASE_HEIGHT) mist.y = 0;
+      });
+    }
+
+    function updateLightning(deltaTime) {
+      particles.lightning = particles.lightning.filter(particle => {
+        particle.life -= 0.05 * (deltaTime / 16);
+        return particle.life > 0;
+      });
+    }
+
+    function updateRingParticles(deltaTime) {
+      particles.ring = particles.ring.filter(particle => {
+        particle.x += particle.vx * (deltaTime / 1000);
+        particle.y += particle.vy * (deltaTime / 1000);
+        particle.life -= 0.02 * (deltaTime / 16);
+        return particle.life > 0;
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+      // Draw background
+      const gradient = ctx.createRadialGradient(BASE_WIDTH/2, BASE_HEIGHT/2, 0, BASE_WIDTH/2, BASE_HEIGHT/2, BASE_WIDTH/2);
+      gradient.addColorStop(0, 'rgb(0, 0, 0)');
+      gradient.addColorStop(1, 'rgb(15, 15, 40)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+      drawStars();
+      drawMist();
+      drawEmbers();
+      drawLightning();
+      drawPlayer();
+      drawScore();
+    }
+
+    function drawStars() {
+      ctx.fillStyle = 'white';
+      particles.stars.forEach(star => {
+        ctx.globalAlpha = star.twinkle ? (Math.sin(Date.now() / 1000) + 1) / 2 * 0.5 + 0.3 : 0.8;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawMist() {
+      particles.mist.forEach(mist => {
+        const gradient = ctx.createRadialGradient(mist.x, mist.y, 0, mist.x, mist.y, mist.size / 2);
+        gradient.addColorStop(0, `hsla(${mist.hue}, 100%, 70%, ${mist.opacity})`);
+        gradient.addColorStop(1, `hsla(${mist.hue}, 100%, 50%, 0)`);
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(mist.x, mist.y, mist.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawEmbers() {
+      ctx.fillStyle = 'orange';
+      particles.embers.forEach(ember => {
+        ctx.globalAlpha = ember.life;
+        ctx.beginPath();
+        ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function drawLightning() {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      
+      particles.lightning.forEach(particle => {
+        ctx.beginPath();
+        ctx.moveTo(particle.startX, particle.startY);
+        ctx.lineTo(particle.endX, particle.endY);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${particle.life})`;
+        ctx.lineWidth = particle.width;
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      ctx.globalAlpha = 1;
+      const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
+      playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+      playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
+      ctx.fillStyle = playerGradient;
+
+      // Apply ball animation
+      const animationProgress = 1 - (gameState.ballAnimationTime / BALL_ANIMATION_DURATION);
+      const scaleX = 1 + 0.2 * Math.sin(animationProgress * Math.PI * 4) * (1 - animationProgress);
+      const scaleY = 1 + 0.2 * Math.cos(animationProgress * Math.PI * 4) * (1 - animationProgress);
+      
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.scale(scaleX, scaleY);
+      ctx.beginPath();
+      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Draw player glow
+      const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
+      const glowGradient = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, glowSize);
+      glowGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+      glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      ctx.fillStyle = glowGradient;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw player alias
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(player.alias, player.x, player.y - player.radius - 20);
+    }
+
+    function drawScore() {
+      ctx.fillStyle = 'white';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Bounces: ${gameState.bounceCount}`, 10, 30);
+    }
+
+    function gameLoop(currentTime) {
+      if (!gameState.isRunning) return;
+
+      const deltaTime = currentTime - gameState.lastTime;
+      gameState.lastTime = currentTime;
+
+      if (!gameState.isOver) {
+        updatePosition(deltaTime);
+        updateParticles(deltaTime);
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function incrementBounceCount() {
+      gameState.bounceCount++;
+    }
+
+    function playPopSound() {
+      const currentTime = Date.now();
+      if (currentTime - gameState.lastSoundTime > 50) {
+        popSound.currentTime = 0;
+        popSound.play();
+      }
+      gameState.lastSoundTime = currentTime;
+    }
+
+    function retractBorder(border) {
+      const borderElement = document.querySelector(`.bouncy-border-${border}`);
+      borderElement.classList.add(`bounce-${border}`);
+      
+      setTimeout(() => {
+        borderElement.classList.remove(`bounce-${border}`);
+      }, 300);
+
+      pushBallOutOfBorder(border);
+    }
+
+    function pushBallOutOfBorder(border) {
+      const pushForce = 15;
+      switch(border) {
+        case 'left':
+          player.x = BORDER_WIDTH + player.radius;
+          player.vx = Math.abs(player.vx) + pushForce;
+          break;
+        case 'right':
+          player.x = BASE_WIDTH - BORDER_WIDTH - player.radius;
+          player.vx = -Math.abs(player.vx) - pushForce;
+          break;
+        case 'top':
+          player.y = BORDER_WIDTH + player.radius;
+          player.vy = Math.abs(player.vy) + pushForce;
+          break;
+        case 'bottom':
+          player.y = BASE_HEIGHT - BORDER_WIDTH - player.radius;
+          player.vy = -Math.abs(player.vy) - pushForce;
+          break;
+      }
+    }
+
+    function createPowerThrowEffect() {
+      particles.ring = [];  // Clear any existing particles
+      const particleCount = 20;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (i / particleCount) * Math.PI * 2;
+        particles.ring.push({
+          x: player.x + Math.cos(angle) * player.radius,
+          y: player.y + Math.sin(angle) * player.radius,
+          vx: Math.cos(angle) * 5,
+          vy: Math.sin(angle) * 5,
+          life: 1
+        });
+      }
+    }
+
+    function createMist() {
+      particles.mist = [];
+      const mistCount = Math.min(20, Math.floor(20 * gameState.scale));
+      for (let i = 0; i < mistCount; i++) {
+        particles.mist.push({
+          x: Math.random() * BASE_WIDTH,
+          y: Math.random() * BASE_HEIGHT,
+          size: Math.random() * 150 + 50,
+          opacity: Math.random() * 0.5 + 0.2,
+          hue: Math.random() * 60 + 180
+        });
+      }
+    }
+
+    function createStars() {
+      particles.stars = [];
+      const starCount = Math.min(100, Math.floor(100 * gameState.scale));
+      for (let i = 0; i < starCount; i++) {
+        particles.stars.push({
+          x: Math.random() * BASE_WIDTH,
+          y: Math.random() * BASE_HEIGHT,
+          size: Math.random() * 2 + 1,
+          twinkle: Math.random() > 0.5
+        });
+      }
+    }
+
+    function fetchExistingScores() {
+      console.log("Fetching existing scores...");
+      const highScoreRef = database.ref('highScores');
+      
+      return highScoreRef.once('value')
         .then((snapshot) => {
-            existingScores.clear(); // Clear existing scores before populating
-            snapshot.forEach((childSnapshot) => {
-                const score = childSnapshot.val().score;
-                if (typeof score === 'number' && !isNaN(score)) {
-                    existingScores.add(score);
-                } else {
-                    console.warn(`Invalid score found: ${score}`);
-                }
-            });
-            console.log(`Fetched ${existingScores.size} existing scores.`);
+          existingScores.clear();
+          snapshot.forEach((childSnapshot) => {
+            const score = childSnapshot.val().score;
+            if (typeof score === 'number' && !isNaN(score)) {
+              existingScores.add(score);
+            } else {
+              console.warn(`Invalid score found: ${score}`);
+            }
+          });
+          console.log(`Fetched ${existingScores.size} existing scores.`);
         })
         .catch((error) => {
-            console.error("Error fetching existing scores:", error);
-            alert("Failed to fetch existing scores. The game may allow duplicate submissions. Error: " + error.message);
+          console.error("Error fetching existing scores:", error);
+          alert("Failed to fetch existing scores. The game may allow duplicate submissions. Error: " + error.message);
         });
-  }
-
-  function updateGameArea() {
-    const containerWidth = gameContainer.clientWidth;
-    const containerHeight = gameContainer.clientHeight;
-    const leftBorder = document.querySelector('.bouncy-border-left');
-    const rightBorder = document.querySelector('.bouncy-border-right');
-    const topBorder = document.querySelector('.bouncy-border-top');
-    const bottomBorder = document.querySelector('.bouncy-border-bottom');
-
-    if (containerWidth < minWidth || containerHeight < minHeight) {
-      showCheatMessage();
-      return;
     }
 
-    hideCheatMessage();
-
-    const containerAspect = containerWidth / containerHeight;
-    const gameAspect = isWidescreen ? 16 / 9 : 4 / 3;
-
-    if (containerAspect > gameAspect) {
-      scale = containerHeight / baseHeight;
-      canvas.width = containerHeight * gameAspect;
-      canvas.height = containerHeight;
-    } else {
-      scale = containerWidth / baseWidth;
-      canvas.width = containerWidth;
-      canvas.height = containerWidth / gameAspect;
-    }
-
-    // Reset the scale transformation
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // Apply the new scale
-    ctx.scale(scale, scale);
-    leftBorder.style.height = `${canvas.height}px`;
-    rightBorder.style.height = `${canvas.height}px`;
-    rightBorder.style.left = `${canvas.width - 20}px`;
-    topBorder.style.width = `${canvas.width}px`;
-    bottomBorder.style.width = `${canvas.width}px`;
-    bottomBorder.style.top = `${canvas.height - 20}px`;
-  }
-
-  function showCheatMessage() {
-    cheatMessage.style.display = 'block';
-    canvas.style.display = 'none';
-    bounceCount = 0;
-  }
-
-  function hideCheatMessage() {
-    cheatMessage.style.display = 'none';
-    canvas.style.display = 'block';
-  }
-
-  const minBounceDistance = 50; // Minimum distance required for a bounce to count
-  
-  function updatePosition(deltaTime) {
-      if (gameOver || cheatMessage.style.display === 'block') return;
-      
-      if (!isDragging) {
-          let bounced = false;
-          let bouncedBorder = null;
-  
-          // Only consider the game as started once the player moves the ball
-          if (player.vx !== 0 || player.vy !== 0) {
-              gameStarted = true;
-          }
-  
-          // Update position
-          player.x += player.vx * (deltaTime / 16);
-          player.y += player.vy * (deltaTime / 16);
-  
-          // Check borders and handle collisions
-          if (player.x - player.radius <= 20) {
-            player.x = 20 + player.radius;
-            player.vx = Math.abs(player.vx);
-            bounced = true;
-            bouncedBorder = 'left';
-          } else if (player.x + player.radius >= baseWidth - 20) {
-            player.x = baseWidth - 20 - player.radius;
-            player.vx = -Math.abs(player.vx);
-            bounced = true;
-            bouncedBorder = 'right';
-          }
-          
-          if (player.y - player.radius <= 20) {
-            player.y = 20 + player.radius;
-            player.vy = Math.abs(player.vy);
-            bounced = true;
-            bouncedBorder = 'top';
-          } else if (player.y + player.radius >= baseHeight - 20) {
-            player.y = baseHeight - 20 - player.radius;
-            player.vy = -Math.abs(player.vy);
-            bounced = true;
-            bouncedBorder = 'bottom';
-          }
-  
-          if (bounced) {
-              const distanceTraveled = Math.sqrt(
-                  Math.pow(player.x - player.lastBounceX, 2) +
-                  Math.pow(player.y - player.lastBounceY, 2)
-              );
-  
-              if (distanceTraveled >= minBounceDistance) {
-                  const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
-                  player.vx *= bounciness;
-                  player.vy *= bounciness;
-                  createLightning(player.x, player.y);
-                  incrementBounceCount();
-                  playPopSound();
-                  retractBorder(bouncedBorder);
-                  ballAnimationTime = ballAnimationDuration; // Start ball animation
-  
-                  // Update last bounce position
-                  player.lastBounceX = player.x;
-                  player.lastBounceY = player.y;
-  
-                  // Simple corner escape logic
-                  if (isInCorner(player.x, player.y)) {
-                      const escapeAngle = Math.random() * Math.PI * 2;
-                      const escapeSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-                      player.vx = Math.cos(escapeAngle) * escapeSpeed;
-                      player.vy = Math.sin(escapeAngle) * escapeSpeed;
-                  }
-              } else {
-                  // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
-                  if (bouncedBorder === 'left' || bouncedBorder === 'right') {
-                      player.vx *= -1;
-                  } else {
-                      player.vy *= -1;
-                  }
-              }
-          }
-  
-          const speed = Math.hypot(player.vx, player.vy);
-  
-          if (speed > emberThreshold) {
-              createEmberTrail(player.x, player.y, player.vx, player.vy);
-          }
-  
-          // Apply energy-based slowdown
-          player.energy *= Math.pow(energyDecay, deltaTime / 16);
-          player.vx *= Math.pow(velocityDecay, deltaTime / 16);
-          player.vy *= Math.pow(velocityDecay, deltaTime / 16);
-  
-          // Stop the ball if it's moving very slowly and submit high score only once
-          if (speed < 0.1 && gameStarted && !highScoreSubmitted) {
-              player.vx = 0;
-              player.vy = 0;
-              player.energy = 0;
-              submitHighScore();
-          }
-      }
-  
-      // Update ball animation
-      if (ballAnimationTime > 0) {
-          ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
-      }
-  }
-    
-  function isInCorner(x, y) {
-      const cornerThreshold = 100; // Adjust this value to change what's considered a "corner"
-      return (x < cornerThreshold || x > baseWidth - cornerThreshold) && 
-             (y < cornerThreshold || y > baseHeight - cornerThreshold);
-  }
-    
-  function submitHighScore() {
-      if (highScoreSubmitted || gameOver || bounceCount <= 0) {
+    function submitHighScore() {
+      if (gameState.highScoreSubmitted || gameState.isOver || gameState.bounceCount <= 0) {
           console.log("Score submission skipped:", 
-                      highScoreSubmitted ? "already submitted" : 
-                      gameOver ? "game over" : 
-                      "invalid score");
-          displayHighScores();  // Display high scores even if submission is skipped
-          return;
+                    gameState.highScoreSubmitted ? "already submitted" : 
+                    gameState.isOver ? "game over" : 
+                    "invalid score");
+        displayHighScores();
+        return;
       }
-  
-      gameOver = true;
-      highScoreSubmitted = true;
-  
-      console.log("Attempting to submit high score:", bounceCount);
-  
+
+      gameState.isOver = true;
+      gameState.highScoreSubmitted = true;
+
+      console.log("Attempting to submit high score:", gameState.bounceCount);
+
       const now = new Date();
       const estDate = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'America/New_York',
-          month: '2-digit',
-          day: '2-digit',
-          year: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
+        timeZone: 'America/New_York',
+        month: '2-digit',
+        day: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
       }).format(now);
-  
-      if (existingScores.has(bounceCount)) {
-          console.log("Score already exists, skipping submission");
-          displayHighScores();  // Display high scores even if score already exists
-          return;
+
+      if (existingScores.has(gameState.bounceCount)) {
+        console.log("Score already exists, skipping submission");
+        displayHighScores();
+        return;
       }
-  
+
       const highScoreRef = database.ref('highScores').push();
       highScoreRef.set({
-          score: bounceCount,
-          playerName: player.alias,
-          timestamp: estDate
+        score: gameState.bounceCount,
+        playerName: player.alias,
+        timestamp: estDate
       })
       .then(() => {
-          console.log("High score submitted successfully");
-          existingScores.add(bounceCount);  // Add the new score to our local set
-          displayHighScores();
+        console.log("High score submitted successfully");
+        existingScores.add(gameState.bounceCount);
+        displayHighScores();
       })
       .catch((error) => {
-          console.error("Error submitting high score:", error);
-          alert("Failed to submit high score. Error: " + error.message);
-          highScoreSubmitted = false;
-          gameOver = false;
-          displayHighScores();  // Display high scores even if submission fails
+        console.error("Error submitting high score:", error);
+        alert("Failed to submit high score. Error: " + error.message);
+        gameState.highScoreSubmitted = false;
+        gameState.isOver = false;
+        displayHighScores();
       });
-  }
+    }
 
-  function displayHighScores() {
+    function displayHighScores() {
       console.log("Attempting to display high scores");
       
       const highScoreRef = database.ref('highScores');
@@ -522,7 +833,7 @@
             highScores.push(childSnapshot.val());
           });
       
-          highScores.sort((a, b) => b.score - a.score);  // Sort in descending order
+          highScores.sort((a, b) => b.score - a.score);
       
           const highScoreList = document.getElementById('high-score-list');
           highScoreList.innerHTML = '';
@@ -532,31 +843,26 @@
             highScoreList.appendChild(li);
           });
       
-          // Ensure the retry button is visible
           const retryButton = document.getElementById('retry-button');
           retryButton.style.display = 'block';
   
-          // Display the high score modal
           document.getElementById('high-score-modal').style.display = 'block';
         })
         .catch((error) => {
           console.error("Error fetching high scores:", error);
           alert("Failed to fetch high scores. Error: " + error.message);
         });
-  }
+    }
 
-  // Define the resetGame function
-  function resetGame() {
-      // Reset game state
-      gameOver = false;
-      gameStarted = false;
-      highScoreSubmitted = false;
-      bounceCount = 0;
-      ballAnimationTime = 0;
-  
-      // Reset player
-      player.x = baseWidth / 2;
-      player.y = baseHeight / 2;
+    function resetGame() {
+      gameState.isOver = false;
+      gameState.hasStarted = false;
+      gameState.highScoreSubmitted = false;
+      gameState.bounceCount = 0;
+      gameState.ballAnimationTime = 0;
+
+      player.x = BASE_WIDTH / 2;
+      player.y = BASE_HEIGHT / 2;
       player.vx = 0;
       player.vy = 0;
       player.energy = 0;
@@ -565,450 +871,123 @@
       savePlayerName(player.alias);
       player.lastBounceX = player.x;
       player.lastBounceY = player.y;
-  
-      // Clear particles
-      emberParticles.length = 0;
-      ringParticles.length = 0;
-  
-      // Recreate background elements
+
+      particles.embers = [];
+      particles.ring = [];
+
       createMist();
       createStars();
-  
-      // Re-fetch high scores
+
       fetchExistingScores()
-          .then(() => {
-              // Hide high score modal
-              document.getElementById('high-score-modal').style.display = 'none';
-              
-              // Update display
-              updateGameArea();
-              
-              // Restart game loop if it's not already running
-              if (!gameLoopRunning) {
-                  gameLoopRunning = true;
-                  gameLoop(0);
-              }
-          });
-  
-      console.log("Game reset completed");
-  }
-  
-  // Attach resetGame to retry button click event
-  document.getElementById('retry-button').addEventListener('click', () => {
-      console.log("Retry button clicked");
-      resetGame();
-  });
-    
-  function incrementBounceCount() {
-    bounceCount++;
-  }
-
-  function playPopSound() {
-    const currentTime = Date.now();
-    if (currentTime - lastSoundTime > 50) {
-      popSound.currentTime = 0;
-      popSound.play();
-    }
-    lastSoundTime = currentTime;
-  }
-
-  function retractBorder(border) {
-    const borderElement = document.querySelector(`.bouncy-border-${border}`);
-    borderElement.classList.add(`bounce-${border}`);
-    
-    // Remove the class after the animation completes
-    setTimeout(() => {
-      borderElement.classList.remove(`bounce-${border}`);
-    }, 300);
-  
-    // Push the ball out if it's still in the retracted space
-    pushBallOutOfBorder(border);
-  }
-
-
-  function pushBallOutOfBorder(border) {
-    const pushForce = 15;
-    switch(border) {
-      case 'left':
-        player.x = 20 + player.radius;
-        player.vx = Math.abs(player.vx) + pushForce;
-        break;
-      case 'right':
-        player.x = baseWidth - 20 - player.radius;
-        player.vx = -Math.abs(player.vx) - pushForce;
-        break;
-      case 'top':
-        player.y = 20 + player.radius;
-        player.vy = Math.abs(player.vy) + pushForce;
-        break;
-      case 'bottom':
-        player.y = baseHeight - 20 - player.radius;
-        player.vy = -Math.abs(player.vy) - pushForce;
-        break;
-    }
-  }
-
-  function createLightning(x, y) {
-    const branches = 5;
-    const maxSegments = 10;
-    const maxOffset = 30;
-    const decay = 0.7;
-    const lightningParticles = [];
-
-    function createBranch(startX, startY, angle, depth) {
-      let endX = startX;
-      let endY = startY;
-      const segments = Math.floor(Math.random() * maxSegments) + 5;
-
-      for (let i = 0; i < segments; i++) {
-        const length = (Math.random() * 20 + 10) * Math.pow(decay, depth);
-        endX += Math.cos(angle) * length;
-        endY += Math.sin(angle) * length;
-
-        lightningParticles.push({
-          startX, startY, endX, endY,
-          life: 1,
-          width: (3 - depth * 0.5) * Math.pow(decay, i)
+        .then(() => {
+          document.getElementById('high-score-modal').style.display = 'none';
+          updateGameArea();
+          
+          if (!gameState.isRunning) {
+            gameState.isRunning = true;
+            requestAnimationFrame(gameLoop);
+          }
         });
 
-        startX = endX;
-        startY = endY;
-
-        // Add some randomness to the angle
-        angle += (Math.random() - 0.5) * 1;
-
-        // Occasionally create a new branch
-        if (Math.random() < 0.3 && depth < 3) {
-          createBranch(startX, startY, angle + (Math.random() - 0.5) * Math.PI / 2, depth + 1);
-        }
-      }
+      console.log("Game reset completed");
     }
 
-    for (let i = 0; i < branches; i++) {
-      createBranch(x, y, (i / branches) * Math.PI * 2, 0);
-    }
-
-    function animateLightning() {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      
-      lightningParticles.forEach((particle, index) => {
-        ctx.beginPath();
-        ctx.moveTo(particle.startX, particle.startY);
-        ctx.lineTo(particle.endX, particle.endY);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${particle.life})`;
-        ctx.lineWidth = particle.width;
-        ctx.stroke();
-
-        particle.life -= 0.05;
-
-        if (particle.life <= 0) {
-          lightningParticles.splice(index, 1);
-        }
-      });
-
-      ctx.restore();
-
-      if (lightningParticles.length > 0) {
-        requestAnimationFrame(animateLightning);
-      }
-    }
-
-    animateLightning();
-  }
-
-  function createEmberTrail(x, y, vx, vy) {
-    const ember = {
-      x, y,
-      vx: vx * 0.1,
-      vy: vy * 0.1,
-      size: Math.random() * 5 + 3,
-      life: 1
-    };
-    emberParticles.push(ember);
-  }
-
-  function createMist() {
-    mistParticles.length = 0;
-    const mistCount = Math.min(20, Math.floor(20 * scale));
-    for (let i = 0; i < mistCount; i++) {
-      mistParticles.push({
-        x: Math.random() * baseWidth,
-        y: Math.random() * baseHeight,
-        size: Math.random() * 150 + 50,
-        opacity: Math.random() * 0.5 + 0.2,
-        hue: Math.random() * 60 + 180
-      });
-    }
-  }
-
-  function createStars() {
-    starParticles.length = 0;
-    const starCount = Math.min(100, Math.floor(100 * scale));
-    for (let i = 0; i < starCount; i++) {
-      starParticles.push({
-        x: Math.random() * baseWidth,
-        y: Math.random() * baseHeight,
-        size: Math.random() * 2 + 1,
-        twinkle: Math.random() > 0.5
-      });
-    }
-  }
-
-  function updateMistPositions() {
-    mistParticles.forEach(mist => {
-      mist.x += (Math.random() - 0.5) * 0.5;
-      mist.y += (Math.random() - 0.5) * 0.5;
-      if (mist.x < 0) mist.x = baseWidth;
-      if (mist.x > baseWidth) mist.x = 0;
-      if (mist.y < 0) mist.y = baseHeight;
-      if (mist.y > baseHeight) mist.y = 0;
-    });
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, baseWidth, baseHeight);
-
-    // Draw background
-    const gradient = ctx.createRadialGradient(baseWidth/2, baseHeight/2, 0, baseWidth/2, baseHeight/2, baseWidth/2);
-    gradient.addColorStop(0, 'rgb(0, 0, 0)');
-    gradient.addColorStop(1, 'rgb(15, 15, 40)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, baseWidth, baseHeight);
-
-    // Draw stars
-    ctx.fillStyle = 'white';
-    starParticles.forEach(star => {
-      ctx.globalAlpha = star.twinkle ? (Math.sin(Date.now() / 1000) + 1) / 2 * 0.5 + 0.3 : 0.8;
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Draw mist
-    updateMistPositions();
-    mistParticles.forEach(mist => {
-      const gradient = ctx.createRadialGradient(mist.x, mist.y, 0, mist.x, mist.y, mist.size / 2);
-      gradient.addColorStop(0, `hsla(${mist.hue}, 100%, 70%, ${mist.opacity})`);
-      gradient.addColorStop(1, `hsla(${mist.hue}, 100%, 50%, 0)`);
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(mist.x, mist.y, mist.size / 2, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Draw embers
-    ctx.fillStyle = 'orange';
-    emberParticles.forEach((ember, index) => {
-      ctx.globalAlpha = ember.life;
-      ctx.beginPath();
-      ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
-      ctx.fill();
-
-      ember.x += ember.vx;
-      ember.y += ember.vy;
-      ember.life -= 0.02;
-
-      if (ember.life <= 0) {
-        emberParticles.splice(index, 1);
-      }
-    });
-
-    // Draw player with animation
-    ctx.globalAlpha = 1;
-    const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
-    playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
-    playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
-    ctx.fillStyle = playerGradient;
-
-    // Apply ball animation
-    const animationProgress = 1 - (ballAnimationTime / ballAnimationDuration);
-    const scaleX = 1 + 0.2 * Math.sin(animationProgress * Math.PI * 4) * (1 - animationProgress);
-    const scaleY = 1 + 0.2 * Math.cos(animationProgress * Math.PI * 4) * (1 - animationProgress);
-    
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    ctx.scale(scaleX, scaleY);
-    ctx.beginPath();
-    ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Draw player glow
-    const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
-    const glowGradient = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, glowSize);
-    glowGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
-    glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-    ctx.fillStyle = glowGradient;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw player alias
-    ctx.fillStyle = '#ffd700';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(player.alias, player.x, player.y - player.radius - 20);
-
-    // Draw score
-    ctx.fillStyle = 'white';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(`Bounces: ${bounceCount}`, 10, 30);
-  }
-
-  let lastTime = 0;
-  let gameLoopRunning = false;
-  
-  function gameLoop(currentTime) {
-      gameLoopRunning = true;
-      const deltaTime = currentTime - lastTime;
-      lastTime = currentTime;
-  
-      if (!gameOver) {
-          updatePosition(deltaTime);
-          draw();
-          requestAnimationFrame(gameLoop);
-      } else {
-          gameLoopRunning = false;
-      }
-  }
-
-  function createPowerThrowEffect() {
-      ringParticles = [];  // Clear any existing particles
-      const particleCount = 20;
-      for (let i = 0; i < particleCount; i++) {
-          const angle = (i / particleCount) * Math.PI * 2;
-          ringParticles.push({
-              x: player.x + Math.cos(angle) * player.radius,
-              y: player.y + Math.sin(angle) * player.radius,
-              vx: Math.cos(angle) * 5,
-              vy: Math.sin(angle) * 5,
-              life: 1
-          });
-      }
-  }
-    
-  function animatePowerThrow() {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-
-    ringParticles.forEach((particle, index) => {
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
-        ctx.fill();
-
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.life -= 0.02;
-
-        if (particle.life <= 0) {
-        ringParticles.splice(index, 1);
-        }
-    });
-
-    ctx.restore();
-
-    if (ringParticles.length > 0) {
-        requestAnimationFrame(animatePowerThrow);
-      }
-    }
-
-    animatePowerThrow();
-
-  canvas.addEventListener('mousedown', (event) => {
-      if (gameOver) return;  // Stop interaction if game is over
+    canvas.addEventListener('mousedown', (event) => {
+      if (gameState.isOver) return;
       const rect = canvas.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / scale;
-      const y = (event.clientY - rect.top) / scale;
+      const x = (event.clientX - rect.left) / gameState.scale;
+      const y = (event.clientY - rect.top) / gameState.scale;
       const dx = x - player.x;
       const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
-          isDragging = true;
-          dragStartX = x;
-          dragStartY = y;
-          dragStartTime = Date.now();
-          player.vx = 0;
-          player.vy = 0;
+        gameState.isDragging = true;
+        gameState.dragStartX = x;
+        gameState.dragStartY = y;
+        gameState.dragStartTime = Date.now();
+        player.vx = 0;
+        player.vy = 0;
       }
-  });
+    });
 
-  canvas.addEventListener('mousemove', (event) => {
-    if (isDragging) {
-      const rect = canvas.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / scale;
-      const y = (event.clientY - rect.top) / scale;
-      player.x = x;
-      player.y = y;
-    }
-  });
-
-  canvas.addEventListener('mouseup', () => {
-      if (isDragging) {
-          isDragging = false;
-          const endX = player.x;
-          const endY = player.y;
-          const dragEndTime = Date.now();
-          const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
-  
-          const dx = endX - dragStartX;
-          const dy = endY - dragStartY;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-  
-          // Calculate throw power based on speed (distance / time)
-          const speed = distance / dragDuration;
-          const maxSpeed = 1000; // Adjust this value to set the upper limit of throw power
-          const throwPower = Math.min(speed, maxSpeed);
-  
-          const angle = Math.atan2(dy, dx);
-  
-          // Adjust these multipliers to fine-tune the throw strength
-          player.vx = Math.cos(angle) * throwPower * 0.15;
-          player.vy = Math.sin(angle) * throwPower * 0.15;
-  
-          // Set energy based on throw power
-          player.energy = Math.min(throwPower / maxSpeed, .9);
-          bounceCount = 0;
-          
-          // Reset last bounce position when the ball is thrown
-          player.lastBounceX = player.x;
-          player.lastBounceY = player.y;
-          
-          if (player.energy > 0.1) {
-              createPowerThrowEffect();
-          }
+    canvas.addEventListener('mousemove', (event) => {
+      if (gameState.isDragging) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / gameState.scale;
+        const y = (event.clientY - rect.top) / gameState.scale;
+        player.x = x;
+        player.y = y;
       }
-  });
+    });
 
-  aspectRatioToggle.addEventListener('click', () => {
-    isWidescreen = !isWidescreen;
-    updateGameArea();
-    createMist();
-    createStars();
-  });
+    canvas.addEventListener('mouseup', () => {
+      if (gameState.isDragging) {
+        gameState.isDragging = false;
+        const endX = player.x;
+        const endY = player.y;
+        const dragEndTime = Date.now();
+        const dragDuration = Math.max(dragEndTime - gameState.dragStartTime, 1) / 1000;
 
-  function initGame() {
+        const dx = endX - gameState.dragStartX;
+        const dy = endY - gameState.dragStartY;
+        const distance = Math.hypot(dx, dy);
+
+        const speed = distance / dragDuration;
+        const throwPower = Math.min(speed, MAX_THROW_POWER);
+
+        const angle = Math.atan2(dy, dx);
+
+        player.vx = Math.cos(angle) * throwPower * THROW_POWER_MULTIPLIER;
+        player.vy = Math.sin(angle) * throwPower * THROW_POWER_MULTIPLIER;
+
+        player.energy = Math.min(throwPower / MAX_THROW_POWER, 0.9);
+        gameState.bounceCount = 0;
+
+        player.lastBounceX = player.x;
+        player.lastBounceY = player.y;
+
+        if (player.energy > 0.1) {
+          createPowerThrowEffect();
+        }
+      }
+    });
+
+    aspectRatioToggle.addEventListener('click', () => {
+      gameState.isWidescreen = !gameState.isWidescreen;
+      updateGameArea();
+      createMist();
+      createStars();
+    });
+
+    document.getElementById('retry-button').addEventListener('click', () => {
+      console.log("Retry button clicked");
+      resetGame();
+    });
+
+    function initGame() {
+      player.alias = prompt("Enter your player name:", getPlayerName()) || "Space Walker";
+      savePlayerName(player.alias);
+
       updateGameArea();
       createMist();
       createStars();
       fetchExistingScores()
-          .then(() => {
-              if (!gameLoopRunning) {
-                  gameLoopRunning = true;
-                  gameLoop(0);
-              }
-          });
-  }
+        .then(() => {
+          if (!gameState.isRunning) {
+            gameState.isRunning = true;
+            gameState.lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+          }
+        });
+    }
 
-  window.addEventListener('resize', () => {
-    updateGameArea();
-    createMist();
-    createStars();
-  });
+    window.addEventListener('resize', () => {
+      updateGameArea();
+      createMist();
+      createStars();
+    });
 
-  // Start the game
-  initGame();
+    // Start the game
+    initGame();
   </script>
 </body>
 </html>
