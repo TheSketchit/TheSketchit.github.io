@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Refactored Bouncy Ball Game</title>
+  <title>Regret Bouncy Ball with Visible Retractable Borders</title>
   <style>
     body, html {
       margin: 0;
@@ -12,15 +12,25 @@
       background-color: #000;
       user-select: none;
     }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
     #game-canvas {
-      border: 1px solid white;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
     }
-    #aspect-ratio-toggle, #retry-button {
+
+    #aspect-ratio-toggle {
       position: absolute;
+      top: 10px;
+      right: 10px;
       padding: 5px 10px;
       background-color: rgba(255, 255, 255, 0.2);
       color: white;
@@ -28,8 +38,21 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    #aspect-ratio-toggle { top: 10px; right: 10px; }
-    #retry-button { bottom: 10px; right: 10px; }
+
+    #cheat-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 24px;
+      text-align: center;
+      display: none;
+    }
+
     #high-score-modal {
       display: none;
       position: fixed;
@@ -42,686 +65,376 @@
       border-radius: 10px;
       z-index: 1000;
     }
-    #game-container {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-      background-color: #000;
+    #high-score-list {
+      list-style-type: none;
+      padding: 0;
     }
-    .mist-layer {
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      right: -50%;
-      bottom: -50%;
-      opacity: 0.3;
-      filter: blur(60px);
-      animation: mistMove 60s linear infinite, colorShift 30s ease-in-out infinite;
-    }
-    
-    .mist-layer:nth-child(1) {
-        background: radial-gradient(circle at 30% 50%, rgba(76, 0, 255, 0.3), transparent 60%),
-                    radial-gradient(circle at 70% 50%, rgba(0, 183, 255, 0.3), transparent 60%);
-    }
-    
-    .mist-layer:nth-child(2) {
-        background: radial-gradient(circle at 40% 60%, rgba(255, 0, 128, 0.2), transparent 70%),
-                    radial-gradient(circle at 60% 40%, rgba(255, 166, 0, 0.2), transparent 70%);
-        animation-duration: 75s, 45s;
-        animation-direction: reverse;
-    }
-    
-    @keyframes mistMove {
-        0% { transform: translate(0, 0) rotate(0deg); }
-        100% { transform: translate(20%, 20%) rotate(360deg); }
-    }
-    
-    @keyframes colorShift {
-        0%, 100% { filter: blur(60px) hue-rotate(0deg); }
-        50% { filter: blur(80px) hue-rotate(30deg); }
+    #retry-button {
+      margin-top: 10px;
+      padding: 5px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
     }
     
   </style>
 </head>
 <body>
   <div id="game-container">
-    <div class="mist-layer"></div>
-    <div class="mist-layer"></div>
     <canvas id="game-canvas"></canvas>
     <button id="aspect-ratio-toggle">Toggle 16:9 / 4:3</button>
-    <button id="retry-button">Retry</button>
-    <div id="high-score-modal">
-      <h2>Top 10 High Scores</h2>
-      <ol id="high-score-list"></ol>
-    </div>
   </div>
+  
+  <div id="high-score-modal">
+    <h2>Top 10 High Scores</h2>
+    <ol id="high-score-list"></ol>
+    <button id="retry-button">Retry</button>
+  </div>
+
+  <div id="cheat-message">Stop trying to Cheat, you fucking Weiner.</div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
   <script>
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
-      authDomain: "wowsr-9ec27.firebaseapp.com",
-      projectId: "wowsr-9ec27",
-      storageBucket: "wowsr-9ec27.appspot.com",
-      messagingSenderId: "1037521583710",
-      appId: "1037521583710:web:290e85c6bde4e047337ecf",
-      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-
-    // Game constants
-    const GAME_CONFIG = {
-      baseWidth: 1600,
-      baseHeight: 900,
-      minWidth: 955,
-      minHeight: 542,
-      borderRetraction: 20,
-      playerRadius: 40,
-      minBounciness: 0.4,
-      maxBounciness: 1.0,
-      energyDecay: 0.999,
-      velocityDecay: 0.995,
-      emberThreshold: 3,
-      maxThrowPower: 500,
-      throwPowerMultiplier: 0.14,
-      minBounceDistance: 50
-    };
-
-    // Game variables
-    let canvas;
-    let ctx;
-    let scale = 1;
-    let isWidescreen = true;
-    let gameStarted = false, gameOver = false, isDragging = false;
-    let lastTime = 0, bounceCount = 0, highScoreSubmitted = false;
-    let popSound;
-    let dragStartX, dragStartY, dragStartTime;
-    const existingScores = new Set();
-    let gameLoopRunning = false;
-    const borderPoints = {
-      left: [], right: [], top: [], bottom: []
-    };
-    const borderSegments = 20; // Number of segments per border
-    const borderSpringiness = 0.03; // Adjust for more or less bounce
-    const borderDamping = 0.7; // Adjust for faster or slower settle
-    const FPS = 60;
-    const FRAME_TIME = 1000 / FPS;
-    let lastFrameTime = 0;
-    const MIST_PARTICLE_COUNT = 20; // Reduced number of particles
-    const MIST_INTERACTION_RADIUS = 200; // Radius around player where mist is active
-
-    // Particle systems
-    let mistParticles = [], starParticles = [], emberParticles = [], ringParticles = [];
-
-    function initBorderPoints() {
-      const { baseWidth, baseHeight, borderRetraction } = GAME_CONFIG;
-      for (let i = 0; i <= borderSegments; i++) {
-        borderPoints.left.push({ x: borderRetraction, y: (i / borderSegments) * baseHeight, vx: 0, vy: 0, originalX: borderRetraction, originalY: (i / borderSegments) * baseHeight });
-        borderPoints.right.push({ x: baseWidth - borderRetraction, y: (i / borderSegments) * baseHeight, vx: 0, vy: 0, originalX: baseWidth - borderRetraction, originalY: (i / borderSegments) * baseHeight });
-        borderPoints.top.push({ x: (i / borderSegments) * baseWidth, y: borderRetraction, vx: 0, vy: 0, originalX: (i / borderSegments) * baseWidth, originalY: borderRetraction });
-        borderPoints.bottom.push({ x: (i / borderSegments) * baseWidth, y: baseHeight - borderRetraction, vx: 0, vy: 0, originalX: (i / borderSegments) * baseWidth, originalY: baseHeight - borderRetraction });
-      }
-    }
-
-    // Player object
-    const player = {
-      alias: getPlayerName(),
-      x: GAME_CONFIG.baseWidth / 2,
-      y: GAME_CONFIG.baseHeight / 2,
-      vx: 0,
-      vy: 0,
-      radius: GAME_CONFIG.playerRadius,
-      energy: 0,
-      lastBounceX: GAME_CONFIG.baseWidth / 2,
-      lastBounceY: GAME_CONFIG.baseHeight / 2
-    };
-
-    // Initialize game
-    function initGame() {
-        canvas = document.getElementById('game-canvas');
-        ctx = canvas.getContext('2d');
-        console.log("Canvas context:", ctx);
-        
-        // Initialize pop sound
-        popSound = new Audio('../images/pop.mp3');
-        popSound.volume = 0.5;
-        
-        updateGameArea();
-        initBorderPoints();
-        createMist();
-        createStars();
-        fetchExistingScores().then(() => {
-            console.log("Starting game loop");
-            startGameLoop();
-        });
-        setupEventListeners();
-    }
-
-    // Game loop
-    function gameLoop(currentTime) {
-      if (currentTime - lastFrameTime < FRAME_TIME) {
-        requestAnimationFrame(gameLoop);
-        return;
-      }
-      lastFrameTime = currentTime;
-      try {
-        const deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
-        if (!gameOver) {
-          updatePosition(deltaTime);
-          updateMist(deltaTime);
-          updateBorders(deltaTime);
-          updateParticles(deltaTime);
-          draw();
-        }
-      } catch (error) {
-        console.error("Error in game loop:", error);
-        gameOver = true;
-      }
-      requestAnimationFrame(gameLoop);
-    }
-
-    // Update player position
-    function updatePosition(deltaTime) {
-        if (gameOver || isDragging) return;
-        
-        if (player.vx !== 0 || player.vy !== 0) gameStarted = true;
-        
-        player.x += player.vx * (deltaTime / 16);
-        player.y += player.vy * (deltaTime / 16);
     
-        if (Math.hypot(player.vx, player.vy) > GAME_CONFIG.emberThreshold) {
-            createEmberTrail(player.x, player.y, player.vx, player.vy);
-        }
-        
-        handleBorderCollisions();
-        
-        player.energy *= Math.pow(GAME_CONFIG.energyDecay, deltaTime / 16);
-        player.vx *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
-        player.vy *= Math.pow(GAME_CONFIG.velocityDecay, deltaTime / 16);
-        
-        if (Math.hypot(player.vx, player.vy) < 0.1 && gameStarted && !highScoreSubmitted) {
-            player.vx = player.vy = player.energy = 0;
-            submitHighScore();
-        }
-    }
+  var firebaseConfig = {
+    apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+    authDomain: "wowsr-9ec27.firebaseapp.com",
+    projectId: "wowsr-9ec27",
+    storageBucket: "wowsr-9ec27.appspot.com",
+    messagingSenderId: "1037521583710",
+    appId: "1037521583710:web:290e85c6bde4e047337ecf",
+    databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+  };
 
-    // Define the updateParticles function
-    function updateParticles(deltaTime) {
-      updateEmberParticles();
-      // Add any other particle system updates here
-    }
-
-    // Update border animation
-    function updateBorders(deltaTime) {
-      Object.values(borderPoints).forEach(border => {
-        border.forEach(point => {
-          const dx = point.x - point.originalX;
-          const dy = point.y - point.originalY;
-          const accelerationX = -dx * borderSpringiness;
-          const accelerationY = -dy * borderSpringiness;
-          point.vx += accelerationX;
-          point.vy += accelerationY;
-          point.vx *= borderDamping;
-          point.vy *= borderDamping;
-          point.x += point.vx * deltaTime / 16;
-          point.y += point.vy * deltaTime / 16;
-        });
-      });
-    }
-
-    // Handle border collisions
-    function handleBorderCollisions() {
-      const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
-      const borders = [
-        { check: () => player.x - player.radius <= borderRetraction, update: () => { player.x = borderRetraction + player.radius; player.vx = Math.abs(player.vx); }, type: 'left' },
-        { check: () => player.x + player.radius >= baseWidth - borderRetraction, update: () => { player.x = baseWidth - borderRetraction - player.radius; player.vx = -Math.abs(player.vx); }, type: 'right' },
-        { check: () => player.y - player.radius <= borderRetraction, update: () => { player.y = borderRetraction + player.radius; player.vy = Math.abs(player.vy); }, type: 'top' },
-        { check: () => player.y + player.radius >= baseHeight - borderRetraction, update: () => { player.y = baseHeight - borderRetraction - player.radius; player.vy = -Math.abs(player.vy); }, type: 'bottom' }
-      ];
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
     
-      borders.forEach(border => {
-        if (border.check()) {
-          border.update();
-          createBorderWave(border.type);
-          handleBounce(border.type);
-        }
-      });
-    }
+  const gameContainer = document.getElementById('game-container');
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+  const cheatMessage = document.getElementById('cheat-message');
+  const aspectRatioToggle = document.getElementById('aspect-ratio-toggle');
 
-    // Handle bounce
-    function handleBounce(borderType) {
-      const bounciness = GAME_CONFIG.minBounciness + (GAME_CONFIG.maxBounciness - GAME_CONFIG.minBounciness) * player.energy;
-      player.vx *= bounciness;
-      player.vy *= bounciness;
-      createLightning(player.x, player.y);
-      bounceCount++;
-      playPopSound();
-      createBorderWave(borderType);
-      player.lastBounceX = player.x;
-      player.lastBounceY = player.y;
-      if (isInCorner(player.x, player.y)) {
-        applyCornerEscape();
-      }
-    }
+  let ballAnimationTime = 0;
+  let highScoreSubmitted = false;
+  const ballAnimationDuration = 300; // milliseconds
+  let ringParticles = [];
+  let gameStarted = false;
+  let gameOver = false; 
+  let existingScores = new Set();
+  let dragPoints = [];
+  const MAX_DRAG_POINTS = 40;
+  const CORNER_BOUNCE_THRESHOLD = 50;
+  const MAX_THROW_POWER = 500; // Reduced from 1000
+  const THROW_POWER_MULTIPLIER = 0.14; //
+  const ENERGY_DIVISOR = 900; // Increased from 500 to reduce energy gain
+  let dragStartTime;
+  let dragStartX, dragStartY;
 
-    // Check if player is in corner
-    function isInCorner(x, y) {
-      const cornerThreshold = 100;
-      return (x < cornerThreshold || x > GAME_CONFIG.baseWidth - cornerThreshold) && 
-             (y < cornerThreshold || y > GAME_CONFIG.baseHeight - cornerThreshold);
-    }
 
-    // Apply corner escape
-    function applyCornerEscape() {
-      const escapeAngle = Math.random() * Math.PI * 2;
-      const escapeSpeed = Math.max(Math.hypot(player.vx, player.vy), 10); // Ensure minimum escape speed
-      player.vx = Math.cos(escapeAngle) * escapeSpeed;
-      player.vy = Math.sin(escapeAngle) * escapeSpeed;
-      
-      // Move the ball slightly away from the corner
-      const cornerPush = 20;
-      if (player.x < GAME_CONFIG.borderRetraction + player.radius) player.x += cornerPush;
-      if (player.x > GAME_CONFIG.baseWidth - GAME_CONFIG.borderRetraction - player.radius) player.x -= cornerPush;
-      if (player.y < GAME_CONFIG.borderRetraction + player.radius) player.y += cornerPush;
-      if (player.y > GAME_CONFIG.baseHeight - GAME_CONFIG.borderRetraction - player.radius) player.y -= cornerPush;
-    }
+  // Define base dimensions
+  const baseWidth = 1600;
+  const baseHeight = 900;
+  let scale = 1;
+  let isWidescreen = true;
+
+  // Minimum allowed dimensions
+  const minWidth = 955;
+  const minHeight = 542;
+
+  // Add audio element
+  const popSound = new Audio('../images/pop.mp3');
+  popSound.volume = 0.5;
+
+  // Prompt for player name
+  const playerName = prompt("Enter your player name:", getPlayerName()) || "Space Walker";
+  savePlayerName(playerName);
+
+  // Game constants
+  const emberThreshold = 3;
+  const energyDecay = 0.999;
+  const velocityDecay = 0.995;
+  const minBounciness = 0.4;
+  const maxBounciness = 1.0;
+  const borderRetraction = 20;
+  const borderReturnDelay = 100;
+
+  // Game variables
+  let isDragging = false;
+  let bounceCount = 0;
+  let lastSoundTime = 0;
+
+  function savePlayerName(name) {
+    localStorage.setItem('bounceGamePlayerName', name);
+  }
+
+  function getPlayerName() {
+    return localStorage.getItem('bounceGamePlayerName') || "Space Walker";
+  }
+
+  // Player object
+  const player = {
+    alias: playerName,
+    x: baseWidth / 2,
+    y: baseHeight / 2,
+    vx: 0,
+    vy: 0,
+    radius: 40,
+    energy: 0,
+    lastBounceX: baseWidth / 2,
+    lastBounceY: baseHeight / 2
+  };
+
+  // Particle systems
+  const mistParticles = [];
+  const starParticles = [];
+  const emberParticles = [];
+
+  function fetchExistingScores() {
+    console.log("Fetching existing scores...");
+    const highScoreRef = database.ref('highScores');
     
-    function createBorderWave(border) {
-      const waveAmplitude = GAME_CONFIG.borderRetraction * 2.2;
-      const waveLength = Math.PI / 4; // Adjust for different wave shapes
-      const decayFactor = 0.95;
-      
-      const borderToAnimate = borderPoints[border];
-      borderToAnimate.forEach((point, index) => {
-        const offset = Math.sin(index * waveLength) * waveAmplitude;
-        const decay = Math.pow(decayFactor, index);
-        switch(border) {
-          case 'left':
-            point.x = point.originalX - offset * decay;
-            break;
-          case 'right':
-            point.x = point.originalX + offset * decay;
-            break;
-          case 'top':
-            point.y = point.originalY - offset * decay;
-            break;
-          case 'bottom':
-            point.y = point.originalY + offset * decay;
-            break;
-        }
-      });
-
-
-      const pushForce = 5;
-      const { borderRetraction, baseWidth, baseHeight } = GAME_CONFIG;
-      
-      switch(border) {
-        case 'left':
-          if (player.x - player.radius < borderRetraction) {
-            player.x = borderRetraction + player.radius;
-            player.vx = Math.max(Math.abs(player.vx), pushForce);
-          }
-          break;
-        case 'right':
-          if (player.x + player.radius > baseWidth - borderRetraction) {
-            player.x = baseWidth - borderRetraction - player.radius;
-            player.vx = -Math.max(Math.abs(player.vx), pushForce);
-          }
-          break;
-        case 'top':
-          if (player.y - player.radius < borderRetraction) {
-            player.y = borderRetraction + player.radius;
-            player.vy = Math.max(Math.abs(player.vy), pushForce);
-          }
-          break;
-        case 'bottom':
-          if (player.y + player.radius > baseHeight - borderRetraction) {
-            player.y = baseHeight - borderRetraction - player.radius;
-            player.vy = -Math.max(Math.abs(player.vy), pushForce);
-          }
-          break;
-      }
-    }
-
-    // Draw game elements
-    function draw() {
-      ctx.save();
-      ctx.scale(scale, scale);
-      
-      ctx.clearRect(0, 0, GAME_CONFIG.baseWidth, GAME_CONFIG.baseHeight);
-      drawBackground();
-      drawStars();
-      drawMist();
-      drawEmbers();
-      drawBorders();
-      drawPlayer();
-      drawScore();
-      
-      ctx.restore();
-    }
-
-    // Draw background
-    function drawBackground() {
-      const gradient = ctx.createRadialGradient(GAME_CONFIG.baseWidth/2, GAME_CONFIG.baseHeight/2, 0, GAME_CONFIG.baseWidth/2, GAME_CONFIG.baseHeight/2, GAME_CONFIG.baseWidth/2);
-      gradient.addColorStop(0, 'rgb(0, 0, 0)');
-      gradient.addColorStop(1, 'rgb(15, 15, 40)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, GAME_CONFIG.baseWidth, GAME_CONFIG.baseHeight);
-    }
-
-    // Draw stars
-    function drawStars() {
-      ctx.fillStyle = 'white';
-      starParticles.forEach(star => {
-        ctx.globalAlpha = star.twinkle ? (Math.sin(Date.now() / 1000) + 1) / 2 * 0.5 + 0.3 : 0.8;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    // Draw mist
-    function drawMist() {
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-        mistParticles.forEach(mist => {
-            const gradient = ctx.createRadialGradient(
-                mist.x, mist.y, 0,
-                mist.x, mist.y, mist.size / 2
-            );
-            gradient.addColorStop(0, `rgba(255, 255, 255, ${mist.opacity})`);
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            
-            ctx.beginPath();
-            ctx.arc(mist.x, mist.y, mist.size / 2, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-        });
-        ctx.restore();
-    }
-
-    // Draw embers
-    function drawEmbers() {
-      ctx.fillStyle = 'orange';
-      emberParticles.forEach(ember => {
-        ctx.globalAlpha = ember.life;
-        ctx.beginPath();
-        ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    // Draw borders
-    function drawBorders() {
-      ctx.strokeStyle = 'rgba(0, 100, 255, 0.5)';
-      ctx.lineWidth = 4;
-    
-      Object.values(borderPoints).forEach(border => {
-        ctx.beginPath();
-        border.forEach((point, index) => {
-          if (index === 0) {
-            ctx.moveTo(point.x, point.y);
-          } else {
-            ctx.lineTo(point.x, point.y);
-          }
-        });
-        ctx.stroke();
-      });
-    }
-
-    // Draw player
-    function drawPlayer() {
-      ctx.globalAlpha = 1;
-      const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
-      playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
-      playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
-      ctx.fillStyle = playerGradient;
-      
-      ctx.save();
-      ctx.translate(player.x, player.y);
-      ctx.beginPath();
-      ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      
-      drawPlayerGlow();
-      drawPlayerAlias();
-    }
-
-    // Draw player glow
-    function drawPlayerGlow() {
-      const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
-      const glowGradient = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, glowSize);
-      glowGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
-      glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
-      ctx.fillStyle = glowGradient;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Draw player alias
-    function drawPlayerAlias() {
-      ctx.fillStyle = '#ffd700';
-      ctx.font = '16px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(player.alias, player.x, player.y - player.radius - 20);
-    }
-
-    // Draw score
-    function drawScore() {
-      ctx.fillStyle = 'white';
-      ctx.font = '24px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText(`Bounces: ${bounceCount}`, 10, 30);
-    }
-
-    // Create mist particles
-    function createMist() {
-        mistParticles = [];
-        for (let i = 0; i < 30; i++) {
-            mistParticles.push({
-                x: Math.random() * GAME_CONFIG.baseWidth,
-                y: Math.random() * GAME_CONFIG.baseHeight,
-                size: Math.random() * 200 + 100,
-                opacity: Math.random() * 0.2 + 0.1,
-                speed: Math.random() * 0.2 + 0.1,
-                angle: Math.random() * Math.PI * 2
+    return highScoreRef.once('value')
+        .then((snapshot) => {
+            existingScores.clear(); // Clear existing scores before populating
+            snapshot.forEach((childSnapshot) => {
+                const score = childSnapshot.val().score;
+                if (typeof score === 'number' && !isNaN(score)) {
+                    existingScores.add(score);
+                } else {
+                    console.warn(`Invalid score found: ${score}`);
+                }
             });
-        }
-    }
-
-    // Create star particles
-    function createStars() {
-      starParticles = [];
-      const starCount = Math.min(100, Math.floor(100 * scale));
-      for (let i = 0; i < starCount; i++) {
-        starParticles.push({
-          x: Math.random() * GAME_CONFIG.baseWidth,
-          y: Math.random() * GAME_CONFIG.baseHeight,
-          size: Math.random() * 2 + 1,
-          twinkle: Math.random() > 0.5
+            console.log(`Fetched ${existingScores.size} existing scores.`);
+        })
+        .catch((error) => {
+            console.error("Error fetching existing scores:", error);
+            alert("Failed to fetch existing scores. The game may allow duplicate submissions. Error: " + error.message);
         });
-      }
+  }
+
+  function updateGameArea() {
+    const containerWidth = gameContainer.clientWidth;
+    const containerHeight = gameContainer.clientHeight;
+
+    if (containerWidth < minWidth || containerHeight < minHeight) {
+      showCheatMessage();
+      return;
     }
 
-    // Update mist positions
-    function updateMist(deltaTime) {
-        mistParticles.forEach(mist => {
-            mist.x += Math.cos(mist.angle) * mist.speed * deltaTime;
-            mist.y += Math.sin(mist.angle) * mist.speed * deltaTime;
-    
-            if (mist.x < -mist.size) mist.x = GAME_CONFIG.baseWidth + mist.size;
-            if (mist.x > GAME_CONFIG.baseWidth + mist.size) mist.x = -mist.size;
-            if (mist.y < -mist.size) mist.y = GAME_CONFIG.baseHeight + mist.size;
-            if (mist.y > GAME_CONFIG.baseHeight + mist.size) mist.y = -mist.size;
-        });
+    hideCheatMessage();
+
+    const containerAspect = containerWidth / containerHeight;
+    const gameAspect = isWidescreen ? 16 / 9 : 4 / 3;
+
+    if (containerAspect > gameAspect) {
+      scale = containerHeight / baseHeight;
+      canvas.width = containerHeight * gameAspect;
+      canvas.height = containerHeight;
+    } else {
+      scale = containerWidth / baseWidth;
+      canvas.width = containerWidth;
+      canvas.height = containerWidth / gameAspect;
     }
 
-    // Update ember particles
-    function updateEmberParticles() {
-      emberParticles = emberParticles.filter(ember => {
-        ember.x += ember.vx;
-        ember.y += ember.vy;
-        ember.life -= 0.02;
-        return ember.life > 0;
-      });
-    }
+    // Reset the scale transformation
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Apply the new scale
+    ctx.scale(scale, scale);
+  }
 
-    // Create ember trail
-    function createEmberTrail(x, y, vx, vy) {
-      emberParticles.push({
-        x, y,
-        vx: vx * 0.1,
-        vy: vy * 0.1,
-        size: Math.random() * 5 + 3,
-        life: 1
-      });
-    }
+  function showCheatMessage() {
+    cheatMessage.style.display = 'block';
+    canvas.style.display = 'none';
+    bounceCount = 0;
+  }
 
-    // Create lightning effect
-    function createLightning(x, y) {
-      const branches = 4;
-      const maxSegments = 5;
-      const maxOffset = 10;
-      const decay = 0.7;
-      const lightningParticles = [];
+  function hideCheatMessage() {
+    cheatMessage.style.display = 'none';
+    canvas.style.display = 'block';
+  }
 
-      function createBranch(startX, startY, angle, depth) {
-        let endX = startX;
-        let endY = startY;
-        const segments = Math.floor(Math.random() * maxSegments) + 5;
-
-        for (let i = 0; i < segments; i++) {
-          const length = (Math.random() * 20 + 10) * Math.pow(decay, depth);
-          endX += Math.cos(angle) * length;
-          endY += Math.sin(angle) * length;
-
-          lightningParticles.push({
-            startX, startY, endX, endY,
-            life: 1,
-            width: (3 - depth * 0.5) * Math.pow(decay, i)
-          });
-
-          startX = endX;
-          startY = endY;
-          angle += (Math.random() - 0.5) * 1;
-
-          if (Math.random() < 0.3 && depth < 3) {
-            createBranch(startX, startY, angle + (Math.random() - 0.5) * Math.PI / 2, depth + 1);
+  const minBounceDistance = 50; // Minimum distance required for a bounce to count
+  
+  function updatePosition(deltaTime) {
+      if (gameOver || cheatMessage.style.display === 'block') return;
+      
+      if (!isDragging) {
+          let bounced = false;
+          let bouncedBorder = null;
+  
+          // Only consider the game as started once the player moves the ball
+          if (player.vx !== 0 || player.vy !== 0) {
+              gameStarted = true;
           }
-        }
+  
+          // Update position
+          player.x += player.vx * (deltaTime / 16);
+          player.y += player.vy * (deltaTime / 16);
+  
+          // Check borders and handle collisions
+          if (player.x - player.radius <= borderRetraction) {
+              player.x = borderRetraction + player.radius;
+              player.vx = Math.abs(player.vx);
+              bounced = true;
+              bouncedBorder = 'left';
+          } else if (player.x + player.radius >= baseWidth - borderRetraction) {
+              player.x = baseWidth - borderRetraction - player.radius;
+              player.vx = -Math.abs(player.vx);
+              bounced = true;
+              bouncedBorder = 'right';
+          }
+  
+          if (player.y - player.radius <= borderRetraction) {
+              player.y = borderRetraction + player.radius;
+              player.vy = Math.abs(player.vy);
+              bounced = true;
+              bouncedBorder = 'top';
+          } else if (player.y + player.radius >= baseHeight - borderRetraction) {
+              player.y = baseHeight - borderRetraction - player.radius;
+              player.vy = -Math.abs(player.vy);
+              bounced = true;
+              bouncedBorder = 'bottom';
+          }
+  
+          if (bounced) {
+              const distanceTraveled = Math.sqrt(
+                  Math.pow(player.x - player.lastBounceX, 2) +
+                  Math.pow(player.y - player.lastBounceY, 2)
+              );
+  
+              if (distanceTraveled >= minBounceDistance) {
+                  const bounciness = minBounciness + (maxBounciness - minBounciness) * player.energy;
+                  player.vx *= bounciness;
+                  player.vy *= bounciness;
+                  createLightning(player.x, player.y);
+                  incrementBounceCount();
+                  playPopSound();
+                  retractBorder(bouncedBorder);
+                  ballAnimationTime = ballAnimationDuration; // Start ball animation
+  
+                  // Update last bounce position
+                  player.lastBounceX = player.x;
+                  player.lastBounceY = player.y;
+  
+                  // Simple corner escape logic
+                  if (isInCorner(player.x, player.y)) {
+                      const escapeAngle = Math.random() * Math.PI * 2;
+                      const escapeSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+                      player.vx = Math.cos(escapeAngle) * escapeSpeed;
+                      player.vy = Math.sin(escapeAngle) * escapeSpeed;
+                  }
+              } else {
+                  // If the ball hasn't traveled far enough, just reverse its direction without counting as a bounce
+                  if (bouncedBorder === 'left' || bouncedBorder === 'right') {
+                      player.vx *= -1;
+                  } else {
+                      player.vy *= -1;
+                  }
+              }
+          }
+  
+          const speed = Math.hypot(player.vx, player.vy);
+  
+          if (speed > emberThreshold) {
+              createEmberTrail(player.x, player.y, player.vx, player.vy);
+          }
+  
+          // Apply energy-based slowdown
+          player.energy *= Math.pow(energyDecay, deltaTime / 16);
+          player.vx *= Math.pow(velocityDecay, deltaTime / 16);
+          player.vy *= Math.pow(velocityDecay, deltaTime / 16);
+  
+          // Stop the ball if it's moving very slowly and submit high score only once
+          if (speed < 0.1 && gameStarted && !highScoreSubmitted) {
+              player.vx = 0;
+              player.vy = 0;
+              player.energy = 0;
+              submitHighScore();
+          }
       }
-
-      for (let i = 0; i < branches; i++) {
-        createBranch(x, y, (i / branches) * Math.PI * 2, 0);
+  
+      // Update ball animation
+      if (ballAnimationTime > 0) {
+          ballAnimationTime = Math.max(0, ballAnimationTime - deltaTime);
       }
-
-      animateLightning(lightningParticles);
-    }
-
-    // Animate lightning
-    function animateLightning(particles) {
-      function draw() {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        
-        particles = particles.filter(particle => {
-          ctx.beginPath();
-          ctx.moveTo(particle.startX, particle.startY);
-          ctx.lineTo(particle.endX, particle.endY);
-          ctx.strokeStyle = `rgba(255, 255, 255, ${particle.life})`;
-          ctx.lineWidth = particle.width;
-          ctx.stroke();
-
-          particle.life -= 0.05;
-          return particle.life > 0;
-        });
-
-        ctx.restore();
-
-        if (particles.length > 0) {
-          requestAnimationFrame(draw);
-        }
-      }
-
-      draw();
-    }
-
-    // Play pop sound
-    function playPopSound() {
-        if (popSound.paused) {
-            popSound.play();
-        } else {
-            popSound.currentTime = 0;
-        }
-    }
-
-    // Submit high score
-    function submitHighScore() {
+  }
+    
+  function isInCorner(x, y) {
+      const cornerThreshold = 100; // Adjust this value to change what's considered a "corner"
+      return (x < cornerThreshold || x > baseWidth - cornerThreshold) && 
+             (y < cornerThreshold || y > baseHeight - cornerThreshold);
+  }
+    
+  function submitHighScore() {
       if (highScoreSubmitted || gameOver || bounceCount <= 0) {
-        console.log("Score submission skipped");
-        displayHighScores();
-        return;
+          console.log("Score submission skipped:", 
+                      highScoreSubmitted ? "already submitted" : 
+                      gameOver ? "game over" : 
+                      "invalid score");
+          displayHighScores();  // Display high scores even if submission is skipped
+          return;
       }
-
+  
       gameOver = true;
       highScoreSubmitted = true;
-
+  
       console.log("Attempting to submit high score:", bounceCount);
-
+  
       const now = new Date();
       const estDate = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/New_York',
-        month: '2-digit', day: '2-digit', year: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: false
+          timeZone: 'America/New_York',
+          month: '2-digit',
+          day: '2-digit',
+          year: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
       }).format(now);
-
+  
       if (existingScores.has(bounceCount)) {
-        console.log("Score already exists, skipping submission");
-        displayHighScores();
-        return;
+          console.log("Score already exists, skipping submission");
+          displayHighScores();  // Display high scores even if score already exists
+          return;
       }
-
+  
       const highScoreRef = database.ref('highScores').push();
       highScoreRef.set({
-        score: bounceCount,
-        playerName: player.alias,
-        timestamp: estDate
+          score: bounceCount,
+          playerName: player.alias,
+          timestamp: estDate
       })
       .then(() => {
-        console.log("High score submitted successfully");
-        existingScores.add(bounceCount);
-        displayHighScores();
+          console.log("High score submitted successfully");
+          existingScores.add(bounceCount);  // Add the new score to our local set
+          displayHighScores();
       })
       .catch((error) => {
-        console.error("Error submitting high score:", error);
-        alert("Failed to submit high score. Error: " + error.message);
-        highScoreSubmitted = false;
-        gameOver = false;
-        displayHighScores();
+          console.error("Error submitting high score:", error);
+          alert("Failed to submit high score. Error: " + error.message);
+          highScoreSubmitted = false;
+          gameOver = false;
+          displayHighScores();  // Display high scores even if submission fails
       });
-    }
+  }
 
-    // Display high scores
-    function displayHighScores() {
+  function displayHighScores() {
       console.log("Attempting to display high scores");
       
-      database.ref('highScores').orderByChild('score').limitToLast(10).once('value')
+      const highScoreRef = database.ref('highScores');
+      highScoreRef.orderByChild('score').limitToLast(10).once('value')
         .then((snapshot) => {
           const highScores = [];
           snapshot.forEach((childSnapshot) => {
             highScores.push(childSnapshot.val());
           });
       
-          highScores.sort((a, b) => b.score - a.score);
+          highScores.sort((a, b) => b.score - a.score);  // Sort in descending order
       
           const highScoreList = document.getElementById('high-score-list');
           highScoreList.innerHTML = '';
@@ -731,276 +444,552 @@
             highScoreList.appendChild(li);
           });
       
+          // Ensure the retry button is visible
+          const retryButton = document.getElementById('retry-button');
+          retryButton.style.display = 'block';
+  
+          // Display the high score modal
           document.getElementById('high-score-modal').style.display = 'block';
         })
         .catch((error) => {
           console.error("Error fetching high scores:", error);
           alert("Failed to fetch high scores. Error: " + error.message);
         });
-    }
+  }
 
-    // Reset game
-    function resetGame() {
+  // Define the resetGame function
+  function resetGame() {
+      // Reset game state
       gameOver = false;
       gameStarted = false;
       highScoreSubmitted = false;
       bounceCount = 0;
-      
-      player.x = GAME_CONFIG.baseWidth / 2;
-      player.y = GAME_CONFIG.baseHeight / 2;
-      player.vx = player.vy = player.energy = 0;
+      ballAnimationTime = 0;
+  
+      // Reset player
+      player.x = baseWidth / 2;
+      player.y = baseHeight / 2;
+      player.vx = 0;
+      player.vy = 0;
+      player.energy = 0;
+      const savedName = getPlayerName();
+      player.alias = prompt("Enter your player name:", savedName) || savedName;
+      savePlayerName(player.alias);
       player.lastBounceX = player.x;
       player.lastBounceY = player.y;
-      
-      const savedName = getPlayerName();
-      let newName = savedName;
-      let attempts = 0;
-      const maxAttempts = 3;
-    
-      while (attempts < maxAttempts) {
-        newName = prompt("Enter your player name:", savedName);
-        if (newName !== null && newName.trim() !== "") {
-          break;
-        }
-        attempts++;
-      }
-    
-      player.alias = newName || "Anonymous Player";
-      savePlayerName(player.alias);
-      
-      emberParticles = [];
-      ringParticles = [];
-      
+  
+      // Clear particles
+      emberParticles.length = 0;
+      ringParticles.length = 0;
+  
+      // Recreate background elements
       createMist();
       createStars();
-      
+  
+      // Re-fetch high scores
       fetchExistingScores()
-        .then(() => {
-          document.getElementById('high-score-modal').style.display = 'none';
-          updateGameArea();
-          startGameLoop();
-        });
-      
-      console.log("Game reset completed");
-    }
-
-    // Fetch existing scores
-    function fetchExistingScores() {
-      console.log("Fetching existing scores...");
-      return database.ref('highScores').once('value')
-        .then((snapshot) => {
-          existingScores.clear();
-          snapshot.forEach((childSnapshot) => {
-            const score = childSnapshot.val().score;
-            if (typeof score === 'number' && !isNaN(score)) {
-              existingScores.add(score);
-            } else {
-              console.warn(`Invalid score found: ${score}`);
-            }
+          .then(() => {
+              // Hide high score modal
+              document.getElementById('high-score-modal').style.display = 'none';
+              
+              // Update display
+              updateGameArea();
+              
+              // Restart game loop if it's not already running
+              if (!gameLoopRunning) {
+                  gameLoopRunning = true;
+                  gameLoop(0);
+              }
           });
-          console.log(`Fetched ${existingScores.size} existing scores.`);
-        })
-        .catch((error) => {
-          console.error("Error fetching existing scores:", error);
-          alert("Failed to fetch existing scores. The game may allow duplicate submissions. Error: " + error.message);
-        });
+  
+      console.log("Game reset completed");
+  }
+  
+  // Attach resetGame to retry button click event
+  document.getElementById('retry-button').addEventListener('click', () => {
+      console.log("Retry button clicked");
+      resetGame();
+  });
+    
+  function incrementBounceCount() {
+    bounceCount++;
+  }
+
+  function playPopSound() {
+    const currentTime = Date.now();
+    if (currentTime - lastSoundTime > 50) {
+      popSound.currentTime = 0;
+      popSound.play();
+    }
+    lastSoundTime = currentTime;
+  }
+
+  function retractBorder(border) {
+    const borderParticles = [];
+    const particleCount = 20;
+    let startX, startY, endX, endY;
+
+    switch(border) {
+      case 'left':
+        startX = 0; startY = 0; endX = 0; endY = baseHeight;
+        break;
+      case 'right':
+        startX = baseWidth; startY = 0; endX = baseWidth; endY = baseHeight;
+        break;
+      case 'top':
+        startX = 0; startY = 0; endX = baseWidth; endY = 0;
+        break;
+      case 'bottom':
+        startX = 0; startY = baseHeight; endX = baseWidth; endY = baseHeight;
+        break;
     }
 
-    // Update game area
-    function updateGameArea() {
-      const containerWidth = window.innerWidth;
-      const containerHeight = window.innerHeight;
-    
-      if (containerWidth < GAME_CONFIG.minWidth || containerHeight < GAME_CONFIG.minHeight) {
-        canvas.style.display = 'none';
-        return;
-      }
-    
-      canvas.style.display = 'block';
-    
-      const containerAspect = containerWidth / containerHeight;
-      const gameAspect = isWidescreen ? 16 / 9 : 4 / 3;
-    
-      if (containerAspect > gameAspect) {
-        scale = containerHeight / GAME_CONFIG.baseHeight;
-        canvas.width = containerHeight * gameAspect;
-        canvas.height = containerHeight;
+    for (let i = 0; i < particleCount; i++) {
+      borderParticles.push({
+        x: startX + (endX - startX) * (i / particleCount),
+        y: startY + (endY - startY) * (i / particleCount),
+        originalX: startX + (endX - startX) * (i / particleCount),
+        originalY: startY + (endY - startY) * (i / particleCount),
+        offsetX: 0,
+        offsetY: 0,
+        life: 1
+      });
+    }
+
+    function animateBorderRetraction() {
+      ctx.save();
+      
+      borderParticles.forEach((particle, index) => {
+        if (particle.life > 0.5) {
+          particle.offsetX = (border === 'left' ? -1 : border === 'right' ? 1 : 0) * borderRetraction;
+          particle.offsetY = (border === 'top' ? -1 : border === 'bottom' ? 1 : 0) * borderRetraction;
+        } else {
+          particle.offsetX *= 0.9;
+          particle.offsetY *= 0.9;
+        }
+
+        ctx.beginPath();
+        ctx.arc(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 0, 50, ${particle.life * 0.3})`;
+        ctx.fill();
+
+        particle.life -= 0.02;
+
+        if (particle.life <= 0) {
+          borderParticles.splice(index, 1);
+        }
+      });
+
+      ctx.restore();
+
+      if (borderParticles.length > 0) {
+        requestAnimationFrame(animateBorderRetraction);
       } else {
-        scale = containerWidth / GAME_CONFIG.baseWidth;
-        canvas.width = containerWidth;
-        canvas.height = containerWidth / gameAspect;
+        // Push the ball out if it's still in the retracted space
+        pushBallOutOfBorder(border);
       }
+    }
+
+    animateBorderRetraction();
+  }
+
+  function pushBallOutOfBorder(border) {
+    const pushForce = 15; // Adjust this value to change how strongly the ball is pushed
+
+    switch(border) {
+      case 'left':
+        if (player.x - player.radius < borderRetraction) {
+          player.x = borderRetraction + player.radius;
+          player.vx = Math.abs(player.vx) + pushForce;
+        }
+        break;
+      case 'right':
+        if (player.x + player.radius > baseWidth - borderRetraction) {
+          player.x = baseWidth - borderRetraction - player.radius;
+          player.vx = -Math.abs(player.vx) - pushForce;
+        }
+        break;
+      case 'top':
+        if (player.y - player.radius < borderRetraction) {
+          player.y = borderRetraction + player.radius;
+          player.vy = Math.abs(player.vy) + pushForce;
+        }
+        break;
+      case 'bottom':
+        if (player.y + player.radius > baseHeight - borderRetraction) {
+          player.y = baseHeight - borderRetraction - player.radius;
+          player.vy = -Math.abs(player.vy) - pushForce;
+        }
+        break;
+    }
+  }
+
+  function createLightning(x, y) {
+    const branches = 5;
+    const maxSegments = 10;
+    const maxOffset = 30;
+    const decay = 0.7;
+    const lightningParticles = [];
+
+    function createBranch(startX, startY, angle, depth) {
+      let endX = startX;
+      let endY = startY;
+      const segments = Math.floor(Math.random() * maxSegments) + 5;
+
+      for (let i = 0; i < segments; i++) {
+        const length = (Math.random() * 20 + 10) * Math.pow(decay, depth);
+        endX += Math.cos(angle) * length;
+        endY += Math.sin(angle) * length;
+
+        lightningParticles.push({
+          startX, startY, endX, endY,
+          life: 1,
+          width: (3 - depth * 0.5) * Math.pow(decay, i)
+        });
+
+        startX = endX;
+        startY = endY;
+
+        // Add some randomness to the angle
+        angle += (Math.random() - 0.5) * 1;
+
+        // Occasionally create a new branch
+        if (Math.random() < 0.3 && depth < 3) {
+          createBranch(startX, startY, angle + (Math.random() - 0.5) * Math.PI / 2, depth + 1);
+        }
+      }
+    }
+
+    for (let i = 0; i < branches; i++) {
+      createBranch(x, y, (i / branches) * Math.PI * 2, 0);
+    }
+
+    function animateLightning() {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      
+      lightningParticles.forEach((particle, index) => {
+        ctx.beginPath();
+        ctx.moveTo(particle.startX, particle.startY);
+        ctx.lineTo(particle.endX, particle.endY);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${particle.life})`;
+        ctx.lineWidth = particle.width;
+        ctx.stroke();
+
+        particle.life -= 0.05;
+
+        if (particle.life <= 0) {
+          lightningParticles.splice(index, 1);
+        }
+      });
+
+      ctx.restore();
+
+      if (lightningParticles.length > 0) {
+        requestAnimationFrame(animateLightning);
+      }
+    }
+
+    animateLightning();
+  }
+
+  function createEmberTrail(x, y, vx, vy) {
+    const ember = {
+      x, y,
+      vx: vx * 0.1,
+      vy: vy * 0.1,
+      size: Math.random() * 5 + 3,
+      life: 1
+    };
+    emberParticles.push(ember);
+  }
+
+  function createMist() {
+    mistParticles.length = 0;
+    const mistCount = Math.min(20, Math.floor(20 * scale));
+    for (let i = 0; i < mistCount; i++) {
+      mistParticles.push({
+        x: Math.random() * baseWidth,
+        y: Math.random() * baseHeight,
+        size: Math.random() * 150 + 50,
+        opacity: Math.random() * 0.5 + 0.2,
+        hue: Math.random() * 60 + 180
+      });
+    }
+  }
+
+  function createStars() {
+    starParticles.length = 0;
+    const starCount = Math.min(100, Math.floor(100 * scale));
+    for (let i = 0; i < starCount; i++) {
+      starParticles.push({
+        x: Math.random() * baseWidth,
+        y: Math.random() * baseHeight,
+        size: Math.random() * 2 + 1,
+        twinkle: Math.random() > 0.5
+      });
+    }
+  }
+
+  function updateMistPositions() {
+    mistParticles.forEach(mist => {
+      mist.x += (Math.random() - 0.5) * 0.5;
+      mist.y += (Math.random() - 0.5) * 0.5;
+      if (mist.x < 0) mist.x = baseWidth;
+      if (mist.x > baseWidth) mist.x = 0;
+      if (mist.y < 0) mist.y = baseHeight;
+      if (mist.y > baseHeight) mist.y = 0;
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, baseWidth, baseHeight);
+
+    // Draw background
+    const gradient = ctx.createRadialGradient(baseWidth/2, baseHeight/2, 0, baseWidth/2, baseHeight/2, baseWidth/2);
+    gradient.addColorStop(0, 'rgb(0, 0, 0)');
+    gradient.addColorStop(1, 'rgb(15, 15, 40)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
+
+    // Draw stars
+    ctx.fillStyle = 'white';
+    starParticles.forEach(star => {
+      ctx.globalAlpha = star.twinkle ? (Math.sin(Date.now() / 1000) + 1) / 2 * 0.5 + 0.3 : 0.8;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Draw mist
+    updateMistPositions();
+    mistParticles.forEach(mist => {
+      const gradient = ctx.createRadialGradient(mist.x, mist.y, 0, mist.x, mist.y, mist.size / 2);
+      gradient.addColorStop(0, `hsla(${mist.hue}, 100%, 70%, ${mist.opacity})`);
+      gradient.addColorStop(1, `hsla(${mist.hue}, 100%, 50%, 0)`);
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(mist.x, mist.y, mist.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Draw embers
+    ctx.fillStyle = 'orange';
+    emberParticles.forEach((ember, index) => {
+      ctx.globalAlpha = ember.life;
+      ctx.beginPath();
+      ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      ember.x += ember.vx;
+      ember.y += ember.vy;
+      ember.life -= 0.02;
+
+      if (ember.life <= 0) {
+        emberParticles.splice(index, 1);
+      }
+    });
+
+    // Draw borders
+    ctx.strokeStyle = 'rgba(0, 0, 50, 0.5)';
+    ctx.lineWidth = borderRetraction * 2;
+    ctx.strokeRect(borderRetraction, borderRetraction, baseWidth - borderRetraction * 2, baseHeight - borderRetraction * 2);
+
+    // Draw player with animation
+    ctx.globalAlpha = 1;
+    const playerGradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, player.radius);
+    playerGradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+    playerGradient.addColorStop(1, 'rgba(255, 0, 0, 0.8)');
+    ctx.fillStyle = playerGradient;
+
+    // Apply ball animation
+    const animationProgress = 1 - (ballAnimationTime / ballAnimationDuration);
+    const scaleX = 1 + 0.2 * Math.sin(animationProgress * Math.PI * 4) * (1 - animationProgress);
+    const scaleY = 1 + 0.2 * Math.cos(animationProgress * Math.PI * 4) * (1 - animationProgress);
     
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(scale, scale);
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.scale(scaleX, scaleY);
+    ctx.beginPath();
+    ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Draw player glow
+    const glowSize = player.radius + 10 + Math.sin(Date.now() / 200) * 5;
+    const glowGradient = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, glowSize);
+    glowGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+    glowGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    ctx.fillStyle = glowGradient;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, glowSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw player alias
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(player.alias, player.x, player.y - player.radius - 20);
+
+    // Draw score
+    ctx.fillStyle = 'white';
+    ctx.font = '24px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Bounces: ${bounceCount}`, 10, 30);
+  }
+
+  let lastTime = 0;
+  let gameLoopRunning = false;
+  
+  function gameLoop(currentTime) {
+      gameLoopRunning = true;
+      const deltaTime = currentTime - lastTime;
+      lastTime = currentTime;
+  
+      if (!gameOver) {
+          updatePosition(deltaTime);
+          draw();
+          requestAnimationFrame(gameLoop);
+      } else {
+          gameLoopRunning = false;
+      }
+  }
+
+  function createPowerThrowEffect() {
+      ringParticles = [];  // Clear any existing particles
+      const particleCount = 20;
+      for (let i = 0; i < particleCount; i++) {
+          const angle = (i / particleCount) * Math.PI * 2;
+          ringParticles.push({
+              x: player.x + Math.cos(angle) * player.radius,
+              y: player.y + Math.sin(angle) * player.radius,
+              vx: Math.cos(angle) * 5,
+              vy: Math.sin(angle) * 5,
+              life: 1
+          });
+      }
+  }
+    
+  function animatePowerThrow() {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    ringParticles.forEach((particle, index) => {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
+        ctx.fill();
+
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.life -= 0.02;
+
+        if (particle.life <= 0) {
+        ringParticles.splice(index, 1);
+        }
+    });
+
+    ctx.restore();
+
+    if (ringParticles.length > 0) {
+        requestAnimationFrame(animatePowerThrow);
+      }
     }
 
-    // Setup event listeners
-    function setupEventListeners() {
-      canvas.addEventListener('mousedown', handleMouseDown);
-      canvas.addEventListener('mousemove', handleMouseMove);
-      canvas.addEventListener('mouseup', handleMouseUp);
-      document.getElementById('aspect-ratio-toggle').addEventListener('click', toggleAspectRatio);
-      document.getElementById('retry-button').addEventListener('click', resetGame);
-      window.addEventListener('resize', handleResize);
-    }
+    animatePowerThrow();
 
-    // Handle mouse down event
-    function handleMouseDown(event) {
-      if (gameOver) return;
+  canvas.addEventListener('mousedown', (event) => {
+      if (gameOver) return;  // Stop interaction if game is over
       const rect = canvas.getBoundingClientRect();
       const x = (event.clientX - rect.left) / scale;
       const y = (event.clientY - rect.top) / scale;
       const dx = x - player.x;
       const dy = y - player.y;
       if (dx * dx + dy * dy <= player.radius * player.radius) {
-        isDragging = true;
-        dragStartX = x;
-        dragStartY = y;
-        dragStartTime = Date.now();
-        player.vx = 0;
-        player.vy = 0;
+          isDragging = true;
+          dragStartX = x;
+          dragStartY = y;
+          dragStartTime = Date.now();
+          player.vx = 0;
+          player.vy = 0;
       }
-    }
+  });
 
-    // Handle mouse move event
-    function handleMouseMove(event) {
+  canvas.addEventListener('mousemove', (event) => {
+    if (isDragging) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / scale;
+      const y = (event.clientY - rect.top) / scale;
+      player.x = x;
+      player.y = y;
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
       if (isDragging) {
-        const rect = canvas.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / scale;
-        const y = (event.clientY - rect.top) / scale;
-        player.x = x;
-        player.y = y;
+          isDragging = false;
+          const endX = player.x;
+          const endY = player.y;
+          const dragEndTime = Date.now();
+          const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
+  
+          const dx = endX - dragStartX;
+          const dy = endY - dragStartY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+  
+          // Calculate throw power based on speed (distance / time)
+          const speed = distance / dragDuration;
+          const maxSpeed = 1000; // Adjust this value to set the upper limit of throw power
+          const throwPower = Math.min(speed, maxSpeed);
+  
+          const angle = Math.atan2(dy, dx);
+  
+          // Adjust these multipliers to fine-tune the throw strength
+          player.vx = Math.cos(angle) * throwPower * 0.15;
+          player.vy = Math.sin(angle) * throwPower * 0.15;
+  
+          // Set energy based on throw power
+          player.energy = Math.min(throwPower / maxSpeed, .9);
+          bounceCount = 0;
+          
+          // Reset last bounce position when the ball is thrown
+          player.lastBounceX = player.x;
+          player.lastBounceY = player.y;
+          
+          if (player.energy > 0.1) {
+              createPowerThrowEffect();
+          }
       }
-    }
+  });
 
-    // Handle mouse up event
-    function handleMouseUp() {
-      if (isDragging) {
-        isDragging = false;
-        const endX = player.x;
-        const endY = player.y;
-        const dragEndTime = Date.now();
-        const dragDuration = (dragEndTime - dragStartTime) / 1000; // Convert to seconds
+  aspectRatioToggle.addEventListener('click', () => {
+    isWidescreen = !isWidescreen;
+    updateGameArea();
+    createMist();
+    createStars();
+  });
 
-        const dx = endX - dragStartX;
-        const dy = endY - dragStartY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // Calculate throw power based on speed (distance / time)
-        const speed = distance / dragDuration;
-        const maxSpeed = 1000; // Adjust this value to set the upper limit of throw power
-        const throwPower = Math.min(speed, maxSpeed);
-
-        const angle = Math.atan2(dy, dx);
-
-        // Adjust these multipliers to fine-tune the throw strength
-        player.vx = Math.cos(angle) * throwPower * GAME_CONFIG.throwPowerMultiplier;
-        player.vy = Math.sin(angle) * throwPower * GAME_CONFIG.throwPowerMultiplier;
-
-        // Set energy based on throw power
-        player.energy = Math.min(throwPower / maxSpeed, 0.9);
-        bounceCount = 0;
-        
-        // Reset last bounce position when the ball is thrown
-        player.lastBounceX = player.x;
-        player.lastBounceY = player.y;
-        
-        if (player.energy > 0.1) {
-          createPowerThrowEffect();
-        }
-      }
-    }
-
-    // Toggle aspect ratio
-    function toggleAspectRatio() {
-      isWidescreen = !isWidescreen;
+  function initGame() {
       updateGameArea();
       createMist();
       createStars();
-    }
+      fetchExistingScores()
+          .then(() => {
+              if (!gameLoopRunning) {
+                  gameLoopRunning = true;
+                  gameLoop(0);
+              }
+          });
+  }
 
-    // Handle resize event
-    function handleResize() {
-      updateGameArea();
-      createMist();
-      createStars();
-    }
+  window.addEventListener('resize', () => {
+    updateGameArea();
+    createMist();
+    createStars();
+  });
 
-    // Create power throw effect
-    function createPowerThrowEffect() {
-      ringParticles = [];
-      const particleCount = 20;
-      for (let i = 0; i < particleCount; i++) {
-        const angle = (i / particleCount) * Math.PI * 2;
-        ringParticles.push({
-          x: player.x + Math.cos(angle) * player.radius,
-          y: player.y + Math.sin(angle) * player.radius,
-          vx: Math.cos(angle) * 5,
-          vy: Math.sin(angle) * 5,
-          life: 1
-        });
-      }
-      animatePowerThrow();
-    }
-
-    // Animate power throw
-    function animatePowerThrow() {
-        function drawParticles() {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            
-            for (let i = ringParticles.length - 1; i >= 0; i--) {
-                const particle = ringParticles[i];
-                
-                ctx.beginPath();
-                ctx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${particle.life})`;
-                ctx.fill();
-                
-                particle.x += particle.vx;
-                particle.y += particle.vy;
-                particle.life -= 0.02;
-                
-                if (particle.life <= 0) {
-                    ringParticles.splice(i, 1);
-                }
-            }
-            
-            ctx.restore();
-        }
-    
-        function animate() {
-            if (ringParticles.length > 0) {
-                drawParticles();
-                requestAnimationFrame(animate);
-            }
-        }
-    
-        animate();
-    }
-
-    // Get player name from local storage
-    function getPlayerName() {
-      return localStorage.getItem('bounceGamePlayerName') || "Space Walker";
-    }
-
-    // Save player name to local storage
-    function savePlayerName(name) {
-      localStorage.setItem('bounceGamePlayerName', name);
-    }
-
-    // Start game loop
-    function startGameLoop() {
-      if (!gameLoopRunning) {
-        gameLoopRunning = true;
-        lastTime = 0;
-        requestAnimationFrame(gameLoop);
-      }
-    }
-
-    // Initialize the game
-    initGame();
+  // Start the game
+  initGame();
   </script>
 </body>
 </html>
