@@ -78,12 +78,92 @@
       border-radius: 5px;
       cursor: pointer;
     }
+    /* Styles for the bouncy borders */
+    .bouncy-border {
+      position: absolute;
+      background: rgba(0, 0, 50, 0.5);
+      transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .bouncy-border-left, .bouncy-border-right {
+      width: 20px;
+      height: 100%;
+      top: 0;
+    }
+    
+    .bouncy-border-top, .bouncy-border-bottom {
+      width: 100%;
+      height: 20px;
+      left: 0;
+    }
+    
+    .bouncy-border-left {
+      left: 0;
+      transform-origin: left center;
+    }
+    
+    .bouncy-border-right {
+      right: 0;
+      transform-origin: right center;
+    }
+    
+    .bouncy-border-top {
+      top: 0;
+      transform-origin: center top;
+    }
+    
+    .bouncy-border-bottom {
+      bottom: 0;
+      transform-origin: center bottom;
+    }
+    
+    /* Animation classes */
+    .bounce-left {
+      animation: bounceLeft 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .bounce-right {
+      animation: bounceRight 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .bounce-top {
+      animation: bounceTop 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    .bounce-bottom {
+      animation: bounceBottom 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    
+    /* Keyframe animations */
+    @keyframes bounceLeft {
+      0%, 100% { transform: scaleX(1); }
+      50% { transform: scaleX(1.2); }
+    }
+    
+    @keyframes bounceRight {
+      0%, 100% { transform: scaleX(1); }
+      50% { transform: scaleX(1.2); }
+    }
+    
+    @keyframes bounceTop {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.2); }
+    }
+    
+    @keyframes bounceBottom {
+      0%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(1.2); }
+    }
     
   </style>
 </head>
 <body>
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
+    <div class="bouncy-border bouncy-border-left"></div>
+    <div class="bouncy-border bouncy-border-right"></div>
+    <div class="bouncy-border bouncy-border-top"></div>
+    <div class="bouncy-border bouncy-border-bottom"></div>
     <button id="aspect-ratio-toggle">Toggle 16:9 / 4:3</button>
   </div>
   
@@ -161,8 +241,6 @@
   const velocityDecay = 0.995;
   const minBounciness = 0.4;
   const maxBounciness = 1.0;
-  const borderRetraction = 20;
-  const borderReturnDelay = 100;
 
   // Game variables
   let isDragging = false;
@@ -221,6 +299,10 @@
   function updateGameArea() {
     const containerWidth = gameContainer.clientWidth;
     const containerHeight = gameContainer.clientHeight;
+    const leftBorder = document.querySelector('.bouncy-border-left');
+    const rightBorder = document.querySelector('.bouncy-border-right');
+    const topBorder = document.querySelector('.bouncy-border-top');
+    const bottomBorder = document.querySelector('.bouncy-border-bottom');
 
     if (containerWidth < minWidth || containerHeight < minHeight) {
       showCheatMessage();
@@ -246,6 +328,12 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // Apply the new scale
     ctx.scale(scale, scale);
+    leftBorder.style.height = `${canvas.height}px`;
+    rightBorder.style.height = `${canvas.height}px`;
+    rightBorder.style.left = `${canvas.width - 20}px`;
+    topBorder.style.width = `${canvas.width}px`;
+    bottomBorder.style.width = `${canvas.width}px`;
+    bottomBorder.style.top = `${canvas.height - 20}px`;
   }
 
   function showCheatMessage() {
@@ -278,28 +366,28 @@
           player.y += player.vy * (deltaTime / 16);
   
           // Check borders and handle collisions
-          if (player.x - player.radius <= borderRetraction) {
-              player.x = borderRetraction + player.radius;
-              player.vx = Math.abs(player.vx);
-              bounced = true;
-              bouncedBorder = 'left';
-          } else if (player.x + player.radius >= baseWidth - borderRetraction) {
-              player.x = baseWidth - borderRetraction - player.radius;
-              player.vx = -Math.abs(player.vx);
-              bounced = true;
-              bouncedBorder = 'right';
+          if (player.x - player.radius <= 20) {
+            player.x = 20 + player.radius;
+            player.vx = Math.abs(player.vx);
+            bounced = true;
+            bouncedBorder = 'left';
+          } else if (player.x + player.radius >= baseWidth - 20) {
+            player.x = baseWidth - 20 - player.radius;
+            player.vx = -Math.abs(player.vx);
+            bounced = true;
+            bouncedBorder = 'right';
           }
-  
-          if (player.y - player.radius <= borderRetraction) {
-              player.y = borderRetraction + player.radius;
-              player.vy = Math.abs(player.vy);
-              bounced = true;
-              bouncedBorder = 'top';
-          } else if (player.y + player.radius >= baseHeight - borderRetraction) {
-              player.y = baseHeight - borderRetraction - player.radius;
-              player.vy = -Math.abs(player.vy);
-              bounced = true;
-              bouncedBorder = 'bottom';
+          
+          if (player.y - player.radius <= 20) {
+            player.y = 20 + player.radius;
+            player.vy = Math.abs(player.vy);
+            bounced = true;
+            bouncedBorder = 'top';
+          } else if (player.y + player.radius >= baseHeight - 20) {
+            player.y = baseHeight - 20 - player.radius;
+            player.vy = -Math.abs(player.vy);
+            bounced = true;
+            bouncedBorder = 'bottom';
           }
   
           if (bounced) {
@@ -525,101 +613,37 @@
   }
 
   function retractBorder(border) {
-    const borderParticles = [];
-    const particleCount = 20;
-    let startX, startY, endX, endY;
-
-    switch(border) {
-      case 'left':
-        startX = 0; startY = 0; endX = 0; endY = baseHeight;
-        break;
-      case 'right':
-        startX = baseWidth; startY = 0; endX = baseWidth; endY = baseHeight;
-        break;
-      case 'top':
-        startX = 0; startY = 0; endX = baseWidth; endY = 0;
-        break;
-      case 'bottom':
-        startX = 0; startY = baseHeight; endX = baseWidth; endY = baseHeight;
-        break;
-    }
-
-    for (let i = 0; i < particleCount; i++) {
-      borderParticles.push({
-        x: startX + (endX - startX) * (i / particleCount),
-        y: startY + (endY - startY) * (i / particleCount),
-        originalX: startX + (endX - startX) * (i / particleCount),
-        originalY: startY + (endY - startY) * (i / particleCount),
-        offsetX: 0,
-        offsetY: 0,
-        life: 1
-      });
-    }
-
-    function animateBorderRetraction() {
-      ctx.save();
-      
-      borderParticles.forEach((particle, index) => {
-        if (particle.life > 0.5) {
-          particle.offsetX = (border === 'left' ? -1 : border === 'right' ? 1 : 0) * borderRetraction;
-          particle.offsetY = (border === 'top' ? -1 : border === 'bottom' ? 1 : 0) * borderRetraction;
-        } else {
-          particle.offsetX *= 0.9;
-          particle.offsetY *= 0.9;
-        }
-
-        ctx.beginPath();
-        ctx.arc(particle.originalX + particle.offsetX, particle.originalY + particle.offsetY, 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 0, 50, ${particle.life * 0.3})`;
-        ctx.fill();
-
-        particle.life -= 0.02;
-
-        if (particle.life <= 0) {
-          borderParticles.splice(index, 1);
-        }
-      });
-
-      ctx.restore();
-
-      if (borderParticles.length > 0) {
-        requestAnimationFrame(animateBorderRetraction);
-      } else {
-        // Push the ball out if it's still in the retracted space
-        pushBallOutOfBorder(border);
-      }
-    }
-
-    animateBorderRetraction();
+    const borderElement = document.querySelector(`.bouncy-border-${border}`);
+    borderElement.classList.add(`bounce-${border}`);
+    
+    // Remove the class after the animation completes
+    setTimeout(() => {
+      borderElement.classList.remove(`bounce-${border}`);
+    }, 300);
+  
+    // Push the ball out if it's still in the retracted space
+    pushBallOutOfBorder(border);
   }
 
-  function pushBallOutOfBorder(border) {
-    const pushForce = 15; // Adjust this value to change how strongly the ball is pushed
 
+  function pushBallOutOfBorder(border) {
+    const pushForce = 15;
     switch(border) {
       case 'left':
-        if (player.x - player.radius < borderRetraction) {
-          player.x = borderRetraction + player.radius;
-          player.vx = Math.abs(player.vx) + pushForce;
-        }
+        player.x = 20 + player.radius;
+        player.vx = Math.abs(player.vx) + pushForce;
         break;
       case 'right':
-        if (player.x + player.radius > baseWidth - borderRetraction) {
-          player.x = baseWidth - borderRetraction - player.radius;
-          player.vx = -Math.abs(player.vx) - pushForce;
-        }
+        player.x = baseWidth - 20 - player.radius;
+        player.vx = -Math.abs(player.vx) - pushForce;
         break;
       case 'top':
-        if (player.y - player.radius < borderRetraction) {
-          player.y = borderRetraction + player.radius;
-          player.vy = Math.abs(player.vy) + pushForce;
-        }
+        player.y = 20 + player.radius;
+        player.vy = Math.abs(player.vy) + pushForce;
         break;
       case 'bottom':
-        if (player.y + player.radius > baseHeight - borderRetraction) {
-          player.y = baseHeight - borderRetraction - player.radius;
-          player.vy = -Math.abs(player.vy) - pushForce;
-        }
+        player.y = baseHeight - 20 - player.radius;
+        player.vy = -Math.abs(player.vy) - pushForce;
         break;
     }
   }
@@ -789,11 +813,6 @@
         emberParticles.splice(index, 1);
       }
     });
-
-    // Draw borders
-    ctx.strokeStyle = 'rgba(0, 0, 50, 0.5)';
-    ctx.lineWidth = borderRetraction * 2;
-    ctx.strokeRect(borderRetraction, borderRetraction, baseWidth - borderRetraction * 2, baseHeight - borderRetraction * 2);
 
     // Draw player with animation
     ctx.globalAlpha = 1;
