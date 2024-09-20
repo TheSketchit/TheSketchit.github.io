@@ -2,7 +2,23 @@
   "rules": {
     "raidLootData": {
       ".read": "auth != null || auth == null",  // Allow both authenticated and guest users to read
-      ".write": "auth != null"  // Only authenticated users can write
+      ".write": "auth != null",  // Only authenticated users can write
+      "$raid": {
+        "$entryId": {
+          ".validate": "newData.hasChildren(['Class', 'From', 'Item', 'ItemId', 'Name', 'RaidDate', 'SRPoints', 'Spec'])"
+        }
+      }
+    },
+    "highScores": {
+      ".read": "auth != null || auth == null",  // Allow both authenticated and guest users to read
+      ".write": "auth != null || auth == null",  // Allow both authenticated and guest users to read
+      "$score": {
+        ".validate": "newData.hasChildren(['playerName', 'timestamp']) &&
+                      newData.child('playerName').isString() &&
+                      newData.child('playerName').val().length > 0 &&
+                      newData.child('playerName').val().length <= 50 &&
+                      newData.child('timestamp').isString()"
+      }
     }
   }
 }
