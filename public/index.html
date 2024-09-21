@@ -1,89 +1,611 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/10.13.2/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/10.13.2/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/10.13.2/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>It's time 4 Steven 2 Buttfuck U</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WoW Soft Reserve Loot Tracker</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/embers.css">
+</head>
+<body>
+  
+  <div class="top-banner">
+    <div class="container">
+      <button onclick="goToGame()">o</button>
+      <div id="auth-container">
+        <button onclick="goToLogin()">Login</button>
+      </div>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+  </div>
+  
+  <canvas id="emberCanvas"></canvas>
+  <div class="heat-effect"></div>
+  
+  <div class="container">
+    <h1>WoW Soft Reserve Loot Tracker</h1>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+    <div id="tracker-container" style="display:none;">
+      <div id="duplicate-message-container"></div>
+      <label for="raidDate" id="raidDateLabel">Raid Date:</label>
+      <input type="date" id="raidDate"><br><br>
+      <textarea id="csvInput" rows="10" cols="100"></textarea><br>
+      <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
+      <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
+      
+      <div class="navigation-container">
+        <div class="chevron-navigation">
+          <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
+          <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
+          <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
+          <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
+        </div>
+        <div class="dropdown">
+          <button class="dropbtn">Soft-Reserves Raid Dates</button>
+          <div class="dropdown-content" id="viewRaidDate"></div>
+        </div>
+      </div>
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+      <div id="filterIndicator" style="display: none;"></div>
+      <button onclick="clearFilter()" id="clearFilterButton" style="display: none;">Clear Filter</button>
+      
+      <div class="parchment-table-container">
+        <div class="parchment-table-top">
+          <div class="parchment-table-top-left"></div>
+          <div class="parchment-table-top-middle"></div>
+          <div class="parchment-table-top-right"></div>
+        </div>
+        <div class="parchment-table-middle">
+          <div class="parchment-table-left"></div>
+          <div class="parchment-table-content">
+            <table id="lootTable">
+              <thead>
+                <tr>
+                  <th onclick="sortTable('Item')">Item</th>
+                  <th onclick="sortTable('From')">From</th>
+                  <th onclick="sortTable('Name')">Name</th>
+                  <th onclick="sortTable('Class')">Class</th>
+                  <th onclick="sortTable('Spec')">Spec</th>
+                  <th onclick="sortTable('RaidDate')">Raid Date</th>
+                  <th onclick="sortTable('SRPoints')">SR Points</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="parchment-table-right"></div>
+        </div>
+        <div class="parchment-table-bottom">
+          <div class="parchment-table-bottom-left"></div>
+          <div class="parchment-table-bottom-middle"></div>
+          <div class="parchment-table-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+  <script>
+    
+    var firebaseConfig = {
+      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+      authDomain: "wowsr-9ec27.firebaseapp.com",
+      projectId: "wowsr-9ec27",
+      storageBucket: "wowsr-9ec27.appspot.com",
+      messagingSenderId: "1037521583710",
+      appId: "1037521583710:web:290e85c6bde4e047337ecf",
+      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+
+    let isGuest = true;
+    let currentFilter = null;
+    let currentSort = { column: 'RaidDate', direction: 'desc' };
+    let selectedRaid = null;
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        isGuest = false;
+        document.getElementById('auth-container').innerHTML = '<button onclick="signOut()">Sign Out</button>';
+      } else {
+        isGuest = true;
+        document.getElementById('auth-container').innerHTML = '<button onclick="goToLogin()">Login</button>';
+      }
+      onLoginStateChange();
+    });
+
+    function onLoginStateChange() {
+      if (isGuest) {
+        // Hide admin controls
+        document.getElementById('raidDateLabel').style.display = 'none';
+        document.getElementById('raidDate').style.display = 'none';
+        document.getElementById('csvInput').style.display = 'none';
+        document.getElementById('saveLootButton').style.display = 'none';
+        document.getElementById('calculateSRsButton').style.display = 'none';
+      } else {
+        // Show admin controls
+        document.getElementById('raidDateLabel').style.display = 'block';
+        document.getElementById('raidDate').style.display = 'block';
+        document.getElementById('csvInput').style.display = 'block';
+        document.getElementById('saveLootButton').style.display = 'inline-block';
+        document.getElementById('calculateSRsButton').style.display = 'inline-block';
+      }
+      
+      // Always show the tracker container
+      document.getElementById('tracker-container').style.display = 'block';
+      
+      // Refresh data display
+      displayStoredData();
+    }
+
+    function signOut() {
+      firebase.auth().signOut()
+        .then(() => {
+          console.log('User signed out');
+        })
+        .catch(error => {
+          console.error('Error signing out:', error);
+        });
+    }
+
+    function processCSV() {
+      const csvInput = document.getElementById('csvInput').value;
+      const raidDate = document.getElementById('raidDate').value;
+      const raid = selectedRaid;
+
+      if (!raidDate || !raid) {
+        alert('Please select a raid and a raid date.');
+        return;
+      }
+
+      Papa.parse(csvInput, {
+        header: true,
+        complete: function(results) {
+          const data = results.data;
+          data.forEach(row => {
+            row.RaidDate = raidDate;
+            row['SRPoints'] = 1;
+            row['Raid'] = raid;
+          });
+          saveToFirebase(data, raid);
         }
       });
-    </script>
-  </body>
+    }
+
+    async function saveToFirebase(data, raid) {
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+      let duplicateEntries = [];
+
+      const snapshot = await lootRef.once('value');
+      const existingData = snapshot.val() || {};
+      const existingEntries = Object.values(existingData);
+
+      data.forEach(row => {
+        const duplicate = existingEntries.some(existing => 
+          existing.Name === row.Name && existing.RaidDate === row.RaidDate
+        );
+
+        if (!duplicate) {
+          lootRef.push(row)
+            .then(() => {
+              console.log('Document successfully written!');
+            })
+            .catch(error => {
+              console.error('Error writing document: ', error);
+            });
+        } else {
+          duplicateEntries.push(row);
+        }
+      });
+
+      if (duplicateEntries.length > 0) {
+        displayDuplicateMessage(duplicateEntries);
+      } else {
+        alert('Data saved successfully!');
+      }
+    }
+
+    function displayDuplicateMessage(duplicateEntries) {
+      const container = document.getElementById('duplicate-message-container');
+      container.innerHTML = '';
+
+      const noticeDiv = document.createElement('div');
+      noticeDiv.className = 'notice';
+      const closeButton = document.createElement('span');
+      closeButton.className = 'closebtn';
+      closeButton.innerHTML = '&times;';
+      closeButton.onclick = () => noticeDiv.style.display = 'none';
+      noticeDiv.appendChild(closeButton);
+
+      const message = document.createElement('p');
+      message.innerHTML = '<strong>The following rows were not submitted due to duplicate data being found:</strong>';
+
+      const scrollBox = document.createElement('div');
+      scrollBox.className = 'scroll-box';
+
+      duplicateEntries.forEach(entry => {
+        const row = document.createElement('p');
+        row.textContent = `Name: ${entry.Name}, Item: ${entry.Item}, RaidDate: ${entry.RaidDate}`;
+        scrollBox.appendChild(row);
+      });
+
+      noticeDiv.appendChild(message);
+      noticeDiv.appendChild(scrollBox);
+      container.appendChild(noticeDiv);
+    }
+
+    function displayData(data) {
+      const tableBody = document.querySelector('#lootTable tbody');
+      tableBody.innerHTML = '';
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        ['Item', 'From', 'Name', 'Class', 'Spec', 'RaidDate', 'SRPoints'].forEach(key => {
+          const td = document.createElement('td');
+          if (key === 'Item') {
+            const a = document.createElement('a');
+            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
+            a.target = '_blank';
+            a.className = 'item-row notranslate d-block q1 q3';
+            a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
+            td.appendChild(a);
+          } else if (key === 'Name') {
+            const span = document.createElement('span');
+            span.textContent = row[key];
+            span.className = 'player-name';
+            span.onclick = (event) => {
+              event.stopPropagation(); // Prevent cell click event
+              window.open(`https://atlasforge.gg/wow-classic/armory/us/wild-growth/${row[key]}`, '_blank');
+            };
+            td.appendChild(span);
+          } else {
+            td.textContent = row[key];
+          }
+          td.onclick = (event) => {
+            if (event.target === td) { // Only filter if the cell itself was clicked
+              filterByColumn(key, row[key]);
+            }
+          };
+          tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+      });
+      updateSortIndicators();
+    
+      // Refresh Wowhead tooltips
+      if (typeof $WowheadPower !== 'undefined') {
+        $WowheadPower.refreshLinks();
+      }
+    }
+
+    function migrateOnyxiaData() {
+      const worldBossesRef = firebase.database().ref('raidLootData/World Bosses & Onyxia');
+      const onyxiaRef = firebase.database().ref('raidLootData/Onyxia');
+    
+      worldBossesRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+    
+        const updates = {};
+        const onyxiaData = {};
+        const worldBossesData = {};
+    
+        Object.entries(data).forEach(([key, entry]) => {
+          if (entry.From === 'Onyxia') {
+            onyxiaData[key] = entry;
+          } else {
+            worldBossesData[key] = entry;
+          }
+        });
+    
+        updates['raidLootData/Onyxia'] = onyxiaData;
+        updates['raidLootData/World Bosses'] = worldBossesData;
+    
+        // Remove the old 'World Bosses & Onyxia' node
+        updates['raidLootData/World Bosses & Onyxia'] = null;
+    
+        firebase.database().ref().update(updates)
+          .then(() => {
+            console.log('Data migration completed successfully');
+            // Refresh the display
+            displayStoredData();
+          })
+          .catch((error) => {
+            console.error('Error migrating data:', error);
+          });
+      });
+    }
+
+    function calculateSRs() {
+      const chevrons = document.querySelectorAll('.chevron');
+      chevrons.forEach(chevron => {
+        const raid = chevron.textContent.trim();
+        const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+        lootRef.once('value', (snapshot) => {
+          const data = snapshot.val();
+          let storedData = data ? Object.entries(data) : [];
+          let playerItemTracking = {};
+          let updates = {};
+    
+          // Sort all entries by RaidDate in ascending order
+          storedData.sort((a, b) => new Date(a[1].RaidDate) - new Date(b[1].RaidDate));
+    
+          // Process stored data and calculate SR points
+          storedData.forEach(([key, row]) => {
+            const playerKey = row.Name.toLowerCase().trim();
+            
+            if (!playerItemTracking[playerKey]) {
+              playerItemTracking[playerKey] = { 
+                lastItem: null,
+                srPoints: 1,
+                lastWinDate: null 
+              };
+            }
+    
+            if (row.SRPoints > 0) { // This item was soft reserved
+              if (playerItemTracking[playerKey].lastItem === row.Item) {
+                // Same item as last time, increment SR points
+                row.SRPoints = playerItemTracking[playerKey].srPoints;
+                playerItemTracking[playerKey].srPoints++;
+              } else {
+                // Different item, reset SR points
+                row.SRPoints = 1;
+                playerItemTracking[playerKey].srPoints = 2;
+                playerItemTracking[playerKey].lastItem = row.Item;
+              }
+              
+              // Check if item was won
+              if (playerItemTracking[playerKey].lastWinDate === row.RaidDate) {
+                row.SRPoints = 1;
+                playerItemTracking[playerKey].srPoints = 1;
+                playerItemTracking[playerKey].lastWinDate = null;
+              }
+            } else {
+              // If SRPoints is 0, it means the item wasn't soft reserved
+              row.SRPoints = 0;
+            }
+    
+            playerItemTracking[playerKey].lastItem = row.Item;
+            updates[`/raidLootData/${raid}/${key}`] = row;
+          });
+    
+          // Update Firebase with recalculated SR Points
+          firebase.database().ref().update(updates)
+            .then(() => {
+              console.log(`SR Points recalculated successfully for ${raid}!`);
+              if (raid === selectedRaid) {
+                displayStoredData(); // Refresh data for the currently selected raid
+              }
+            })
+            .catch(error => {
+              console.error(`Error updating SR Points for ${raid}: `, error);
+            });
+        });
+      });
+    }
+
+    function populateRaidDateDropdown() {
+      const raidDateDropdown = document.getElementById('viewRaidDate');
+      raidDateDropdown.innerHTML = '';
+    
+      if (!selectedRaid) {
+        return; // If no raid is selected, leave the dropdown empty
+      }
+    
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const raidDates = new Set();
+        if (data) {
+          Object.values(data).forEach(row => {
+            raidDates.add(row.RaidDate);
+          });
+        }
+        const sortedRaidDates = Array.from(raidDates).sort((a, b) => new Date(b) - new Date(a));
+        sortedRaidDates.forEach(date => {
+          const option = document.createElement('div');
+          option.className = 'dropdown-item';
+          option.textContent = date;
+          option.onclick = () => displaySRsByRaidDate(date, selectedRaid);
+          raidDateDropdown.appendChild(option);
+        });
+      }).catch(error => {
+        console.error('Error fetching raid dates: ', error);
+      });
+    }
+
+    function displaySRsByRaidDate(date, raid) {
+      const lootRef = firebase.database().ref(`raidLootData/${raid}`);
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const filteredData = data ? Object.values(data).filter(row => row.RaidDate === date) : [];
+        displayData(filteredData);
+      }).catch(error => {
+        console.error('Error fetching data: ', error);
+      });
+    }
+
+    function updateURL() {
+      const url = new URL(window.location.href);
+      if (currentFilter) {
+        url.searchParams.set('filterColumn', currentFilter.column);
+        url.searchParams.set('filterValue', currentFilter.value);
+      } else {
+        url.searchParams.delete('filterColumn');
+        url.searchParams.delete('filterValue');
+      }
+    
+      url.searchParams.set('sortColumn', currentSort.column);
+      url.searchParams.set('sortDirection', currentSort.direction);
+    
+      if (selectedRaid) {
+        url.searchParams.set('raid', selectedRaid);
+      } else {
+        url.searchParams.delete('raid');
+      }
+    
+      window.history.replaceState(null, '', url.toString());
+    }
+    
+    function applyURLParameters() {
+      const url = new URL(window.location.href);
+    
+      const filterColumn = url.searchParams.get('filterColumn');
+      const filterValue = url.searchParams.get('filterValue');
+      const sortColumn = url.searchParams.get('sortColumn') || 'RaidDate';
+      const sortDirection = url.searchParams.get('sortDirection') || 'desc';
+      const raid = url.searchParams.get('raid');
+    
+      if (raid) {
+        selectRaid(raid);
+      }
+    
+      if (filterColumn && filterValue) {
+        currentFilter = { column: filterColumn, value: filterValue };
+      }
+    
+      currentSort = { column: sortColumn, direction: sortDirection };
+    
+      displayStoredData();
+      updateFilterIndicator();
+    }
+    
+    function filterByColumn(column, value) {
+      currentFilter = { column, value };
+      displayStoredData();
+      updateURL();
+    }
+    
+    function updateFilterIndicator() {
+      const filterIndicator = document.getElementById('filterIndicator') || createFilterIndicator();
+      if (currentFilter) {
+        filterIndicator.textContent = `Filtered by ${currentFilter.column}: ${currentFilter.value}`;
+        filterIndicator.style.display = 'block';
+      } else {
+        filterIndicator.style.display = 'none';
+      }
+    }
+    
+    function createFilterIndicator() {
+      const indicator = document.createElement('div');
+      indicator.id = 'filterIndicator';
+      indicator.style.backgroundColor = '#444';
+      indicator.style.color = '#ffd700';
+      indicator.style.padding = '10px';
+      indicator.style.marginTop = '10px';
+      indicator.style.borderRadius = '5px';
+      indicator.style.display = 'none';
+      document.getElementById('tracker-container').insertBefore(indicator, document.getElementById('lootTable'));
+      return indicator;
+    }
+
+    function sortTable(column) {
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
+      displayStoredData();
+      updateURL();
+    }
+
+    function updateSortIndicators() {
+      const headers = document.querySelectorAll('#lootTable th');
+      headers.forEach(header => {
+        header.classList.remove('sort-asc', 'sort-desc');
+        if (header.textContent === currentSort.column) {
+          header.classList.add(`sort-${currentSort.direction}`);
+        }
+      });
+    }
+
+    function clearFilter() {
+      currentFilter = null;
+      displayStoredData();
+      updateFilterIndicator();
+      document.getElementById('clearFilterButton').style.display = 'none';
+    }
+
+    function selectRaid(raid) {
+      selectedRaid = raid;
+      
+      // Reset filter and sort
+      currentFilter = null;
+      currentSort = { column: 'RaidDate', direction: 'desc' };
+      
+      document.querySelectorAll('.chevron').forEach(chevron => {
+        chevron.classList.remove('active');
+      });
+      document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`).classList.add('active');
+      
+      populateRaidDateDropdown();
+      displayStoredData();
+      updateURL();
+    }
+
+    function displayStoredData() {
+      if (!selectedRaid) {
+        document.getElementById('lootTable').getElementsByTagName('tbody')[0].innerHTML = '';
+        return;
+      }
+    
+      const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
+      lootRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        let storedData = data ? Object.values(data) : [];
+        
+        if (currentFilter) {
+          storedData = storedData.filter(row => row[currentFilter.column] === currentFilter.value);
+        }
+    
+        sortData(storedData);
+        displayData(storedData);
+      });
+    }
+
+    function sortData(data) {
+      data.sort((a, b) => {
+        if (currentSort.column === 'RaidDate') {
+          return currentSort.direction === 'asc' 
+            ? new Date(a.RaidDate) - new Date(b.RaidDate)
+            : new Date(b.RaidDate) - new Date(a.RaidDate);
+        } else if (currentSort.column === 'SRPoints') {
+          return currentSort.direction === 'asc'
+            ? a.SRPoints - b.SRPoints
+            : b.SRPoints - a.SRPoints;
+        } else {
+          return currentSort.direction === 'asc'
+            ? a[currentSort.column].localeCompare(b[currentSort.column])
+            : b[currentSort.column].localeCompare(a[currentSort.column]);
+        }
+      });
+    }
+
+    function goToLogin() {
+      window.location.href = '/login.html';
+    }
+
+    function goToGame() {
+      window.location.href = '/public/bouncer.html';
+    }
+    
+    window.onload = function() {
+      applyURLParameters();
+      populateRaidDateDropdown();
+      migrateOnyxiaData();
+      onLoginStateChange();
+    };
+    
+  </script>
+  
+  
+  <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
+  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
+  <script src="../js/embers.js"></script>
+ </div>
+
+</body>
 </html>
