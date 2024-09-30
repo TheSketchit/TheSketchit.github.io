@@ -154,6 +154,10 @@
       firebase.auth().signOut()
         .then(() => {
           console.log('User signed out');
+          // Exit edit mode if in edit mode
+          if (isEditMode) {
+            cancelEdits();
+          }
         })
         .catch(error => {
           console.error('Error signing out:', error);
@@ -194,6 +198,7 @@
           document.getElementById('editButton').style.display = 'inline-block';
           document.getElementById('saveButton').style.display = 'none';
           document.getElementById('cancelButton').style.display = 'none';
+          calculateSRs(); // Recalculate SR Points
           displayStoredData(); // Re-render the table
         })
         .catch(error => {
@@ -321,6 +326,7 @@
       data.forEach(row => {
         const tr = document.createElement('tr');
         tr.dataset.key = row.key; // Store the key for reference
+        tr.rowData = row;
 
         headers.forEach(key => {
           const td = document.createElement('td');
@@ -721,7 +727,7 @@
     
   </script>
   
-
+  
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   <script src="../js/embers.js"></script>
