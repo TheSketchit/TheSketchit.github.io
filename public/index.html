@@ -31,6 +31,10 @@
       <textarea id="csvInput" rows="10" cols="100"></textarea><br>
       <button onclick="processCSV()" id="saveLootButton">Save Loot</button>
       <button onclick="calculateSRs()" id="calculateSRsButton">Calculate SRs</button>
+      <button onclick="enterEditMode()" id="editButton">Edit</button>
+      <button onclick="saveEdits()" id="saveButton" style="display:none;">Save</button>
+      <button onclick="cancelEdits()" id="cancelButton" style="display:none;">Cancel</button>
+
       
       <div class="navigation-container">
         <div class="chevron-navigation">
@@ -106,6 +110,7 @@
     let currentFilter = null;
     let currentSort = { column: 'RaidDate', direction: 'desc' };
     let selectedRaid = null;
+    let isEditMode = false;
 
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
@@ -126,6 +131,7 @@
         document.getElementById('csvInput').style.display = 'none';
         document.getElementById('saveLootButton').style.display = 'none';
         document.getElementById('calculateSRsButton').style.display = 'none';
+        document.getElementById('editButton').style.display = 'none'; // Hide Edit button
       } else {
         // Show admin controls
         document.getElementById('raidDateLabel').style.display = 'block';
@@ -133,6 +139,7 @@
         document.getElementById('csvInput').style.display = 'block';
         document.getElementById('saveLootButton').style.display = 'inline-block';
         document.getElementById('calculateSRsButton').style.display = 'inline-block';
+        document.getElementById('editButton').style.display = 'inline-block'; // Show Edit button
       }
       
       // Always show the tracker container
@@ -141,6 +148,7 @@
       // Refresh data display
       displayStoredData();
     }
+
 
     function signOut() {
       firebase.auth().signOut()
@@ -151,6 +159,56 @@
           console.error('Error signing out:', error);
         });
     }
+
+    function enterEditMode() {
+      isEditMode = true;
+      document.getElementById('editButton').style.display = 'none';
+      document.getElementById('saveButton').style.display = 'inline-block';
+      document.getElementById('cancelButton').style.display = 'inline-block';
+      displayStoredData(); // Re-render the table in edit mode
+    }
+
+    function saveEdits() {
+      const tableBody = document.querySelector('#lootTable tbody');
+      const rows = tableBody.querySelectorAll('tr');
+
+      let updates = {};
+
+      rows.forEach(tr => {
+        const key = tr.dataset.key;
+        let rowData = {};
+        const inputs = tr.querySelectorAll('input');
+
+        inputs.forEach(input => {
+          const dataKey = input.dataset.key;
+          rowData[dataKey] = input.value;
+        });
+
+        updates[`/raidLootData/${selectedRaid}/${key}`] = rowData;
+      });
+
+      firebase.database().ref().update(updates)
+        .then(() => {
+          console.log('Data updated successfully.');
+          isEditMode = false;
+          document.getElementById('editButton').style.display = 'inline-block';
+          document.getElementById('saveButton').style.display = 'none';
+          document.getElementById('cancelButton').style.display = 'none';
+          displayStoredData(); // Re-render the table
+        })
+        .catch(error => {
+          console.error('Error updating data:', error);
+        });
+    }
+
+    function cancelEdits() {
+      isEditMode = false;
+      document.getElementById('editButton').style.display = 'inline-block';
+      document.getElementById('saveButton').style.display = 'none';
+      document.getElementById('cancelButton').style.display = 'none';
+      displayStoredData(); // Re-render the table
+    }
+
 
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
@@ -241,45 +299,105 @@
     function displayData(data) {
       const tableBody = document.querySelector('#lootTable tbody');
       tableBody.innerHTML = '';
+
+      const tableHead = document.querySelector('#lootTable thead tr');
+      tableHead.innerHTML = '';
+
+      const headers = ['Item', 'From', 'Name', 'Class', 'Spec', 'RaidDate', 'SRPoints'];
+      headers.forEach(column => {
+        const th = document.createElement('th');
+        th.textContent = column;
+        th.onclick = () => sortTable(column);
+        tableHead.appendChild(th);
+      });
+
+      if (isEditMode) {
+        // Add an extra header for delete button
+        const th = document.createElement('th');
+        th.textContent = 'Delete';
+        tableHead.appendChild(th);
+      }
+
       data.forEach(row => {
         const tr = document.createElement('tr');
-        ['Item', 'From', 'Name', 'Class', 'Spec', 'RaidDate', 'SRPoints'].forEach(key => {
+        tr.dataset.key = row.key; // Store the key for reference
+
+        headers.forEach(key => {
           const td = document.createElement('td');
-          if (key === 'Item') {
-            const a = document.createElement('a');
-            a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
-            a.target = '_blank';
-            a.className = 'item-row notranslate d-block q1 q3';
-            a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
-            td.appendChild(a);
-          } else if (key === 'Name') {
-            const span = document.createElement('span');
-            span.textContent = row[key];
-            span.className = 'player-name';
-            span.onclick = (event) => {
-              event.stopPropagation(); // Prevent cell click event
-              window.open(`https://atlasforge.gg/wow-classic/armory/us/wild-growth/${row[key]}`, '_blank');
-            };
-            td.appendChild(span);
+
+          if (isEditMode) {
+            // Render input element
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = row[key];
+            input.dataset.key = key;
+            td.appendChild(input);
           } else {
-            td.textContent = row[key];
-          }
-          td.onclick = (event) => {
-            if (event.target === td) { // Only filter if the cell itself was clicked
-              filterByColumn(key, row[key]);
+            // Render as before
+            if (key === 'Item') {
+              const a = document.createElement('a');
+              a.href = `https://wowhead.com/classic/item=${row.ItemId}`;
+              a.target = '_blank';
+              a.className = 'item-row notranslate d-block q1 q3';
+              a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
+              td.appendChild(a);
+            } else if (key === 'Name') {
+              const span = document.createElement('span');
+              span.textContent = row[key];
+              span.className = 'player-name';
+              span.onclick = (event) => {
+                event.stopPropagation(); // Prevent cell click event
+                window.open(`https://atlasforge.gg/wow-classic/armory/us/wild-growth/${row[key]}`, '_blank');
+              };
+              td.appendChild(span);
+            } else {
+              td.textContent = row[key];
             }
-          };
+
+            td.onclick = (event) => {
+              if (event.target === td) { // Only filter if the cell itself was clicked
+                filterByColumn(key, row[key]);
+              }
+            };
+          }
+
           tr.appendChild(td);
         });
+
+        if (isEditMode) {
+          // Add delete button (trash can icon)
+          const td = document.createElement('td');
+          const deleteButton = document.createElement('button');
+          deleteButton.innerHTML = '🗑️'; // Use an icon or image
+          deleteButton.onclick = () => deleteRow(row.key);
+          td.appendChild(deleteButton);
+          tr.appendChild(td);
+        }
+
         tableBody.appendChild(tr);
       });
       updateSortIndicators();
-    
+
       // Refresh Wowhead tooltips
       if (typeof $WowheadPower !== 'undefined') {
         $WowheadPower.refreshLinks();
       }
     }
+
+    function deleteRow(key) {
+      if (confirm('Are you sure you want to delete this row?')) {
+        const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}/${key}`);
+        lootRef.remove()
+          .then(() => {
+            console.log('Row deleted successfully.');
+            displayStoredData(); // Refresh the table
+          })
+          .catch(error => {
+            console.error('Error deleting row:', error);
+          });
+      }
+    }
+
 
     function migrateOnyxiaData() {
       const worldBossesRef = firebase.database().ref('raidLootData/World Bosses & Onyxia');
@@ -552,20 +670,21 @@
         document.getElementById('lootTable').getElementsByTagName('tbody')[0].innerHTML = '';
         return;
       }
-    
+
       const lootRef = firebase.database().ref(`raidLootData/${selectedRaid}`);
       lootRef.once('value', (snapshot) => {
         const data = snapshot.val();
-        let storedData = data ? Object.values(data) : [];
+        let storedData = data ? Object.entries(data).map(([key, value]) => ({ key, ...value })) : [];
         
         if (currentFilter) {
           storedData = storedData.filter(row => row[currentFilter.column] === currentFilter.value);
         }
-    
+
         sortData(storedData);
         displayData(storedData);
       });
     }
+
 
     function sortData(data) {
       data.sort((a, b) => {
@@ -602,7 +721,7 @@
     
   </script>
   
-  
+
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   <script src="../js/embers.js"></script>
