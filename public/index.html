@@ -180,16 +180,18 @@
 
       rows.forEach(tr => {
         const key = tr.dataset.key;
-        let rowData = {};
+        let rowData = { ...tr.rowData };  // Make sure we have all the row data
         const inputs = tr.querySelectorAll('input');
 
         inputs.forEach(input => {
           const dataKey = input.dataset.key;
-          rowData[dataKey] = input.value;
+          rowData[dataKey] = input.value;  // Collect data from input fields
         });
 
         updates[`/raidLootData/${selectedRaid}/${key}`] = rowData;
       });
+
+      console.log("Updates to be sent to Firebase:", updates);  // Log the updates
 
       firebase.database().ref().update(updates)
         .then(() => {
@@ -198,13 +200,14 @@
           document.getElementById('editButton').style.display = 'inline-block';
           document.getElementById('saveButton').style.display = 'none';
           document.getElementById('cancelButton').style.display = 'none';
-          calculateSRs(); // Recalculate SR Points
-          displayStoredData(); // Re-render the table
+          calculateSRs();  // Recalculate SR Points after saving
+          displayStoredData();  // Re-render the table
         })
         .catch(error => {
-          console.error('Error updating data:', error);
+          console.error('Error updating data:', error);  // Log any Firebase errors
         });
     }
+
 
     function cancelEdits() {
       isEditMode = false;
@@ -726,7 +729,6 @@
     };
     
   </script>
-  
   
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
