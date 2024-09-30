@@ -149,7 +149,6 @@
       displayStoredData();
     }
 
-
     function signOut() {
       firebase.auth().signOut()
         .then(() => {
@@ -164,6 +163,8 @@
         });
     }
 
+    const rowDataMap = new Map();
+
     function enterEditMode() {
       isEditMode = true;
       document.getElementById('editButton').style.display = 'none';
@@ -173,6 +174,8 @@
     }
 
     function saveEdits() {
+      console.log('saveEdits() function called.');
+
       const tableBody = document.querySelector('#lootTable tbody');
       const rows = tableBody.querySelectorAll('tr');
 
@@ -180,18 +183,20 @@
 
       rows.forEach(tr => {
         const key = tr.dataset.key;
-        let rowData = { ...tr.rowData };  // Make sure we have all the row data
+        const originalRowData = rowDataMap.get(tr);
+        let rowData = { ...originalRowData };
+
         const inputs = tr.querySelectorAll('input');
 
         inputs.forEach(input => {
           const dataKey = input.dataset.key;
-          rowData[dataKey] = input.value;  // Collect data from input fields
+          rowData[dataKey] = input.value;
         });
 
         updates[`/raidLootData/${selectedRaid}/${key}`] = rowData;
       });
 
-      console.log("Updates to be sent to Firebase:", updates);  // Log the updates
+      console.log("Updates to be sent to Firebase:", updates);
 
       firebase.database().ref().update(updates)
         .then(() => {
@@ -200,11 +205,11 @@
           document.getElementById('editButton').style.display = 'inline-block';
           document.getElementById('saveButton').style.display = 'none';
           document.getElementById('cancelButton').style.display = 'none';
-          calculateSRs();  // Recalculate SR Points after saving
-          displayStoredData();  // Re-render the table
+          calculateSRs();
+          displayStoredData();
         })
         .catch(error => {
-          console.error('Error updating data:', error);  // Log any Firebase errors
+          console.error('Error updating data:', error);
         });
     }
 
@@ -328,8 +333,9 @@
 
       data.forEach(row => {
         const tr = document.createElement('tr');
-        tr.dataset.key = row.key; // Store the key for reference
-        tr.rowData = row;
+        tr.dataset.key = row.key;
+
+        rowDataMap.set(tr, row);
 
         headers.forEach(key => {
           const td = document.createElement('td');
@@ -406,7 +412,6 @@
           });
       }
     }
-
 
     function migrateOnyxiaData() {
       const worldBossesRef = firebase.database().ref('raidLootData/World Bosses & Onyxia');
@@ -675,6 +680,7 @@
     }
 
     function displayStoredData() {
+      rowDataMap.clear();
       if (!selectedRaid) {
         document.getElementById('lootTable').getElementsByTagName('tbody')[0].innerHTML = '';
         return;
@@ -693,7 +699,6 @@
         displayData(storedData);
       });
     }
-
 
     function sortData(data) {
       data.sort((a, b) => {
