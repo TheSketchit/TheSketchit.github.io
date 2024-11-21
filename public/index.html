@@ -469,40 +469,19 @@
     
           // Process stored data and calculate SR points
           storedData.forEach(([key, row]) => {
-            const playerKey = row.Name.toLowerCase().trim();
+            const playerItemKey = `${row.Name.toLowerCase().trim()}_${row.Item}`;
             
-            if (!playerItemTracking[playerKey]) {
-              playerItemTracking[playerKey] = { 
-                lastItem: null,
-                srPoints: 1,
-                lastWinDate: null 
-              };
+            if (!playerItemTracking[playerItemKey]) {
+              playerItemTracking[playerItemKey] = { srPoints: 0 };
             }
     
             if (row.SRPoints > 0) { // This item was soft reserved
-              if (playerItemTracking[playerKey].lastItem === row.Item) {
-                // Same item as last time, increment SR points
-                row.SRPoints = playerItemTracking[playerKey].srPoints;
-                playerItemTracking[playerKey].srPoints++;
-              } else {
-                // Different item, reset SR points
-                row.SRPoints = 1;
-                playerItemTracking[playerKey].srPoints = 2;
-                playerItemTracking[playerKey].lastItem = row.Item;
-              }
-              
-              // Check if item was won
-              if (playerItemTracking[playerKey].lastWinDate === row.RaidDate) {
-                row.SRPoints = 1;
-                playerItemTracking[playerKey].srPoints = 1;
-                playerItemTracking[playerKey].lastWinDate = null;
-              }
+              playerItemTracking[playerItemKey].srPoints++;
+              row.SRPoints = playerItemTracking[playerItemKey].srPoints;
             } else {
-              // If SRPoints is 0, it means the item wasn't soft reserved
               row.SRPoints = 0;
             }
     
-            playerItemTracking[playerKey].lastItem = row.Item;
             updates[`/raidLootData/${raid}/${key}`] = row;
           });
     
@@ -511,7 +490,7 @@
             .then(() => {
               console.log(`SR Points recalculated successfully for ${raid}!`);
               if (raid === selectedRaid) {
-                displayStoredData(); // Refresh data for the currently selected raid
+                displayStoredData();
               }
             })
             .catch(error => {
@@ -520,7 +499,6 @@
         });
       });
     }
-
     function populateRaidDateDropdown() {
       const raidDateDropdown = document.getElementById('viewRaidDate');
       raidDateDropdown.innerHTML = '';
