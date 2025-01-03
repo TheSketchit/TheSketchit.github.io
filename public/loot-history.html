@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loot History</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/embers.css">
+  <!-- Include PapaParse for CSV parsing, if you want to parse CSV -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+  <!-- Include Firebase SDKs, if storing to Firebase just like your main page -->
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+</head>
+<body>
+  <div class="top-banner">
+    <div class="container">
+      <!-- Example navigation button to go back or to another page -->
+      <button onclick="goToTracker()">Back to Loot Tracker</button>
+      <div id="auth-container">
+        <!-- This will be replaced by “Login” or “Sign Out” based on the user’s auth state -->
+      </div>
+    </div>
+  </div>
+
+  <canvas id="emberCanvas"></canvas>
+  <div class="heat-effect"></div>
+
+  <div class="container">
+    <h1>Loot History</h1>
+    
+    <div id="loot-history-container" style="display:none;">
+      <div id="duplicate-message-container"></div>
+
+      <!-- Admin Controls (only visible to non-guest users) -->
+      <label for="csvInput" id="csvInputLabel">Paste CSV:</label><br>
+      <textarea id="csvInput" rows="10" cols="100"></textarea><br>
+      <button id="saveHistoryButton" onclick="processCSV()">Save Loot History</button>
+
+      <!-- Table for displaying the “Loot History” -->
+      <div class="parchment-table-container">
+        <div class="parchment-table-top">
+          <div class="parchment-table-top-left"></div>
+          <div class="parchment-table-top-middle"></div>
+          <div class="parchment-table-top-right"></div>
+        </div>
+        <div class="parchment-table-middle">
+          <div class="parchment-table-left"></div>
+          <div class="parchment-table-content">
+            <table id="lootHistoryTable">
+              <thead>
+                <tr>
+                  <!-- These columns match the CSV structure -->
+                  <th>Date</th>
+                  <th>Item</th>
+                  <th>ItemID</th>
+                  <th>Winner</th>
+                  <th>SR</th>
+                  <th>OS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Table rows will be populated here -->
+              </tbody>
+            </table>
+          </div>
+          <div class="parchment-table-right"></div>
+        </div>
+        <div class="parchment-table-bottom">
+          <div class="parchment-table-bottom-left"></div>
+          <div class="parchment-table-bottom-middle"></div>
+          <div class="parchment-table-bottom-right"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Initialize Firebase, just like in your original page -->
+  <script>
+    // Replace with your project's config or reuse the same config from your main page
+    var firebaseConfig = {
+      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+      authDomain: "wowsr-9ec27.firebaseapp.com",
+      projectId: "wowsr-9ec27",
+      storageBucket: "wowsr-9ec27.appspot.com",
+      messagingSenderId: "1037521583710",
+      appId: "1037521583710:web:290e85c6bde4e047337ecf",
+      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    let isGuest = true;
+
+    // Set up an auth state listener so we know if user is logged in
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        isGuest = false;
+        document.getElementById('auth-container').innerHTML = '<button onclick="signOut()">Sign Out</button>';
+      } else {
+        isGuest = true;
+        document.getElementById('auth-container').innerHTML = '<button onclick="goToLogin()">Login</button>';
+      }
+      onLoginStateChange();
+    });
+
+    function signOut() {
+      firebase.auth().signOut().then(() => {
+        console.log('User signed out');
+      }).catch(error => {
+        console.error('Error signing out:', error);
+      });
+    }
+
+    function onLoginStateChange() {
+      if (isGuest) {
+        // Hide admin controls
+        document.getElementById('csvInputLabel').style.display = 'none';
+        document.getElementById('csvInput').style.display = 'none';
+        document.getElementById('saveHistoryButton').style.display = 'none';
+      } else {
+        // Show admin controls
+        document.getElementById('csvInputLabel').style.display = 'block';
+        document.getElementById('csvInput').style.display = 'block';
+        document.getElementById('saveHistoryButton').style.display = 'inline-block';
+      }
+      // Always show container
+      document.getElementById('loot-history-container').style.display = 'block';
+
+      // Display existing data from Firebase
+      displayStoredData();
+    }
+
+    // Optional: If you want a reference to a “lootHistoryData” node in your DB
+    const lootHistoryRef = firebase.database().ref('lootHistoryData');
+
+    function processCSV() {
+      const csvInput = document.getElementById('csvInput').value;
+      if (!csvInput) {
+        alert('Please paste some CSV data first.');
+        return;
+      }
+
+      Papa.parse(csvInput, {
+        header: false, // We do NOT have a CSV header in your sample
+        complete: function(results) {
+          // Each row in `results.data` will look like:
+          // [ "2025-01-02", "Barrage Shoulders", "233496", "Gundar", "1", "0" ]
+          const data = results.data;
+
+          // Validate or transform data if needed
+          data.forEach(row => {
+            // row[0] => Date
+            // row[1] => Item
+            // row[2] => ItemID
+            // row[3] => Winner
+            // row[4] => SR
+            // row[5] => OS
+            // Save each row to Firebase:
+            saveToFirebase(row);
+          });
+        }
+      });
+    }
+
+    async function saveToFirebase(row) {
+      // Build an object that matches our table columns
+      let record = {
+        date: row[0] || '',
+        item: row[1] || '',
+        itemID: row[2] || '',
+        winner: row[3] || '',
+        sr: row[4] || '',
+        os: row[5] || ''
+      };
+
+      // You might check for duplicates here if needed:
+      // ...
+
+      // Push to “lootHistoryData”
+      await lootHistoryRef.push(record)
+        .then(() => {
+          console.log('Record saved:', record);
+        })
+        .catch(error => {
+          console.error('Error writing record: ', error);
+        });
+
+      // Once finished, refresh the table
+      displayStoredData();
+    }
+
+    function displayStoredData() {
+      lootHistoryRef.once('value')
+        .then(snapshot => {
+          const data = snapshot.val();
+          const tableBody = document.querySelector('#lootHistoryTable tbody');
+          tableBody.innerHTML = '';
+
+          if (!data) return;
+
+          // data is an object: { key1: {...}, key2: {...}, ...}
+          Object.entries(data).forEach(([key, value]) => {
+            let tr = document.createElement('tr');
+
+            // Table columns correspond to date, item, itemID, winner, sr, os
+            const tdDate = document.createElement('td');
+            tdDate.textContent = value.date;
+            tr.appendChild(tdDate);
+
+            const tdItem = document.createElement('td');
+            // Optionally link to Wowhead by itemID
+            if (value.itemID) {
+              const link = document.createElement('a');
+              link.href = `https://wowhead.com/classic/item=${value.itemID}`;
+              link.target = '_blank';
+              link.textContent = value.item;
+              tdItem.appendChild(link);
+            } else {
+              tdItem.textContent = value.item;
+            }
+            tr.appendChild(tdItem);
+
+            const tdItemID = document.createElement('td');
+            tdItemID.textContent = value.itemID;
+            tr.appendChild(tdItemID);
+
+            const tdWinner = document.createElement('td');
+            tdWinner.textContent = value.winner;
+            tr.appendChild(tdWinner);
+
+            const tdSR = document.createElement('td');
+            tdSR.textContent = value.sr;
+            tr.appendChild(tdSR);
+
+            const tdOS = document.createElement('td');
+            tdOS.textContent = value.os;
+            tr.appendChild(tdOS);
+
+            tableBody.appendChild(tr);
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching loot history data:', error);
+        });
+    }
+
+    // Simple navigation helper
+    function goToTracker() {
+      window.location.href = '/public/index.html';
+    }
+
+    function goToLogin() {
+      window.location.href = '/login.html';
+    }
+
+    // On page load
+    window.onload = function() {
+      onLoginStateChange(); 
+    };
+  </script>
+
+  <!-- Your ember effects, if needed -->
+  <script src="../js/embers.js"></script>
+
+</body>
+</html>
