@@ -183,6 +183,7 @@
 
     // Display data
     function displayStoredData() {
+      console.log('WowheadPower status:', typeof $WowheadPower !== 'undefined' ? 'loaded' : 'not loaded');
       if (!selectedRaid) {
         document.querySelector('#lootTable tbody').innerHTML = '';
         return;
