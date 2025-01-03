@@ -36,11 +36,6 @@
       <textarea id="csvInput" rows="10" cols="100"></textarea><br>
       <button onclick="processCSV()" id="saveLootButton">Save Loot History</button>
 
-      <div class="view-toggle">
-        <button onclick="toggleView('table')" id="tableViewBtn" class="active">Table View</button>
-        <button onclick="toggleView('class')" id="classViewBtn">Class Summary</button>
-      </div>
-
       <div class="navigation-container">
         <div class="chevron-navigation">
           <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
@@ -60,9 +55,6 @@
         </div>
       </div>
 
-      <div id="filterIndicator" style="display:none;"></div>
-      <button onclick="clearFilter()" id="clearFilterButton" style="display:none;">Clear Filter</button>
-
       <div class="parchment-table-container">
         <div class="parchment-table-top">
           <div class="parchment-table-top-left"></div>
@@ -71,20 +63,7 @@
         </div>
         <div class="parchment-table-middle">
           <div class="parchment-table-left"></div>
-          <div class="parchment-table-content">
-            <table id="lootTable">
-              <thead>
-                <tr>
-                  <th onclick="sortTable('Item')">Item</th>
-                  <th onclick="sortTable('Winner')">Winner</th>
-                  <th onclick="sortTable('SR')">SR</th>
-                  <th onclick="sortTable('OS')">OS</th>
-                  <th onclick="sortTable('Date')">Date</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
+          <div class="parchment-table-content"></div>
           <div class="parchment-table-right"></div>
         </div>
         <div class="parchment-table-bottom">
@@ -96,573 +75,391 @@
     </div>
   </div>
 
-  <script>
-    // Firebase config
-    var firebaseConfig = {
-      apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
-      authDomain: "wowsr-9ec27.firebaseapp.com",
-      projectId: "wowsr-9ec27",
-      storageBucket: "wowsr-9ec27.appspot.com",
-      messagingSenderId: "1037521583710",
-      appId: "1037521583710:web:290e85c6bde4e047337ecf",
-      databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
-    };
-    firebase.initializeApp(firebaseConfig);
-
-    let isGuest = true;
-    let currentFilter = null;
-    let currentSort = { column: 'Date', direction: 'desc' };
-    let selectedRaid = null;
-    let currentView = 'table';
-
-    function toggleView(view) {
-      currentView = view;
-      document.getElementById('tableViewBtn').classList.toggle('active', view === 'table');
-      document.getElementById('classViewBtn').classList.toggle('active', view === 'class');
-      displayStoredData(); // This will now handle both views
-    }
-    
-    firebase.auth().onAuthStateChanged(user => {
-      if (user) {
-        isGuest = false;
-        document.getElementById('auth-container').innerHTML = '<button onclick="signOut()">Sign Out</button>';
-      } else {
-        isGuest = true;
-        document.getElementById('auth-container').innerHTML = '<button onclick="goToLogin()">Login</button>';
-      }
-      onLoginStateChange();
-    });
-
-    function onLoginStateChange() {
-      if (isGuest) {
-        document.getElementById('raidDateLabel').style.display = 'none';
-        document.getElementById('raidDate').style.display = 'none';
-        document.getElementById('csvInput').style.display = 'none';
-        document.getElementById('saveLootButton').style.display = 'none';
-      } else {
-        document.getElementById('raidDateLabel').style.display = 'block';
-        document.getElementById('raidDate').style.display = 'block';
-        document.getElementById('csvInput').style.display = 'block';
-        document.getElementById('saveLootButton').style.display = 'inline-block';
-      }
-      document.getElementById('tracker-container').style.display = 'block';
-      displayStoredData();
-    }
-
-    function signOut() {
-      firebase.auth().signOut()
-        .then(() => console.log('Signed out'))
-        .catch(error => console.error('Sign out error:', error));
-    }
-
-    function processCSV() {
-      const csvInput = document.getElementById('csvInput').value;
-      const raidDate = document.getElementById('raidDate').value;
-    
-      if (!selectedRaid || !raidDate) {
-        alert('Please select a raid and a raid date.');
-        return;
-      }
-    
-      Papa.parse(csvInput, {
-        header: false,
-        complete: function(results) {
-          // First check for duplicates before saving any records
-          checkForDuplicates(results.data);
-        }
-      });
-    }
-
-    function checkForDuplicates(data) {
-      const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
-      ref.once('value')
-        .then(snapshot => {
-          const existingData = snapshot.val() || {};
-          const existingChecksums = new Set(
-            Object.values(existingData).map(item => item.Checksum)
-          );
-    
-          // Filter out rows with checksums that already exist
-          const newRows = data.filter(row => {
-            const checksum = row[6]?.trim(); // Get checksum from the 7th column
-            return checksum && !existingChecksums.has(checksum);
-          });
-    
-          // If we found duplicates, notify the user
-          if (newRows.length < data.length) {
-            const duplicateCount = data.length - newRows.length;
-            alert(`${duplicateCount} duplicate item(s) were found and will not be added.`);
-          }
-    
-          // Save the non-duplicate rows
-          newRows.forEach(row => saveToFirebase(row));
-        });
-    }
-
-    function saveToFirebase(row) {
-      if (!row || row.length < 7) return; // Make sure we have all fields including checksum
-    
-      // Format SR and OS values
-      const srValue = row[4].trim() === '1' ? 'Yes' : 'No';
-      const osValue = row[5].trim() === '1' ? 'Offspec' : 'Main Spec';
-    
-      const record = {
-        Date: row[0].replace('@', '').trim() || '',
-        Item: row[1].replace('@', '').replace(/"/g, '').trim() || '',
-        ItemID: row[2].replace('@', '').trim() || '',
-        Winner: row[3].replace('@', '').trim() || '',
-        SR: srValue,
-        OS: osValue,
-        Checksum: row[6].replace('@', '').trim() || ''
-      };
-    
-      firebase.database().ref(`lootHistoryData/${selectedRaid}`)
-        .push(record)
-        .then(() => {
-          console.log('Record saved successfully');
-          displayStoredData(); // Refresh the display
-        })
-        .catch(e => console.error('Error writing record:', e));
-    }
-
-    async function getPlayerData() {
-      const classData = {};
-      const raidLootRef = firebase.database().ref('raidLootData');
-      
-      try {
-        const snapshot = await raidLootRef.once('value');
-        const data = snapshot.val() || {};
-        
-        // Iterate through all raids
-        Object.values(data).forEach(raid => {
-          Object.values(raid).forEach(entry => {
-            if (entry.Name && entry.Class && entry.Spec) {
-              classData[entry.Name] = {
-                class: entry.Class,
-                spec: entry.Spec
-              };
-            }
-          });
-        });
-        return classData;
-      } catch (error) {
-        console.error('Error fetching player data:', error);
-        return {};
-      }
-    }
-
-    // Display data
-    async function displayStoredData() {
-      if (!selectedRaid) {
-        document.querySelector('.parchment-table-content').innerHTML = '';
-        return;
-      }
-    
-      const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
-      
-      try {
-        const snapshot = await ref.once('value');
-        const data = snapshot.val() || {};
-        let rows = Object.entries(data).map(([key, obj]) => ({ key, ...obj }));
-    
-        if (currentView === 'table') {
-          // Your existing table view code
-          if (currentFilter) {
-            rows = rows.filter(r => r[currentFilter.column] === currentFilter.value);
-          }
-          
-          rows.sort((a, b) => {
-            const col = currentSort.column;
-            if (col === 'Date') {
-              return currentSort.direction === 'asc'
-                ? new Date(a.Date) - new Date(b.Date)
-                : new Date(b.Date) - new Date(a.Date);
-            } else {
-              const valA = (a[col] || '').toString();
-              const valB = (b[col] || '').toString();
-              return currentSort.direction === 'asc' 
-                ? valA.localeCompare(valB)
-                : valB.localeCompare(valA);
-            }
-          });
-    
-          populateRaidDateDropdown(rows);
-          renderTable(rows);
-        } else {
-          // Class view
-          const playerData = await getPlayerData();
-          const classSummary = processLootByClass(rows, playerData);
-          renderClassTabs(classSummary);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    }
-
-    function processLootByClass(rows, playerData) {
-      const classSummary = {};
-      
-      // Initialize class categories including Unknown
-      const classes = ['Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid', 'Unknown'];
-      classes.forEach(className => {
-        classSummary[className] = {
-          players: {}
-        };
-      });
-    
-      // Process each loot entry
-      rows.forEach(row => {
-        const playerClass = playerData[row.Winner]?.class || 'Unknown';
-        const playerSpec = playerData[row.Winner]?.spec || 'Unknown';
-        
-        // Ensure the class exists in our summary (fallback to Unknown if needed)
-        if (!classSummary[playerClass]) {
-          classSummary['Unknown'] = classSummary['Unknown'] || { players: {} };
-          playerClass = 'Unknown';
-        }
-    
-        if (!classSummary[playerClass].players[row.Winner]) {
-          classSummary[playerClass].players[row.Winner] = {
-            spec: playerSpec,
-            srCount: 0,
-            msCount: 0,
-            osCount: 0,
-            items: []
-          };
-        }
-    
-        const player = classSummary[playerClass].players[row.Winner];
-        
-        // Count item types
-        if (row.SR === 'Yes') player.srCount++;
-        if (row.OS === 'Main Spec') player.msCount++;
-        if (row.OS === 'Offspec') player.osCount++;
-        
-        // Add item to player's list
-        player.items.push(row);
-      });
-    
-      // Remove empty classes
-      Object.keys(classSummary).forEach(className => {
-        if (Object.keys(classSummary[className].players).length === 0) {
-          delete classSummary[className];
-        }
-      });
-    
-      return classSummary;
-    }
-
-    function renderClassTabs(classSummary) {
-      const container = document.querySelector('.parchment-table-content');
-      container.innerHTML = '';
-    
-      // Create tabs
-      const tabsContainer = document.createElement('div');
-      tabsContainer.className = 'class-tabs';
-      
-      // Create tab content
-      const contentContainer = document.createElement('div');
-      contentContainer.className = 'tab-content';
-    
-      Object.entries(classSummary).forEach(([className, data], index) => {
-        // Create tab
-        const tab = document.createElement('button');
-        tab.className = `class-tab ${index === 0 ? 'active' : ''}`;
-        tab.textContent = className;
-        tab.onclick = () => switchTab(className);
-        tabsContainer.appendChild(tab);
-    
-        // Create content
-        const content = document.createElement('div');
-        content.className = `tab-pane ${index === 0 ? 'active' : ''}`;
-        content.id = `tab-${className}`;
-        
-        // Create player summary table
-        content.appendChild(createPlayerSummaryTable(data.players, className));
-        
-        contentContainer.appendChild(content);
-      });
-    
-      container.appendChild(tabsContainer);
-      container.appendChild(contentContainer);
-    }
-    
-    function createPlayerSummaryTable(players, className) {
-      const table = document.createElement('table');
-      table.className = 'player-summary-table';
-      
-      // Create header
-      const thead = document.createElement('thead');
-      thead.innerHTML = `
-        <tr>
-          <th>Player</th>
-          <th>Spec</th>
-          <th>SR Items</th>
-          <th>MS Items</th>
-          <th>OS Items</th>
-          <th>Details</th>
-        </tr>
-      `;
-      table.appendChild(thead);
-    
-      // Create body
-      const tbody = document.createElement('tbody');
-      Object.entries(players).forEach(([playerName, data]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${playerName}</td>
-          <td>${data.spec}</td>
-          <td>${data.srCount}</td>
-          <td>${data.msCount}</td>
-          <td>${data.osCount}</td>
-          <td>
-            <button class="expand-button" onclick="togglePlayerItems(this, ${JSON.stringify(data.items)})">+</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    
-      table.appendChild(tbody);
-      return table;
-    }
-    
-    function togglePlayerItems(button, items) {
-      const tr = button.closest('tr');
-      const detailRow = tr.nextElementSibling;
-      
-      if (detailRow && detailRow.classList.contains('item-details')) {
-        detailRow.remove();
-        button.textContent = '+';
-      } else {
-        const newRow = document.createElement('tr');
-        newRow.className = 'item-details';
-        newRow.innerHTML = `
-          <td colspan="6">
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>SR</th>
-                  <th>OS</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${items.map(item => `
-                  <tr>
-                    <td>
-                      <a href="https://wowhead.com/classic/item=${item.ItemID}" 
-                         class="item-row notranslate d-block q1 q3">
-                        <ins></ins><del></del>
-                        <span class="itemlink-text">${item.Item}</span>
-                      </a>
-                    </td>
-                    <td>${item.SR}</td>
-                    <td>${item.OS}</td>
-                    <td>${item.Date}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </td>
-        `;
-        tr.parentNode.insertBefore(newRow, tr.nextSibling);
-        button.textContent = '-';
-        
-        // Refresh WowHead tooltips for the new items
-        if (typeof $WowheadPower !== 'undefined') {
-          $WowheadPower.refreshLinks();
-        }
-      }
-    }
-    
-    function switchTab(className) {
-      document.querySelectorAll('.class-tab').forEach(tab => {
-        tab.classList.remove('active');
-        if (tab.textContent === className) {
-          tab.classList.add('active');
-        }
-      });
-      
-      document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-      });
-      
-      const selectedPane = document.querySelector(`#tab-${className}`);
-      if (selectedPane) {
-        selectedPane.classList.add('active');
-      }
-    }
-
-    function renderTable(rows) {
-      // Clear the content container first
-      const container = document.querySelector('.parchment-table-content');
-      container.innerHTML = ''; // Clear existing content
-    
-      // Create table structure
-      const table = document.createElement('table');
-      table.id = 'lootTable';
-      const thead = document.createElement('thead');
-      const tbody = document.createElement('tbody');
-      table.appendChild(thead);
-      table.appendChild(tbody);
-      container.appendChild(table);
-    
-      // Create header row
-      const headerRow = document.createElement('tr');
-      thead.appendChild(headerRow);
-    
-      // Define headers - removed ItemID and Checksum
-      const headers = ['Item', 'Winner', 'SR', 'OS', 'Date'];
-      headers.forEach(column => {
-        const th = document.createElement('th');
-        th.textContent = column;
-        th.onclick = () => sortTable(column);
-        th.classList.toggle('sort-asc', currentSort.column === column && currentSort.direction === 'asc');
-        th.classList.toggle('sort-desc', currentSort.column === column && currentSort.direction === 'desc');
-        headerRow.appendChild(th);
-      });
-    
-      rows.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.dataset.key = row.key;
-    
-        headers.forEach(key => {
-          const td = document.createElement('td');
-          
-          if (key === 'Item') {
-            const a = document.createElement('a');
-            a.href = `https://wowhead.com/classic/item=${row.ItemID}`; // Still using ItemID for the link
-            a.target = '_blank';
-            a.className = 'item-row notranslate d-block q1 q3';
-            a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
-            td.appendChild(a);
-          } else {
-            td.textContent = row[key];
-          }
-    
-          td.onclick = (event) => {
-            if (event.target === td) {
-              filterByColumn(key, row[key]);
-            }
-          };
-          
-          tr.appendChild(td);
-        });
-    
-        tbody.appendChild(tr);
-      });
-    
-      if (typeof $WowheadPower !== 'undefined') {
-        $WowheadPower.refreshLinks();
-      }
-    }
-
-    function getColumnKey(index) {
-      // Table columns: 0=Item,1=ItemID,2=Winner,3=SR,4=OS,5=Date
-      switch (index) {
-        case 0: return 'Item';
-        case 1: return 'ItemID';
-        case 2: return 'Winner';
-        case 3: return 'SR';
-        case 4: return 'OS';
-        case 5: return 'Date';
-      }
-    }
-
-    // Sorting
-    function sortData(rows) {
-      rows.sort((a, b) => {
-        const col = currentSort.column;
-        if (col === 'Date') {
-          // Date sort
-          return currentSort.direction === 'asc'
-            ? new Date(a.Date) - new Date(b.Date)
-            : new Date(b.Date) - new Date(a.Date);
-        } else {
-          // String or numeric comparison
-          const valA = (a[col] || '').toString();
-          const valB = (b[col] || '').toString();
-          if (currentSort.direction === 'asc') return valA.localeCompare(valB);
-          else return valB.localeCompare(valA);
-        }
-      });
-    }
-
-    function sortTable(column) {
-      if (currentSort.column === column) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort.column = column;
-        currentSort.direction = 'asc';
-      }
-      displayStoredData();
-    }
-
-    // Filter
-    function filterByColumn(column, value) {
-      currentFilter = { column, value };
-      displayStoredData();
-      document.getElementById('clearFilterButton').style.display = 'inline-block';
-      updateFilterIndicator();
-    }
-
-    function clearFilter() {
-      currentFilter = null;
-      displayStoredData();
-      document.getElementById('clearFilterButton').style.display = 'none';
-      updateFilterIndicator();
-    }
-
-    // Filter indicator
-    function updateFilterIndicator() {
-      const el = document.getElementById('filterIndicator');
-      if (!currentFilter) {
-        el.style.display = 'none';
-      } else {
-        el.textContent = `Filtered by ${currentFilter.column}: ${currentFilter.value}`;
-        el.style.display = 'block';
-      }
-    }
-
-    // Raid selection
-    function selectRaid(raid) {
-      selectedRaid = raid;
-      currentFilter = null;
-      currentSort = { column: 'Date', direction: 'desc' };
-
-      document.querySelectorAll('.chevron').forEach(ch => ch.classList.remove('active'));
-      const el = document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`);
-      if (el) el.classList.add('active');
-
-      displayStoredData();
-    }
-
-    // Populate date dropdown from loaded rows
-    function populateRaidDateDropdown(rows) {
-      const dropdown = document.getElementById('viewRaidDate');
-      dropdown.innerHTML = '';
-      if (!rows || !rows.length) return;
-      const uniqueDates = [...new Set(rows.map(r => r.Date))].sort((a, b) => new Date(b) - new Date(a));
-      uniqueDates.forEach(date => {
-        const div = document.createElement('div');
-        div.className = 'dropdown-item';
-        div.textContent = date;
-        div.onclick = () => filterByColumn('Date', date);
-        dropdown.appendChild(div);
-      });
-    }
-
-    // Navigation
-    function goToLogin() {
-      window.location.href = '/login.html';
-    }
-
-    window.onload = () => {
-      onLoginStateChange();
-    };
-
-  </script>
   <script src="../js/embers.js"></script>
+
+<script>
+// Firebase config
+var firebaseConfig = {
+  apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
+  authDomain: "wowsr-9ec27.firebaseapp.com",
+  projectId: "wowsr-9ec27",
+  storageBucket: "wowsr-9ec27.appspot.com",
+  messagingSenderId: "1037521583710",
+  appId: "1037521583710:web:290e85c6bde4e047337ecf",
+  databaseURL: "https://wowsr-9ec27-default-rtdb.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+
+let isGuest = true;
+let selectedRaid = null;
+
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    isGuest = false;
+    document.getElementById('auth-container').innerHTML = '<button onclick="signOut()">Sign Out</button>';
+  } else {
+    isGuest = true;
+    document.getElementById('auth-container').innerHTML = '<button onclick="goToLogin()">Login</button>';
+  }
+  onLoginStateChange();
+});
+
+function onLoginStateChange() {
+  if (isGuest) {
+    document.getElementById('raidDateLabel').style.display = 'none';
+    document.getElementById('raidDate').style.display = 'none';
+    document.getElementById('csvInput').style.display = 'none';
+    document.getElementById('saveLootButton').style.display = 'none';
+  } else {
+    document.getElementById('raidDateLabel').style.display = 'block';
+    document.getElementById('raidDate').style.display = 'block';
+    document.getElementById('csvInput').style.display = 'block';
+    document.getElementById('saveLootButton').style.display = 'inline-block';
+  }
+  document.getElementById('tracker-container').style.display = 'block';
+  displayStoredData();
+}
+
+function signOut() {
+  firebase.auth().signOut()
+    .then(() => console.log('Signed out'))
+    .catch(error => console.error('Sign out error:', error));
+}
+
+function processCSV() {
+  const csvInput = document.getElementById('csvInput').value;
+  const raidDate = document.getElementById('raidDate').value;
+
+  if (!selectedRaid || !raidDate) {
+    alert('Please select a raid and a raid date.');
+    return;
+  }
+
+  Papa.parse(csvInput, {
+    header: false,
+    complete: function(results) {
+      checkForDuplicates(results.data);
+    }
+  });
+}
+
+function checkForDuplicates(data) {
+  const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
+  ref.once('value')
+    .then(snapshot => {
+      const existingData = snapshot.val() || {};
+      const existingChecksums = new Set(
+        Object.values(existingData).map(item => item.Checksum)
+      );
+
+      const newRows = data.filter(row => {
+        const checksum = row[6]?.trim();
+        return checksum && !existingChecksums.has(checksum);
+      });
+
+      if (newRows.length < data.length) {
+        const duplicateCount = data.length - newRows.length;
+        alert(`${duplicateCount} duplicate item(s) were found and will not be added.`);
+      }
+
+      newRows.forEach(row => saveToFirebase(row));
+    });
+}
+
+function saveToFirebase(row) {
+  if (!row || row.length < 7) return;
+
+  const srValue = row[4].trim() === '1' ? 'Yes' : 'No';
+  const osValue = row[5].trim() === '1' ? 'Offspec' : 'Main Spec';
+
+  const record = {
+    Date: row[0].replace('@', '').trim() || '',
+    Item: row[1].replace('@', '').replace(/"/g, '').trim() || '',
+    ItemID: row[2].replace('@', '').trim() || '',
+    Winner: row[3].replace('@', '').trim() || '',
+    SR: srValue,
+    OS: osValue,
+    Checksum: row[6].replace('@', '').trim() || ''
+  };
+
+  firebase.database().ref(`lootHistoryData/${selectedRaid}`)
+    .push(record)
+    .then(() => {
+      console.log('Record saved successfully');
+      displayStoredData();
+    })
+    .catch(e => console.error('Error writing record:', e));
+}
+
+async function getPlayerData() {
+  const classData = {};
+  const raidLootRef = firebase.database().ref('raidLootData');
+  
+  try {
+    const snapshot = await raidLootRef.once('value');
+    const data = snapshot.val() || {};
+    
+    Object.values(data).forEach(raid => {
+      Object.values(raid).forEach(entry => {
+        if (entry.Name && entry.Class && entry.Spec) {
+          classData[entry.Name] = {
+            class: entry.Class,
+            spec: entry.Spec
+          };
+        }
+      });
+    });
+    return classData;
+  } catch (error) {
+    console.error('Error fetching player data:', error);
+    return {};
+  }
+}
+
+async function displayStoredData() {
+  if (!selectedRaid) {
+    document.querySelector('.parchment-table-content').innerHTML = '';
+    return;
+  }
+
+  const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
+  
+  try {
+    const snapshot = await ref.once('value');
+    const data = snapshot.val() || {};
+    let rows = Object.entries(data).map(([key, obj]) => ({ key, ...obj }));
+
+    const playerData = await getPlayerData();
+    const classSummary = processLootByClass(rows, playerData);
+    renderClassTabs(classSummary);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+}
+
+function processLootByClass(rows, playerData) {
+  const classSummary = {};
+  
+  const classes = ['Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid', 'Unknown'];
+  classes.forEach(className => {
+    classSummary[className] = {
+      players: {}
+    };
+  });
+
+  rows.forEach(row => {
+    let playerClass = playerData[row.Winner]?.class || 'Unknown';
+    const playerSpec = playerData[row.Winner]?.spec || 'Unknown';
+    
+    if (!classSummary[playerClass]) {
+      playerClass = 'Unknown';
+    }
+
+    if (!classSummary[playerClass].players[row.Winner]) {
+      classSummary[playerClass].players[row.Winner] = {
+        spec: playerSpec,
+        srCount: 0,
+        msCount: 0,
+        osCount: 0,
+        items: []
+      };
+    }
+
+    const player = classSummary[playerClass].players[row.Winner];
+    
+    if (row.SR === 'Yes') player.srCount++;
+    if (row.OS === 'Main Spec') player.msCount++;
+    if (row.OS === 'Offspec') player.osCount++;
+    
+    player.items.push(row);
+  });
+
+  Object.keys(classSummary).forEach(className => {
+    if (Object.keys(classSummary[className].players).length === 0) {
+      delete classSummary[className];
+    }
+  });
+
+  return classSummary;
+}
+
+function renderClassTabs(classSummary) {
+  const container = document.querySelector('.parchment-table-content');
+  container.innerHTML = '';
+
+  const tabsContainer = document.createElement('div');
+  tabsContainer.className = 'class-tabs';
+  
+  const contentContainer = document.createElement('div');
+  contentContainer.className = 'tab-content';
+
+  Object.entries(classSummary).forEach(([className, data], index) => {
+    const tab = document.createElement('button');
+    tab.className = `class-tab ${index === 0 ? 'active' : ''}`;
+    tab.textContent = className;
+    tab.onclick = () => switchTab(className);
+    tabsContainer.appendChild(tab);
+
+    const content = document.createElement('div');
+    content.className = `tab-pane ${index === 0 ? 'active' : ''}`;
+    content.id = `tab-${className}`;
+    
+    content.appendChild(createPlayerSummaryTable(data.players, className));
+    
+    contentContainer.appendChild(content);
+  });
+
+  container.appendChild(tabsContainer);
+  container.appendChild(contentContainer);
+}
+
+function createPlayerSummaryTable(players, className) {
+  const table = document.createElement('table');
+  table.className = 'player-summary-table';
+  
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>Spec</th>
+      <th>SR Items</th>
+      <th>MS Items</th>
+      <th>OS Items</th>
+      <th>Details</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  Object.entries(players).forEach(([playerName, data]) => {
+    const tr = document.createElement('tr');
+    
+    const td1 = document.createElement('td');
+    td1.textContent = playerName;
+    
+    const td2 = document.createElement('td');
+    td2.textContent = data.spec;
+    
+    const td3 = document.createElement('td');
+    td3.textContent = data.srCount;
+    
+    const td4 = document.createElement('td');
+    td4.textContent = data.msCount;
+    
+    const td5 = document.createElement('td');
+    td5.textContent = data.osCount;
+    
+    const td6 = document.createElement('td');
+    const button = document.createElement('button');
+    button.className = 'expand-button';
+    button.textContent = '+';
+    button.dataset.items = JSON.stringify(data.items);
+    button.onclick = () => togglePlayerItems(button);
+    td6.appendChild(button);
+
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
+    tr.appendChild(td4);
+    tr.appendChild(td5);
+    tr.appendChild(td6);
+    
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  return table;
+}
+
+function togglePlayerItems(button) {
+  const tr = button.closest('tr');
+  const detailRow = tr.nextElementSibling;
+  const items = JSON.parse(button.dataset.items);
+  
+  if (detailRow && detailRow.classList.contains('item-details')) {
+    detailRow.remove();
+    button.textContent = '+';
+  } else {
+    const newRow = document.createElement('tr');
+    newRow.className = 'item-details';
+    newRow.innerHTML = `
+      <td colspan="6">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>SR</th>
+              <th>OS</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => `
+              <tr>
+                <td>
+                  <a href="https://wowhead.com/classic/item=${item.ItemID}" 
+                     class="item-row notranslate d-block q1 q3">
+                    <ins></ins><del></del>
+                    <span class="itemlink-text">${item.Item}</span>
+                  </a>
+                </td>
+                <td>${item.SR}</td>
+                <td>${item.OS}</td>
+                <td>${item.Date}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </td>
+    `;
+    tr.parentNode.insertBefore(newRow, tr.nextSibling);
+    button.textContent = '-';
+    
+    if (typeof $WowheadPower !== 'undefined') {
+      $WowheadPower.refreshLinks();
+    }
+  }
+}
+
+function switchTab(className) {
+  document.querySelectorAll('.class-tab').forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.textContent === className) {
+      tab.classList.add('active');
+    }
+  });
+  
+  document.querySelectorAll('.tab-pane').forEach(pane => {
+    pane.classList.remove('active');
+  });
+  
+  const selectedPane = document.querySelector(`#tab-${className}`);
+  if (selectedPane) {
+    selectedPane.classList.add('active');
+  }
+}
+
+function selectRaid(raid) {
+  selectedRaid = raid;
+
+  document.querySelectorAll('.chevron').forEach(ch => ch.classList.remove('active'));
+  const el = document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`);
+  if (el) el.classList.add('active');
+
+  displayStoredData();
+}
+
+function goToLogin() {
+  window.location.href = '/login.html';
+}
+
+function goToGame() {
+  window.location.href = '/public/bouncer.html';
+}
+
+window.onload = () => {
+  onLoginStateChange();
+};
+</script>
 </body>
-</html>
+  </html>
