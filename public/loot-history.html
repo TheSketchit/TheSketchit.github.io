@@ -183,69 +183,97 @@
 
     // Display data
     function displayStoredData() {
-      console.log('WowheadPower status:', typeof $WowheadPower !== 'undefined' ? 'loaded' : 'not loaded');
       if (!selectedRaid) {
         document.querySelector('#lootTable tbody').innerHTML = '';
         return;
       }
+    
+      console.log('WowheadPower status:', typeof $WowheadPower !== 'undefined' ? 'loaded' : 'not loaded');
+    
       const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
       ref.once('value')
         .then(snapshot => {
           let data = snapshot.val() || {};
           let rows = Object.entries(data).map(([key, obj]) => ({ key, ...obj }));
+    
+          // Apply current filter if exists
           if (currentFilter) {
             rows = rows.filter(r => r[currentFilter.column] === currentFilter.value);
           }
-          sortData(rows);
+    
+          // Sort the data
+          rows.sort((a, b) => {
+            const col = currentSort.column;
+            if (col === 'Date') {
+              return currentSort.direction === 'asc'
+                ? new Date(a.Date) - new Date(b.Date)
+                : new Date(b.Date) - new Date(a.Date);
+            } else {
+              const valA = (a[col] || '').toString();
+              const valB = (b[col] || '').toString();
+              return currentSort.direction === 'asc' 
+                ? valA.localeCompare(valB)
+                : valB.localeCompare(valA);
+            }
+          });
+    
+          // Update dropdown and render table
+          populateRaidDateDropdown(rows);
           renderTable(rows);
-          // Force refresh tooltips after data loads
-          if (typeof $WowheadPower !== 'undefined') {
-            setTimeout(() => {
-              $WowheadPower.refreshLinks();
-            }, 100);
-          }
         })
         .catch(e => console.error('Error fetching loot history:', e));
     }
 
     function renderTable(rows) {
       const tbody = document.querySelector('#lootTable tbody');
+      const thead = document.querySelector('#lootTable thead tr');
       tbody.innerHTML = '';
+      thead.innerHTML = '';
+    
+      // Define and create headers
+      const headers = ['Item', 'ItemID', 'Winner', 'SR', 'OS', 'Date'];
+      headers.forEach(column => {
+        const th = document.createElement('th');
+        th.textContent = column;
+        th.onclick = () => sortTable(column);
+        th.classList.toggle('sort-asc', currentSort.column === column && currentSort.direction === 'asc');
+        th.classList.toggle('sort-desc', currentSort.column === column && currentSort.direction === 'desc');
+        thead.appendChild(th);
+      });
     
       rows.forEach(row => {
         const tr = document.createElement('tr');
-        createCell(tr, row.Item, row.ItemID);
-        createCell(tr, row.ItemID);
-        createCell(tr, row.Winner);
-        createCell(tr, row.SR);
-        createCell(tr, row.OS);
-        createCell(tr, row.Date);
+        tr.dataset.key = row.key;
+    
+        headers.forEach(key => {
+          const td = document.createElement('td');
+          
+          if (key === 'Item') {
+            const a = document.createElement('a');
+            a.href = `https://wowhead.com/classic/item=${row.ItemID}`;
+            a.target = '_blank';
+            a.className = 'item-row notranslate d-block q1 q3';
+            a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
+            td.appendChild(a);
+          } else {
+            td.textContent = row[key];
+          }
+    
+          td.onclick = (event) => {
+            if (event.target === td) {
+              filterByColumn(key, row[key]);
+            }
+          };
+          
+          tr.appendChild(td);
+        });
+    
         tbody.appendChild(tr);
       });
     
-      // Force refresh Wowhead tooltips
       if (typeof $WowheadPower !== 'undefined') {
-        setTimeout(() => {
-          $WowheadPower.refreshLinks();
-        }, 100);
+        $WowheadPower.refreshLinks();
       }
-    }
-
-    function createCell(tr, value, itemID = '') {
-      const td = document.createElement('td');
-      if (itemID && td.cellIndex === 0) {  
-        const a = document.createElement('a');
-        // Add 'wowhead' query parameter
-        a.href = `https://wowhead.com/classic/item=${itemID}&utm_source=classic-wow`;
-        a.target = '_blank';
-        a.className = 'q3 item-row notranslate d-block';
-        a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${value}</span>`;
-        td.appendChild(a);
-      } else {
-        td.textContent = value;
-      }
-      td.onclick = () => filterByColumn(getColumnKey(td.cellIndex), value);
-      tr.appendChild(td);
     }
 
     function getColumnKey(index) {
