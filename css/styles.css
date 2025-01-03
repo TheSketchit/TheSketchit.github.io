@@ -515,3 +515,23 @@ th.sort-asc, th.sort-desc {
     transform: translateY(-5px);
   }
 }
+
+/* WowHead tooltip classes */
+.q3 {
+  color: #0070dd !important;
+}
+
+.item-row {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.itemlink-text {
+  color: inherit;
+  text-decoration: none;
+}
+
+.notranslate {
+  white-space: nowrap;
+}
