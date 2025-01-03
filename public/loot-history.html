@@ -223,16 +223,15 @@
     function createCell(tr, value, itemID = '') {
       const td = document.createElement('td');
       if (itemID && td.cellIndex === 0) {
-        // If we want a Wowhead link in the first cell
         const link = document.createElement('a');
         link.href = `https://wowhead.com/classic/item=${itemID}`;
         link.target = '_blank';
-        link.textContent = value;
+        link.className = 'item-row notranslate d-block q1 q3';
+        link.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${value}</span>`;
         td.appendChild(link);
       } else {
         td.textContent = value;
       }
-      // Click to filter
       td.onclick = () => filterByColumn(getColumnKey(td.cellIndex), value);
       tr.appendChild(td);
     }
