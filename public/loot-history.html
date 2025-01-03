@@ -2,13 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Loot History</title>
+  <title>WoW Loot History</title>
   <link rel="stylesheet" href="../css/styles.css">
   <link rel="stylesheet" href="../css/embers.css">
-  <!-- Include PapaParse for CSV parsing, if you want to parse CSV -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
-  <!-- Include Firebase SDKs, if storing to Firebase just like your main page -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
@@ -16,10 +14,9 @@
 <body>
   <div class="top-banner">
     <div class="container">
-      <!-- Example navigation button to go back or to another page -->
-      <button onclick="goToTracker()">Back to Loot Tracker</button>
+      <button onclick="goToGame()">Back</button>
       <div id="auth-container">
-        <!-- This will be replaced by “Login” or “Sign Out” based on the user’s auth state -->
+        <button onclick="goToLogin()">Login</button>
       </div>
     </div>
   </div>
@@ -28,17 +25,37 @@
   <div class="heat-effect"></div>
 
   <div class="container">
-    <h1>Loot History</h1>
-    
-    <div id="loot-history-container" style="display:none;">
-      <div id="duplicate-message-container"></div>
+    <h1>Loot History Tracker</h1>
 
-      <!-- Admin Controls (only visible to non-guest users) -->
-      <label for="csvInput" id="csvInputLabel">Paste CSV:</label><br>
+    <div id="tracker-container" style="display:none;">
+      <label for="raidDate" id="raidDateLabel">Raid Date:</label>
+      <input type="date" id="raidDate"><br><br>
+
       <textarea id="csvInput" rows="10" cols="100"></textarea><br>
-      <button id="saveHistoryButton" onclick="processCSV()">Save Loot History</button>
+      <button onclick="processCSV()" id="saveLootButton">Save Loot History</button>
 
-      <!-- Table for displaying the “Loot History” -->
+      <div class="navigation-container">
+        <div class="chevron-navigation">
+          <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
+          <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
+          <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
+          <div class="chevron" onclick="selectRaid('Molten Core')">Molten Core</div>
+          <div class="chevron" onclick="selectRaid('Blackwing Lair')">Blackwing Lair</div>
+          <div class="chevron" onclick="selectRaid('Zul Gurub')">Zul Gurub</div>
+          <div class="chevron" onclick="selectRaid('Crystal Vale')">Crystal Vale</div>
+          <div class="chevron" onclick="selectRaid('Lil AQ')">Lil AQ</div>
+          <div class="chevron" onclick="selectRaid('Big AQ')">Big AQ</div>
+          <div class="chevron" onclick="selectRaid('Nightmare Grove')">Nightmare Grove</div>
+        </div>
+        <div class="dropdown">
+          <button class="dropbtn">History Raid Dates</button>
+          <div class="dropdown-content" id="viewRaidDate"></div>
+        </div>
+      </div>
+
+      <div id="filterIndicator" style="display:none;"></div>
+      <button onclick="clearFilter()" id="clearFilterButton" style="display:none;">Clear Filter</button>
+
       <div class="parchment-table-container">
         <div class="parchment-table-top">
           <div class="parchment-table-top-left"></div>
@@ -48,21 +65,18 @@
         <div class="parchment-table-middle">
           <div class="parchment-table-left"></div>
           <div class="parchment-table-content">
-            <table id="lootHistoryTable">
+            <table id="lootTable">
               <thead>
                 <tr>
-                  <!-- These columns match the CSV structure -->
-                  <th>Date</th>
-                  <th>Item</th>
-                  <th>ItemID</th>
-                  <th>Winner</th>
-                  <th>SR</th>
-                  <th>OS</th>
+                  <th onclick="sortTable('Item')">Item</th>
+                  <th onclick="sortTable('ItemID')">ItemID</th>
+                  <th onclick="sortTable('Winner')">Winner</th>
+                  <th onclick="sortTable('SR')">SR</th>
+                  <th onclick="sortTable('OS')">OS</th>
+                  <th onclick="sortTable('Date')">Date</th>
                 </tr>
               </thead>
-              <tbody>
-                <!-- Table rows will be populated here -->
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
           <div class="parchment-table-right"></div>
@@ -73,13 +87,11 @@
           <div class="parchment-table-bottom-right"></div>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- Initialize Firebase, just like in your original page -->
   <script>
-    // Replace with your project's config or reuse the same config from your main page
+    // Firebase config
     var firebaseConfig = {
       apiKey: "AIzaSyByH17o2XNgMensJhFivtsYNlzpjVIRP3E",
       authDomain: "wowsr-9ec27.firebaseapp.com",
@@ -92,8 +104,10 @@
     firebase.initializeApp(firebaseConfig);
 
     let isGuest = true;
+    let currentFilter = null;
+    let currentSort = { column: 'Date', direction: 'desc' };
+    let selectedRaid = null;
 
-    // Set up an auth state listener so we know if user is logged in
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
         isGuest = false;
@@ -105,165 +119,230 @@
       onLoginStateChange();
     });
 
-    function signOut() {
-      firebase.auth().signOut().then(() => {
-        console.log('User signed out');
-      }).catch(error => {
-        console.error('Error signing out:', error);
-      });
-    }
-
     function onLoginStateChange() {
       if (isGuest) {
-        // Hide admin controls
-        document.getElementById('csvInputLabel').style.display = 'none';
+        document.getElementById('raidDateLabel').style.display = 'none';
+        document.getElementById('raidDate').style.display = 'none';
         document.getElementById('csvInput').style.display = 'none';
-        document.getElementById('saveHistoryButton').style.display = 'none';
+        document.getElementById('saveLootButton').style.display = 'none';
       } else {
-        // Show admin controls
-        document.getElementById('csvInputLabel').style.display = 'block';
+        document.getElementById('raidDateLabel').style.display = 'block';
+        document.getElementById('raidDate').style.display = 'block';
         document.getElementById('csvInput').style.display = 'block';
-        document.getElementById('saveHistoryButton').style.display = 'inline-block';
+        document.getElementById('saveLootButton').style.display = 'inline-block';
       }
-      // Always show container
-      document.getElementById('loot-history-container').style.display = 'block';
-
-      // Display existing data from Firebase
+      document.getElementById('tracker-container').style.display = 'block';
       displayStoredData();
     }
 
-    // Optional: If you want a reference to a “lootHistoryData” node in your DB
-    const lootHistoryRef = firebase.database().ref('lootHistoryData');
+    function signOut() {
+      firebase.auth().signOut()
+        .then(() => console.log('Signed out'))
+        .catch(error => console.error('Sign out error:', error));
+    }
 
+    // CSV import
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
-      if (!csvInput) {
-        alert('Please paste some CSV data first.');
+      const raidDate = document.getElementById('raidDate').value;
+      const raid = selectedRaid;
+
+      if (!raid || !raidDate) {
+        alert('Please select a raid and a raid date.');
         return;
       }
 
       Papa.parse(csvInput, {
-        header: false, // We do NOT have a CSV header in your sample
+        header: false, 
         complete: function(results) {
-          // Each row in `results.data` will look like:
-          // [ "2025-01-02", "Barrage Shoulders", "233496", "Gundar", "1", "0" ]
+          // each row is [DATE, "ITEM", ITEMID, WINNER, SR, OS]
           const data = results.data;
-
-          // Validate or transform data if needed
           data.forEach(row => {
-            // row[0] => Date
-            // row[1] => Item
-            // row[2] => ItemID
-            // row[3] => Winner
-            // row[4] => SR
-            // row[5] => OS
-            // Save each row to Firebase:
-            saveToFirebase(row);
+            saveToFirebase(raid, row);
           });
         }
       });
     }
 
-    async function saveToFirebase(row) {
-      // Build an object that matches our table columns
-      let record = {
-        date: row[0] || '',
-        item: row[1] || '',
-        itemID: row[2] || '',
-        winner: row[3] || '',
-        sr: row[4] || '',
-        os: row[5] || ''
+    function saveToFirebase(raid, row) {
+      if (!row || row.length < 6) return;
+      const record = {
+        Date: row[0] || '',
+        Item: row[1] || '',
+        ItemID: row[2] || '',
+        Winner: row[3] || '',
+        SR: row[4] || '',
+        OS: row[5] || ''
       };
+      const ref = firebase.database().ref(`lootHistoryData/${raid}`);
+      ref.push(record)
+        .catch(e => console.error('Error writing record:', e));
+    }
 
-      // You might check for duplicates here if needed:
-      // ...
-
-      // Push to “lootHistoryData”
-      await lootHistoryRef.push(record)
-        .then(() => {
-          console.log('Record saved:', record);
+    // Display data
+    function displayStoredData() {
+      if (!selectedRaid) {
+        document.querySelector('#lootTable tbody').innerHTML = '';
+        return;
+      }
+      const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
+      ref.once('value')
+        .then(snapshot => {
+          let data = snapshot.val() || {};
+          let rows = Object.entries(data).map(([key, obj]) => ({ key, ...obj }));
+          if (currentFilter) {
+            rows = rows.filter(r => r[currentFilter.column] === currentFilter.value);
+          }
+          sortData(rows);
+          renderTable(rows);
+          populateRaidDateDropdown(rows);
         })
-        .catch(error => {
-          console.error('Error writing record: ', error);
-        });
+        .catch(e => console.error('Error fetching loot history:', e));
+    }
 
-      // Once finished, refresh the table
+    function renderTable(rows) {
+      const tbody = document.querySelector('#lootTable tbody');
+      tbody.innerHTML = '';
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        createCell(tr, row.Item, row.ItemID); // item link
+        createCell(tr, row.ItemID);
+        createCell(tr, row.Winner);
+        createCell(tr, row.SR);
+        createCell(tr, row.OS);
+        createCell(tr, row.Date);
+        tbody.appendChild(tr);
+      });
+    }
+
+    function createCell(tr, value, itemID = '') {
+      const td = document.createElement('td');
+      if (itemID && td.cellIndex === 0) {
+        // If we want a Wowhead link in the first cell
+        const link = document.createElement('a');
+        link.href = `https://wowhead.com/classic/item=${itemID}`;
+        link.target = '_blank';
+        link.textContent = value;
+        td.appendChild(link);
+      } else {
+        td.textContent = value;
+      }
+      // Click to filter
+      td.onclick = () => filterByColumn(getColumnKey(td.cellIndex), value);
+      tr.appendChild(td);
+    }
+
+    function getColumnKey(index) {
+      // Table columns: 0=Item,1=ItemID,2=Winner,3=SR,4=OS,5=Date
+      switch (index) {
+        case 0: return 'Item';
+        case 1: return 'ItemID';
+        case 2: return 'Winner';
+        case 3: return 'SR';
+        case 4: return 'OS';
+        case 5: return 'Date';
+      }
+    }
+
+    // Sorting
+    function sortData(rows) {
+      rows.sort((a, b) => {
+        const col = currentSort.column;
+        if (col === 'Date') {
+          // Date sort
+          return currentSort.direction === 'asc'
+            ? new Date(a.Date) - new Date(b.Date)
+            : new Date(b.Date) - new Date(a.Date);
+        } else {
+          // String or numeric comparison
+          const valA = (a[col] || '').toString();
+          const valB = (b[col] || '').toString();
+          if (currentSort.direction === 'asc') return valA.localeCompare(valB);
+          else return valB.localeCompare(valA);
+        }
+      });
+    }
+
+    function sortTable(column) {
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
       displayStoredData();
     }
 
-    function displayStoredData() {
-      lootHistoryRef.once('value')
-        .then(snapshot => {
-          const data = snapshot.val();
-          const tableBody = document.querySelector('#lootHistoryTable tbody');
-          tableBody.innerHTML = '';
-
-          if (!data) return;
-
-          // data is an object: { key1: {...}, key2: {...}, ...}
-          Object.entries(data).forEach(([key, value]) => {
-            let tr = document.createElement('tr');
-
-            // Table columns correspond to date, item, itemID, winner, sr, os
-            const tdDate = document.createElement('td');
-            tdDate.textContent = value.date;
-            tr.appendChild(tdDate);
-
-            const tdItem = document.createElement('td');
-            // Optionally link to Wowhead by itemID
-            if (value.itemID) {
-              const link = document.createElement('a');
-              link.href = `https://wowhead.com/classic/item=${value.itemID}`;
-              link.target = '_blank';
-              link.textContent = value.item;
-              tdItem.appendChild(link);
-            } else {
-              tdItem.textContent = value.item;
-            }
-            tr.appendChild(tdItem);
-
-            const tdItemID = document.createElement('td');
-            tdItemID.textContent = value.itemID;
-            tr.appendChild(tdItemID);
-
-            const tdWinner = document.createElement('td');
-            tdWinner.textContent = value.winner;
-            tr.appendChild(tdWinner);
-
-            const tdSR = document.createElement('td');
-            tdSR.textContent = value.sr;
-            tr.appendChild(tdSR);
-
-            const tdOS = document.createElement('td');
-            tdOS.textContent = value.os;
-            tr.appendChild(tdOS);
-
-            tableBody.appendChild(tr);
-          });
-        })
-        .catch(error => {
-          console.error('Error fetching loot history data:', error);
-        });
+    // Filter
+    function filterByColumn(column, value) {
+      currentFilter = { column, value };
+      displayStoredData();
+      document.getElementById('clearFilterButton').style.display = 'inline-block';
+      updateFilterIndicator();
     }
 
-    // Simple navigation helper
-    function goToTracker() {
-      window.location.href = '/public/index.html';
+    function clearFilter() {
+      currentFilter = null;
+      displayStoredData();
+      document.getElementById('clearFilterButton').style.display = 'none';
+      updateFilterIndicator();
     }
 
+    // Filter indicator
+    function updateFilterIndicator() {
+      const el = document.getElementById('filterIndicator');
+      if (!currentFilter) {
+        el.style.display = 'none';
+      } else {
+        el.textContent = `Filtered by ${currentFilter.column}: ${currentFilter.value}`;
+        el.style.display = 'block';
+      }
+    }
+
+    // Raid selection
+    function selectRaid(raid) {
+      selectedRaid = raid;
+      currentFilter = null;
+      currentSort = { column: 'Date', direction: 'desc' };
+
+      document.querySelectorAll('.chevron').forEach(ch => ch.classList.remove('active'));
+      const el = document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`);
+      if (el) el.classList.add('active');
+
+      displayStoredData();
+    }
+
+    // Populate date dropdown from loaded rows
+    function populateRaidDateDropdown(rows) {
+      const dropdown = document.getElementById('viewRaidDate');
+      dropdown.innerHTML = '';
+      if (!rows || !rows.length) return;
+      const uniqueDates = [...new Set(rows.map(r => r.Date))].sort((a, b) => new Date(b) - new Date(a));
+      uniqueDates.forEach(date => {
+        const div = document.createElement('div');
+        div.className = 'dropdown-item';
+        div.textContent = date;
+        div.onclick = () => filterByColumn('Date', date);
+        dropdown.appendChild(div);
+      });
+    }
+
+    // Navigation
     function goToLogin() {
       window.location.href = '/login.html';
     }
 
-    // On page load
-    window.onload = function() {
-      onLoginStateChange(); 
-    };
-  </script>
+    function goToGame() {
+      window.location.href = '/public/bouncer.html';
+    }
 
+    window.onload = () => {
+      onLoginStateChange();
+    };
+
+  </script>
   <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
   <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   <script src="../js/embers.js"></script>
-
 </body>
 </html>
