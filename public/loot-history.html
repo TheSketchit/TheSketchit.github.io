@@ -71,7 +71,6 @@
               <thead>
                 <tr>
                   <th onclick="sortTable('Item')">Item</th>
-                  <th onclick="sortTable('ItemID')">ItemID</th>
                   <th onclick="sortTable('Winner')">Winner</th>
                   <th onclick="sortTable('SR')">SR</th>
                   <th onclick="sortTable('OS')">OS</th>
@@ -155,28 +154,61 @@
       Papa.parse(csvInput, {
         header: false,
         complete: function(results) {
-          const data = results.data;
-          data.forEach(row => {
-            saveToFirebase(row);
-          });
+          // First check for duplicates before saving any records
+          checkForDuplicates(results.data);
         }
       });
     }
 
+    function checkForDuplicates(data) {
+      const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
+      ref.once('value')
+        .then(snapshot => {
+          const existingData = snapshot.val() || {};
+          const existingChecksums = new Set(
+            Object.values(existingData).map(item => item.Checksum)
+          );
+    
+          // Filter out rows with checksums that already exist
+          const newRows = data.filter(row => {
+            const checksum = row[6]?.trim(); // Get checksum from the 7th column
+            return checksum && !existingChecksums.has(checksum);
+          });
+    
+          // If we found duplicates, notify the user
+          if (newRows.length < data.length) {
+            const duplicateCount = data.length - newRows.length;
+            alert(`${duplicateCount} duplicate item(s) were found and will not be added.`);
+          }
+    
+          // Save the non-duplicate rows
+          newRows.forEach(row => saveToFirebase(row));
+        });
+    }
 
     function saveToFirebase(row) {
-      if (!row || row.length < 6) return;
+      if (!row || row.length < 7) return; // Make sure we have all fields including checksum
+    
+      // Format SR and OS values
+      const srValue = row[4].trim() === '1' ? 'Yes' : 'No';
+      const osValue = row[5].trim() === '1' ? 'Offspec' : 'Main Spec';
+    
       const record = {
-        Date: row[0] || '',
-        Item: row[1] || '',
-        ItemID: row[2] || '',
-        Winner: row[3] || '',
-        SR: row[4] || '',
-        OS: row[5] || ''
+        Date: row[0].replace('@', '').trim() || '',
+        Item: row[1].replace('@', '').replace(/"/g, '').trim() || '',
+        ItemID: row[2].replace('@', '').trim() || '',
+        Winner: row[3].replace('@', '').trim() || '',
+        SR: srValue,
+        OS: osValue,
+        Checksum: row[6].replace('@', '').trim() || ''
       };
     
       firebase.database().ref(`lootHistoryData/${selectedRaid}`)
         .push(record)
+        .then(() => {
+          console.log('Record saved successfully');
+          displayStoredData(); // Refresh the display
+        })
         .catch(e => console.error('Error writing record:', e));
     }
 
@@ -230,8 +262,8 @@
       tbody.innerHTML = '';
       thead.innerHTML = '';
     
-      // Define and create headers
-      const headers = ['Item', 'ItemID', 'Winner', 'SR', 'OS', 'Date'];
+      // Define headers - removed ItemID and Checksum
+      const headers = ['Item', 'Winner', 'SR', 'OS', 'Date'];
       headers.forEach(column => {
         const th = document.createElement('th');
         th.textContent = column;
@@ -250,7 +282,7 @@
           
           if (key === 'Item') {
             const a = document.createElement('a');
-            a.href = `https://wowhead.com/classic/item=${row.ItemID}`;
+            a.href = `https://wowhead.com/classic/item=${row.ItemID}`; // Still using ItemID for the link
             a.target = '_blank';
             a.className = 'item-row notranslate d-block q1 q3';
             a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${row[key]}</span>`;
