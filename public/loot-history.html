@@ -36,6 +36,11 @@
       <textarea id="csvInput" rows="10" cols="100"></textarea><br>
       <button onclick="processCSV()" id="saveLootButton">Save Loot History</button>
 
+      <div class="view-toggle">
+        <button onclick="toggleView('table')" id="tableViewBtn" class="active">Table View</button>
+        <button onclick="toggleView('class')" id="classViewBtn">Class Summary</button>
+      </div>
+
       <div class="navigation-container">
         <div class="chevron-navigation">
           <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
@@ -108,7 +113,15 @@
     let currentFilter = null;
     let currentSort = { column: 'Date', direction: 'desc' };
     let selectedRaid = null;
+    let currentView = 'table';
 
+    function toggleView(view) {
+      currentView = view;
+      document.getElementById('tableViewBtn').classList.toggle('active', view === 'table');
+      document.getElementById('classViewBtn').classList.toggle('active', view === 'class');
+      displayStoredData(); // This will now handle both views
+    }
+    
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
         isGuest = false;
@@ -212,28 +225,52 @@
         .catch(e => console.error('Error writing record:', e));
     }
 
+    async function getPlayerData() {
+      const classData = {};
+      const raidLootRef = firebase.database().ref('raidLootData');
+      
+      try {
+        const snapshot = await raidLootRef.once('value');
+        const data = snapshot.val() || {};
+        
+        // Iterate through all raids
+        Object.values(data).forEach(raid => {
+          Object.values(raid).forEach(entry => {
+            if (entry.Name && entry.Class && entry.Spec) {
+              classData[entry.Name] = {
+                class: entry.Class,
+                spec: entry.Spec
+              };
+            }
+          });
+        });
+        return classData;
+      } catch (error) {
+        console.error('Error fetching player data:', error);
+        return {};
+      }
+    }
 
     // Display data
-    function displayStoredData() {
+    async function displayStoredData() {
       if (!selectedRaid) {
-        document.querySelector('#lootTable tbody').innerHTML = '';
+        document.querySelector('.parchment-table-content').innerHTML = '';
         return;
       }
     
-      console.log('WowheadPower status:', typeof $WowheadPower !== 'undefined' ? 'loaded' : 'not loaded');
-    
       const ref = firebase.database().ref(`lootHistoryData/${selectedRaid}`);
-      ref.once('value')
-        .then(snapshot => {
-          let data = snapshot.val() || {};
-          let rows = Object.entries(data).map(([key, obj]) => ({ key, ...obj }));
+      
+      try {
+        const snapshot = await ref.once('value');
+        const data = snapshot.val() || {};
+        let rows = Object.entries(data).map(([key, obj]) => ({ key, ...obj }));
     
-          // Apply current filter if exists
+        if (currentView === 'table') {
+          // Your existing table view code
           if (currentFilter) {
             rows = rows.filter(r => r[currentFilter.column] === currentFilter.value);
           }
-    
-          // Sort the data
+          
           rows.sort((a, b) => {
             const col = currentSort.column;
             if (col === 'Date') {
@@ -249,11 +286,193 @@
             }
           });
     
-          // Update dropdown and render table
           populateRaidDateDropdown(rows);
           renderTable(rows);
-        })
-        .catch(e => console.error('Error fetching loot history:', e));
+        } else {
+          // Class view
+          const playerData = await getPlayerData();
+          const classSummary = processLootByClass(rows, playerData);
+          renderClassTabs(classSummary);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    }
+
+    function processLootByClass(rows, playerData) {
+      const classSummary = {};
+      
+      // Initialize class categories
+      const classes = ['Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid'];
+      classes.forEach(className => {
+        classSummary[className] = {
+          players: {}
+        };
+      });
+    
+      // Process each loot entry
+      rows.forEach(row => {
+        const playerClass = playerData[row.Winner]?.class || 'Unknown';
+        const playerSpec = playerData[row.Winner]?.spec || 'Unknown';
+        
+        if (!classSummary[playerClass].players[row.Winner]) {
+          classSummary[playerClass].players[row.Winner] = {
+            spec: playerSpec,
+            srCount: 0,
+            msCount: 0,
+            osCount: 0,
+            items: []
+          };
+        }
+    
+        const player = classSummary[playerClass].players[row.Winner];
+        
+        // Count item types
+        if (row.SR === 'Yes') player.srCount++;
+        if (row.OS === 'Main Spec') player.msCount++;
+        if (row.OS === 'Offspec') player.osCount++;
+        
+        // Add item to player's list
+        player.items.push(row);
+      });
+    
+      return classSummary;
+    }
+
+    function renderClassTabs(classSummary) {
+      const container = document.querySelector('.parchment-table-content');
+      container.innerHTML = '';
+    
+      // Create tabs
+      const tabsContainer = document.createElement('div');
+      tabsContainer.className = 'class-tabs';
+      
+      // Create tab content
+      const contentContainer = document.createElement('div');
+      contentContainer.className = 'tab-content';
+    
+      Object.entries(classSummary).forEach(([className, data], index) => {
+        // Create tab
+        const tab = document.createElement('button');
+        tab.className = `class-tab ${index === 0 ? 'active' : ''}`;
+        tab.textContent = className;
+        tab.onclick = () => switchTab(className);
+        tabsContainer.appendChild(tab);
+    
+        // Create content
+        const content = document.createElement('div');
+        content.className = `tab-pane ${index === 0 ? 'active' : ''}`;
+        content.id = `tab-${className}`;
+        
+        // Create player summary table
+        content.appendChild(createPlayerSummaryTable(data.players, className));
+        
+        contentContainer.appendChild(content);
+      });
+    
+      container.appendChild(tabsContainer);
+      container.appendChild(contentContainer);
+    }
+    
+    function createPlayerSummaryTable(players, className) {
+      const table = document.createElement('table');
+      table.className = 'player-summary-table';
+      
+      // Create header
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>Player</th>
+          <th>Spec</th>
+          <th>SR Items</th>
+          <th>MS Items</th>
+          <th>OS Items</th>
+          <th>Details</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+    
+      // Create body
+      const tbody = document.createElement('tbody');
+      Object.entries(players).forEach(([playerName, data]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${playerName}</td>
+          <td>${data.spec}</td>
+          <td>${data.srCount}</td>
+          <td>${data.msCount}</td>
+          <td>${data.osCount}</td>
+          <td>
+            <button class="expand-button" onclick="togglePlayerItems(this, ${JSON.stringify(data.items)})">+</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    
+      table.appendChild(tbody);
+      return table;
+    }
+    
+    function togglePlayerItems(button, items) {
+      const tr = button.closest('tr');
+      const detailRow = tr.nextElementSibling;
+      
+      if (detailRow && detailRow.classList.contains('item-details')) {
+        detailRow.remove();
+        button.textContent = '+';
+      } else {
+        const newRow = document.createElement('tr');
+        newRow.className = 'item-details';
+        newRow.innerHTML = `
+          <td colspan="6">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>SR</th>
+                  <th>OS</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${items.map(item => `
+                  <tr>
+                    <td>
+                      <a href="https://wowhead.com/classic/item=${item.ItemID}" 
+                         class="item-row notranslate d-block q1 q3">
+                        <ins></ins><del></del>
+                        <span class="itemlink-text">${item.Item}</span>
+                      </a>
+                    </td>
+                    <td>${item.SR}</td>
+                    <td>${item.OS}</td>
+                    <td>${item.Date}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </td>
+        `;
+        tr.parentNode.insertBefore(newRow, tr.nextSibling);
+        button.textContent = '-';
+        
+        // Refresh WowHead tooltips for the new items
+        if (typeof $WowheadPower !== 'undefined') {
+          $WowheadPower.refreshLinks();
+        }
+      }
+    }
+    
+    function switchTab(className) {
+      document.querySelectorAll('.class-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('active');
+      });
+      
+      document.querySelector(`.class-tab:contains('${className}')`).classList.add('active');
+      document.querySelector(`#tab-${className}`).classList.add('active');
     }
 
     function renderTable(rows) {
