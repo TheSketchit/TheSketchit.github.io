@@ -141,30 +141,28 @@
         .catch(error => console.error('Sign out error:', error));
     }
 
-    // CSV import
     function processCSV() {
       const csvInput = document.getElementById('csvInput').value;
       const raidDate = document.getElementById('raidDate').value;
-      const raid = selectedRaid;
-
-      if (!raid || !raidDate) {
+    
+      if (!selectedRaid || !raidDate) {
         alert('Please select a raid and a raid date.');
         return;
       }
-
+    
       Papa.parse(csvInput, {
-        header: false, 
+        header: false,
         complete: function(results) {
-          // each row is [DATE, "ITEM", ITEMID, WINNER, SR, OS]
           const data = results.data;
           data.forEach(row => {
-            saveToFirebase(raid, row);
+            saveToFirebase(row);
           });
         }
       });
     }
 
-    function saveToFirebase(raid, row) {
+
+    function saveToFirebase(row) {
       if (!row || row.length < 6) return;
       const record = {
         Date: row[0] || '',
@@ -174,10 +172,12 @@
         SR: row[4] || '',
         OS: row[5] || ''
       };
-      const ref = firebase.database().ref(`lootHistoryData/${raid}`);
-      ref.push(record)
+    
+      firebase.database().ref(`lootHistoryData/${selectedRaid}`)
+        .push(record)
         .catch(e => console.error('Error writing record:', e));
     }
+
 
     // Display data
     function displayStoredData() {
@@ -330,10 +330,6 @@
     // Navigation
     function goToLogin() {
       window.location.href = '/login.html';
-    }
-
-    function goToGame() {
-      window.location.href = '/public/bouncer.html';
     }
 
     window.onload = () => {
