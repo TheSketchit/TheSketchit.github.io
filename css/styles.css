@@ -537,26 +537,26 @@ th.sort-asc, th.sort-desc {
 }
 
 /* Class View Styles */
+.class-tab {
+  padding: 8px 16px;
+  border: 1px solid #670000;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: #001664;
+  cursor: pointer;
+}
+
 .class-tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #d3c5a1;
+  border-bottom: 2px solid #550000;
   padding-bottom: 4px;
 }
 
-.class-tab {
-  padding: 8px 16px;
-  border: 1px solid #d3c5a1;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  background: #e0d5b7;
-  cursor: pointer;
-}
-
 .class-tab.active {
-  background: #f0e6d2;
-  border-bottom: 2px solid #f0e6d2;
+  background:rgb(138, 2, 2);
+  border-bottom: 2px solid #001c6f;
   margin-bottom: -2px;
 }
 
