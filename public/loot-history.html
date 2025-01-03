@@ -10,6 +10,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-database.js"></script>
+  <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
+  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
 </head>
 <body>
   <div class="top-banner">
@@ -195,7 +197,12 @@
           }
           sortData(rows);
           renderTable(rows);
-          populateRaidDateDropdown(rows);
+          // Force refresh tooltips after data loads
+          if (typeof $WowheadPower !== 'undefined') {
+            setTimeout(() => {
+              $WowheadPower.refreshLinks();
+            }, 100);
+          }
         })
         .catch(e => console.error('Error fetching loot history:', e));
     }
@@ -214,21 +221,24 @@
         createCell(tr, row.Date);
         tbody.appendChild(tr);
       });
-
+    
+      // Force refresh Wowhead tooltips
       if (typeof $WowheadPower !== 'undefined') {
-        $WowheadPower.refreshLinks();
+        setTimeout(() => {
+          $WowheadPower.refreshLinks();
+        }, 100);
       }
     }
 
     function createCell(tr, value, itemID = '') {
       const td = document.createElement('td');
-      if (itemID && td.cellIndex === 0) {
-        const link = document.createElement('a');
-        link.href = `https://wowhead.com/classic/item=${itemID}`;
-        link.target = '_blank';
-        link.className = 'item-row notranslate d-block q1 q3';
-        link.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${value}</span>`;
-        td.appendChild(link);
+      if (itemID && td.cellIndex === 0) {  // Only for the first column when itemID exists
+        const a = document.createElement('a');
+        a.href = `https://wowhead.com/classic/item=${itemID}`;
+        a.target = '_blank';
+        a.className = 'item-row notranslate d-block q1 q3';
+        a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${value}</span>`;
+        td.appendChild(a);
       } else {
         td.textContent = value;
       }
@@ -341,8 +351,6 @@
     };
 
   </script>
-  <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
-  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   <script src="../js/embers.js"></script>
 </body>
 </html>
