@@ -302,8 +302,8 @@
     function processLootByClass(rows, playerData) {
       const classSummary = {};
       
-      // Initialize class categories
-      const classes = ['Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid'];
+      // Initialize class categories including Unknown
+      const classes = ['Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid', 'Unknown'];
       classes.forEach(className => {
         classSummary[className] = {
           players: {}
@@ -315,6 +315,12 @@
         const playerClass = playerData[row.Winner]?.class || 'Unknown';
         const playerSpec = playerData[row.Winner]?.spec || 'Unknown';
         
+        // Ensure the class exists in our summary (fallback to Unknown if needed)
+        if (!classSummary[playerClass]) {
+          classSummary['Unknown'] = classSummary['Unknown'] || { players: {} };
+          playerClass = 'Unknown';
+        }
+    
         if (!classSummary[playerClass].players[row.Winner]) {
           classSummary[playerClass].players[row.Winner] = {
             spec: playerSpec,
@@ -334,6 +340,13 @@
         
         // Add item to player's list
         player.items.push(row);
+      });
+    
+      // Remove empty classes
+      Object.keys(classSummary).forEach(className => {
+        if (Object.keys(classSummary[className].players).length === 0) {
+          delete classSummary[className];
+        }
       });
     
       return classSummary;
@@ -466,20 +479,38 @@
     function switchTab(className) {
       document.querySelectorAll('.class-tab').forEach(tab => {
         tab.classList.remove('active');
+        if (tab.textContent === className) {
+          tab.classList.add('active');
+        }
       });
+      
       document.querySelectorAll('.tab-pane').forEach(pane => {
         pane.classList.remove('active');
       });
       
-      document.querySelector(`.class-tab:contains('${className}')`).classList.add('active');
-      document.querySelector(`#tab-${className}`).classList.add('active');
+      const selectedPane = document.querySelector(`#tab-${className}`);
+      if (selectedPane) {
+        selectedPane.classList.add('active');
+      }
     }
 
     function renderTable(rows) {
-      const tbody = document.querySelector('#lootTable tbody');
-      const thead = document.querySelector('#lootTable thead tr');
-      tbody.innerHTML = '';
-      thead.innerHTML = '';
+      // Clear the content container first
+      const container = document.querySelector('.parchment-table-content');
+      container.innerHTML = ''; // Clear existing content
+    
+      // Create table structure
+      const table = document.createElement('table');
+      table.id = 'lootTable';
+      const thead = document.createElement('thead');
+      const tbody = document.createElement('tbody');
+      table.appendChild(thead);
+      table.appendChild(tbody);
+      container.appendChild(table);
+    
+      // Create header row
+      const headerRow = document.createElement('tr');
+      thead.appendChild(headerRow);
     
       // Define headers - removed ItemID and Checksum
       const headers = ['Item', 'Winner', 'SR', 'OS', 'Date'];
@@ -489,7 +520,7 @@
         th.onclick = () => sortTable(column);
         th.classList.toggle('sort-asc', currentSort.column === column && currentSort.direction === 'asc');
         th.classList.toggle('sort-desc', currentSort.column === column && currentSort.direction === 'desc');
-        thead.appendChild(th);
+        headerRow.appendChild(th);
       });
     
       rows.forEach(row => {
