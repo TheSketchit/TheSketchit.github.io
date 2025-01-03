@@ -535,3 +535,77 @@ th.sort-asc, th.sort-desc {
 .notranslate {
   white-space: nowrap;
 }
+
+/* Class View Styles */
+.class-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #d3c5a1;
+  padding-bottom: 4px;
+}
+
+.class-tab {
+  padding: 8px 16px;
+  border: 1px solid #d3c5a1;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  background: #e0d5b7;
+  cursor: pointer;
+}
+
+.class-tab.active {
+  background: #f0e6d2;
+  border-bottom: 2px solid #f0e6d2;
+  margin-bottom: -2px;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
+.player-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.player-summary-table th,
+.player-summary-table td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #d3c5a1;
+}
+
+.expand-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  border: 1px solid #d3c5a1;
+  background: #e0d5b7;
+  cursor: pointer;
+}
+
+.item-details {
+  background: #f7f3e9;
+}
+
+.items-table {
+  width: 100%;
+  margin: 8px;
+  border-collapse: collapse;
+}
+
+.items-table th,
+.items-table td {
+  padding: 6px;
+  border: 1px solid #d3c5a1;
+}
+
+/* View Toggle Styles */
+.view-toggle {
+  margin: 20px 0;
+}
