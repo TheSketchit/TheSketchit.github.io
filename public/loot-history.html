@@ -88,8 +88,6 @@
         </div>
       </div>
     </div>
-  <script>const whTooltips = {colorLinks: true, iconizeLinks: true, renameLinks: true};</script>
-  <script src="https://wow.zamimg.com/js/tooltips.js"></script>
   </div>
 
   <script>
@@ -205,9 +203,10 @@
     function renderTable(rows) {
       const tbody = document.querySelector('#lootTable tbody');
       tbody.innerHTML = '';
+    
       rows.forEach(row => {
         const tr = document.createElement('tr');
-        createCell(tr, row.Item, row.ItemID); // item link
+        createCell(tr, row.Item, row.ItemID);
         createCell(tr, row.ItemID);
         createCell(tr, row.Winner);
         createCell(tr, row.SR);
@@ -215,6 +214,10 @@
         createCell(tr, row.Date);
         tbody.appendChild(tr);
       });
+
+      if (typeof $WowheadPower !== 'undefined') {
+        $WowheadPower.refreshLinks();
+      }
     }
 
     function createCell(tr, value, itemID = '') {
