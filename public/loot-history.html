@@ -318,7 +318,6 @@ function createPlayerSummaryTable(players, className) {
       <th>SR Items</th>
       <th>MS Items</th>
       <th>OS Items</th>
-      <th>Details</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -326,36 +325,18 @@ function createPlayerSummaryTable(players, className) {
   const tbody = document.createElement('tbody');
   Object.entries(players).forEach(([playerName, data]) => {
     const tr = document.createElement('tr');
+    tr.className = 'player-row';
+    // Store the items data directly on the row
+    tr.dataset.items = JSON.stringify(data.items);
+    tr.onclick = () => togglePlayerItems(tr);
     
-    const td1 = document.createElement('td');
-    td1.textContent = playerName;
-    
-    const td2 = document.createElement('td');
-    td2.textContent = data.spec;
-    
-    const td3 = document.createElement('td');
-    td3.textContent = data.srCount;
-    
-    const td4 = document.createElement('td');
-    td4.textContent = data.msCount;
-    
-    const td5 = document.createElement('td');
-    td5.textContent = data.osCount;
-    
-    const td6 = document.createElement('td');
-    const button = document.createElement('button');
-    button.className = 'expand-button';
-    button.textContent = '+';
-    button.dataset.items = JSON.stringify(data.items);
-    button.onclick = () => togglePlayerItems(button);
-    td6.appendChild(button);
-
-    tr.appendChild(td1);
-    tr.appendChild(td2);
-    tr.appendChild(td3);
-    tr.appendChild(td4);
-    tr.appendChild(td5);
-    tr.appendChild(td6);
+    tr.innerHTML = `
+      <td>${playerName}</td>
+      <td>${data.spec}</td>
+      <td>${data.srCount}</td>
+      <td>${data.msCount}</td>
+      <td>${data.osCount}</td>
+    `;
     
     tbody.appendChild(tr);
   });
@@ -364,19 +345,19 @@ function createPlayerSummaryTable(players, className) {
   return table;
 }
 
-function togglePlayerItems(button) {
-  const tr = button.closest('tr');
-  const detailRow = tr.nextElementSibling;
-  const items = JSON.parse(button.dataset.items);
+function togglePlayerItems(row) {
+  const detailRow = row.nextElementSibling;
+  const items = JSON.parse(row.dataset.items);
   
   if (detailRow && detailRow.classList.contains('item-details')) {
     detailRow.remove();
-    button.textContent = '+';
+    row.classList.remove('expanded');
   } else {
+    row.classList.add('expanded');
     const newRow = document.createElement('tr');
     newRow.className = 'item-details';
     newRow.innerHTML = `
-      <td colspan="6">
+      <td colspan="5">
         <table class="items-table">
           <thead>
             <tr>
@@ -405,8 +386,7 @@ function togglePlayerItems(button) {
         </table>
       </td>
     `;
-    tr.parentNode.insertBefore(newRow, tr.nextSibling);
-    button.textContent = '-';
+    row.parentNode.insertBefore(newRow, row.nextSibling);
     
     if (typeof $WowheadPower !== 'undefined') {
       $WowheadPower.refreshLinks();
