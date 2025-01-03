@@ -232,11 +232,12 @@
 
     function createCell(tr, value, itemID = '') {
       const td = document.createElement('td');
-      if (itemID && td.cellIndex === 0) {  // Only for the first column when itemID exists
+      if (itemID && td.cellIndex === 0) {  
         const a = document.createElement('a');
-        a.href = `https://wowhead.com/classic/item=${itemID}`;
+        // Add 'wowhead' query parameter
+        a.href = `https://wowhead.com/classic/item=${itemID}&utm_source=classic-wow`;
         a.target = '_blank';
-        a.className = 'item-row notranslate d-block q1 q3';
+        a.className = 'q3 item-row notranslate d-block';
         a.innerHTML = `<ins></ins><del></del><span class="itemlink-text">${value}</span>`;
         td.appendChild(a);
       } else {
