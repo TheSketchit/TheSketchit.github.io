@@ -240,7 +240,7 @@ async function displayStoredData() {
 function processLootByClass(rows, playerData) {
   const classSummary = {};
   
-  const classes = ['Warrior', 'Paladin', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid', 'Unknown'];
+  const classes = ['Warrior', 'Hunter', 'Rogue', 'Priest', 'Shaman', 'Mage', 'Warlock', 'Druid', 'Unknown'];
   classes.forEach(className => {
     classSummary[className] = {
       players: {}
