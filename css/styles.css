@@ -530,10 +530,11 @@ th.sort-asc, th.sort-desc {
 .itemlink-text {
   color: inherit;
   text-decoration: none;
+  white-space: normal;
 }
 
 .notranslate {
-  white-space: nowrap;
+  white-space: normal;
 }
 
 /* Class View Styles */
@@ -627,9 +628,16 @@ th.sort-asc, th.sort-desc {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.items-table {
-  width: calc(100% - 16px);
+.items-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
   margin: 8px;
+  background-color: #f7f3e9;
+  border-radius: 4px;
+}
+
+.items-table {
+  width: 100%;
   border-collapse: collapse;
   background-color: #f7f3e9;
 }
@@ -640,20 +648,23 @@ th.sort-asc, th.sort-desc {
   border: 1px solid #d3c5a1;
   text-align: left;
   position: relative;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .items-table th {
   background-color: #e0d5b7;
   font-weight: bold;
   color: #333;
+  white-space: nowrap;
 }
 
-.items-table th:nth-child(1),
-.items-table td:nth-child(1) {
+.items-table .item-column {
   width: 40%;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+.items-table td.item-column {
+  white-space: normal;
 }
 
 .items-table th:nth-child(2),
@@ -699,11 +710,12 @@ th.sort-asc, th.sort-desc {
 .item-history {
   background-color: rgba(240, 230, 210, 0.95);
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.1);
+  padding: 8px;
 }
 
 .item-history-table {
-  width: calc(100% - 16px);
-  margin: 8px;
+  width: 100%;
+  margin: 8px 0;
   border-collapse: collapse;
   background-color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -715,10 +727,11 @@ th.sort-asc, th.sort-desc {
   border: 1px solid #d3c5a1;
   font-size: 0.9em;
   text-align: left;
+  white-space: nowrap;
 }
 
 .item-history-table th {
-  background-color: #e8e8e8;
+  background-color: #e0d5b7;
   font-weight: bold;
   color: #333;
 }
@@ -729,14 +742,25 @@ th.sort-asc, th.sort-desc {
 
 /* WowHead Item Links */
 .item-link {
-  color: #0070dd;
+  color: #0070dd !important;
   text-decoration: none;
   display: block;
+  padding: 4px 0;
+  line-height: 1.4;
 }
 
 .item-link:hover {
-  color: #0088ff;
+  color: #0088ff !important;
   text-decoration: underline;
+}
+
+.item-link span {
+  display: inline-block;
+}
+
+/* Item Details Container */
+.item-details td {
+  padding: 0;
 }
 
 /* Animations */
