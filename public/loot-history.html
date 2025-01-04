@@ -288,9 +288,9 @@ function processLootByClass(rows, playerData) {
 }
 
 async function getItemHistory(itemId) {
-  const allRaids = ['Sunken Temple', 'World Bosses', 'Onyxia', 'Molten Core', 'Blackwing Lair', 
-                    'Zul Gurub', 'Crystal Vale', 'Lil AQ', 'Big AQ', 'Nightmare Grove'];
+  const allRaids = ['Lil AQ', 'Big AQ', 'Nightmare Grove'];
   let itemHistory = [];
+  const playerData = await getPlayerData();  // Get player data first
   
   for (const raid of allRaids) {
     const ref = firebase.database().ref(`lootHistoryData/${raid}`);
@@ -299,9 +299,13 @@ async function getItemHistory(itemId) {
     
     Object.values(data).forEach(entry => {
       if (entry.ItemID === itemId) {
+        // Add player class and spec information
+        const playerInfo = playerData[entry.Winner] || playerData[entry.Winner.toLowerCase()] || { class: 'Unknown', spec: 'Unknown' };
         itemHistory.push({
           ...entry,
-          Raid: raid
+          Raid: raid,
+          playerClass: playerInfo.class,
+          playerSpec: playerInfo.spec
         });
       }
     });
@@ -417,46 +421,47 @@ function togglePlayerItems(button) {
   
   if (detailRow && detailRow.classList.contains('item-details')) {
     detailRow.remove();
-    tr.classList.remove('expanded'); // Remove expanded class from row instead of button text
+    tr.classList.remove('expanded');
   } else {
-    tr.classList.add('expanded'); // Add expanded class to row
+    tr.classList.add('expanded');
     const newRow = document.createElement('tr');
     newRow.className = 'item-details';
     newRow.innerHTML = `
       <td colspan="5">
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>SR</th>
-              <th>OS</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map(item => `
-              <tr class="item-row" data-item-id="${item.ItemID}">
-                <td>
-                  <a href="https://wowhead.com/classic/item=${item.ItemID}" 
-                     class="item-link notranslate d-block q1 q3">
-                    <ins></ins><del></del>
-                    <span class="itemlink-text">${item.Item}</span>
-                  </a>
-                </td>
-                <td>${item.SR}</td>
-                <td>${item.OS}</td>
-                <td>${item.Date}</td>
+        <div class="items-table-wrapper">
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th class="item-column">Item</th>
+                <th>SR</th>
+                <th>OS</th>
+                <th>Date</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${items.map(item => `
+                <tr class="item-row" data-item-id="${item.ItemID}">
+                  <td class="item-column">
+                    <a href="https://wowhead.com/classic/item=${item.ItemID}" 
+                       data-wowhead="item=${item.ItemID}"
+                       class="item-link">
+                      ${item.Item}
+                    </a>
+                  </td>
+                  <td>${item.SR}</td>
+                  <td>${item.OS}</td>
+                  <td>${item.Date}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       </td>
     `;
 
-    // Add click handlers for item rows
     newRow.querySelectorAll('.item-row').forEach(itemRow => {
       itemRow.onclick = async (e) => {
-        e.stopPropagation(); // Prevent bubbling to parent row
+        e.stopPropagation();
         await toggleItemHistory(itemRow);
       };
     });
