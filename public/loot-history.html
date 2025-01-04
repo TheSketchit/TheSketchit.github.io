@@ -316,32 +316,34 @@ async function getItemHistory(itemId) {
 
 function createItemHistoryRow(itemHistory) {
   return `
-    <table class="item-history-table">
-      <thead>
-        <tr>
-          <th>Winner</th>
-          <th>Class</th>
-          <th>Spec</th>
-          <th>SR</th>
-          <th>Type</th>
-          <th>Raid</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${itemHistory.map(entry => `
+    <div class="item-history-table-wrapper">
+      <table class="item-history-table">
+        <thead>
           <tr>
-            <td>${entry.Winner}</td>
-            <td>${entry.playerClass || 'Unknown'}</td>
-            <td>${entry.playerSpec || 'Unknown'}</td>
-            <td>${entry.SR}</td>
-            <td>${entry.OS}</td>
-            <td>${entry.Raid}</td>
-            <td>${entry.Date}</td>
+            <th>Winner</th>
+            <th>Class</th>
+            <th>Spec</th>
+            <th>SR</th>
+            <th>Type</th>
+            <th>Raid</th>
+            <th>Date</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          ${itemHistory.map(entry => `
+            <tr>
+              <td>${entry.Winner}</td>
+              <td>${entry.playerClass || 'Unknown'}</td>
+              <td>${entry.playerSpec || 'Unknown'}</td>
+              <td>${entry.SR}</td>
+              <td>${entry.OS}</td>
+              <td>${entry.Raid}</td>
+              <td>${entry.Date}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
   `;
 }
 
@@ -427,12 +429,12 @@ function togglePlayerItems(button) {
     const newRow = document.createElement('tr');
     newRow.className = 'item-details';
     newRow.innerHTML = `
-      <td colspan="5">
+      <td colspan="5">  <!-- This matches the 5 columns in player summary table -->
         <div class="items-table-wrapper">
           <table class="items-table">
             <thead>
               <tr>
-                <th class="item-column">Item</th>
+                <th>Item</th>
                 <th>SR</th>
                 <th>OS</th>
                 <th>Date</th>
@@ -441,7 +443,7 @@ function togglePlayerItems(button) {
             <tbody>
               ${items.map(item => `
                 <tr class="item-row" data-item-id="${item.ItemID}">
-                  <td class="item-column">
+                  <td>
                     <a href="https://wowhead.com/classic/item=${item.ItemID}" 
                        data-wowhead="item=${item.ItemID}"
                        class="item-link">
@@ -459,6 +461,7 @@ function togglePlayerItems(button) {
       </td>
     `;
 
+    // Add click handlers for item rows
     newRow.querySelectorAll('.item-row').forEach(itemRow => {
       itemRow.onclick = async (e) => {
         e.stopPropagation();
@@ -479,7 +482,6 @@ async function toggleItemHistory(itemRow) {
   if (historyRow && historyRow.classList.contains('item-history')) {
     historyRow.remove();
     itemRow.classList.remove('expanded');
-    itemRow.querySelector('.expand-item').textContent = '+';
   } else {
     const itemId = itemRow.dataset.itemId;
     const itemHistory = await getItemHistory(itemId);
@@ -487,14 +489,13 @@ async function toggleItemHistory(itemRow) {
     const newHistoryRow = document.createElement('tr');
     newHistoryRow.className = 'item-history';
     newHistoryRow.innerHTML = `
-      <td colspan="5">
+      <td colspan="4">  <!-- Changed to match the number of columns in the items table -->
         ${createItemHistoryRow(itemHistory)}
       </td>
     `;
     
     itemRow.parentNode.insertBefore(newHistoryRow, itemRow.nextSibling);
     itemRow.classList.add('expanded');
-    itemRow.querySelector('.expand-item').textContent = '-';
   }
 }
 
