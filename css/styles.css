@@ -569,6 +569,7 @@ th.sort-asc, th.sort-desc {
   display: block;
 }
 
+/* Player Summary Table */
 .player-summary-table {
   width: 100%;
   border-collapse: collapse;
@@ -590,21 +591,6 @@ th.sort-asc, th.sort-desc {
   color: #333;
 }
 
-.player-summary-table tr {
-  transition: all 0.2s ease;
-  cursor: pointer;
-  position: relative;
-  background-color: rgba(240, 230, 210, 0.9);
-}
-
-.player-summary-table tr:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 2;
-  background-color: rgba(255, 245, 225, 0.95);
-}
-
-/* New expand indicator styles */
 /* Player Row Styles */
 .player-row {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -635,16 +621,10 @@ th.sort-asc, th.sort-desc {
   content: '-';
 }
 
+/* Items Table */
 .item-details {
   background: #f7f3e9;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.items-table {
-  width: calc(100% - 16px);
-  margin: 8px;
-  border-collapse: collapse;
-  background-color: #f7f3e9;
 }
 
 .items-table {
@@ -660,6 +640,9 @@ th.sort-asc, th.sort-desc {
   border: 1px solid #d3c5a1;
   text-align: left;
   position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .items-table th {
@@ -668,7 +651,21 @@ th.sort-asc, th.sort-desc {
   color: #333;
 }
 
-/* Item Row Expand/Collapse */
+.items-table th:nth-child(1),
+.items-table td:nth-child(1) {
+  width: 40%;
+}
+
+.items-table th:nth-child(2),
+.items-table td:nth-child(2),
+.items-table th:nth-child(3),
+.items-table td:nth-child(3),
+.items-table th:nth-child(4),
+.items-table td:nth-child(4) {
+  width: 20%;
+}
+
+/* Item Row Styles */
 .item-row {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
@@ -730,13 +727,6 @@ th.sort-asc, th.sort-desc {
   background-color: rgba(255, 245, 225, 0.95);
 }
 
-/* Transition Animations */
-.player-row,
-.item-row,
-.item-history {
-  transition: all 0.3s ease;
-}
-
 /* WowHead Item Links */
 .item-link {
   color: #0070dd;
@@ -749,7 +739,9 @@ th.sort-asc, th.sort-desc {
   text-decoration: underline;
 }
 
-/* View Toggle Styles */
-.view-toggle {
-  margin: 20px 0;
+/* Animations */
+.player-row,
+.item-row,
+.item-history {
+  transition: all 0.3s ease;
 }
