@@ -192,16 +192,26 @@ async function getPlayerData() {
     const snapshot = await raidLootRef.once('value');
     const data = snapshot.val() || {};
     
-    Object.values(data).forEach(raid => {
-      Object.values(raid).forEach(entry => {
-        if (entry.Name && entry.Class && entry.Spec) {
+    // Iterate through all raids
+    Object.keys(data).forEach(raid => {
+      // Iterate through each entry in the raid
+      Object.values(data[raid]).forEach(entry => {
+        // Check if this is a player entry with the required fields
+        if (entry.Name) {
+          // Use entry.Name as the key since that matches Winner in loot history
           classData[entry.Name] = {
+            class: entry.Class,
+            spec: entry.Spec
+          };
+          classData[entry.Name.toLowerCase()] = {
             class: entry.Class,
             spec: entry.Spec
           };
         }
       });
     });
+
+    console.log('Player data loaded:', classData); // For debugging
     return classData;
   } catch (error) {
     console.error('Error fetching player data:', error);
@@ -241,8 +251,9 @@ function processLootByClass(rows, playerData) {
   });
 
   rows.forEach(row => {
-    let playerClass = playerData[row.Winner]?.class || 'Unknown';
-    const playerSpec = playerData[row.Winner]?.spec || 'Unknown';
+    const playerInfo = playerData[row.Winner] || playerData[row.Winner.toLowerCase()] || { class: 'Unknown', spec: 'Unknown' };
+    let playerClass = playerInfo.class;
+    const playerSpec = playerInfo.spec;
     
     if (!classSummary[playerClass]) {
       playerClass = 'Unknown';
@@ -400,14 +411,14 @@ function createPlayerSummaryTable(players, className) {
 }
 
 function togglePlayerItems(row) {
-  const detailRow = row.nextElementSibling;
-  const items = JSON.parse(row.dataset.items);
+  const tr = button.closest('tr');
+  const detailRow = tr.nextElementSibling;
+  const items = JSON.parse(button.dataset.items);
   
   if (detailRow && detailRow.classList.contains('item-details')) {
     detailRow.remove();
-    row.classList.remove('expanded');
+    button.textContent = '+';
   } else {
-    row.classList.add('expanded');
     const newRow = document.createElement('tr');
     newRow.className = 'item-details';
     newRow.innerHTML = `
@@ -415,11 +426,10 @@ function togglePlayerItems(row) {
         <table class="items-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>SR</th>
-              <th>OS</th>
-              <th>Date</th>
-              <th></th>
+              <th style="width: 40%">Item</th>
+              <th style="width: 20%">SR</th>
+              <th style="width: 20%">OS</th>
+              <th style="width: 20%">Date</th>
             </tr>
           </thead>
           <tbody>
@@ -435,13 +445,16 @@ function togglePlayerItems(row) {
                 <td>${item.SR}</td>
                 <td>${item.OS}</td>
                 <td>${item.Date}</td>
-                <td class="expand-item">+</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       </td>
     `;
+
+    tr.parentNode.insertBefore(newRow, tr.nextSibling);
+  }
+}
 
     // Add click handlers for item rows
     newRow.querySelectorAll('.item-row').forEach(itemRow => {
