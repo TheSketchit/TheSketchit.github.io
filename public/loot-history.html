@@ -276,6 +276,60 @@ function processLootByClass(rows, playerData) {
   return classSummary;
 }
 
+async function getItemHistory(itemId) {
+  const allRaids = ['Sunken Temple', 'World Bosses', 'Onyxia', 'Molten Core', 'Blackwing Lair', 
+                    'Zul Gurub', 'Crystal Vale', 'Lil AQ', 'Big AQ', 'Nightmare Grove'];
+  let itemHistory = [];
+  
+  for (const raid of allRaids) {
+    const ref = firebase.database().ref(`lootHistoryData/${raid}`);
+    const snapshot = await ref.once('value');
+    const data = snapshot.val() || {};
+    
+    Object.values(data).forEach(entry => {
+      if (entry.ItemID === itemId) {
+        itemHistory.push({
+          ...entry,
+          Raid: raid
+        });
+      }
+    });
+  }
+  
+  return itemHistory.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+}
+
+function createItemHistoryRow(itemHistory) {
+  return `
+    <table class="item-history-table">
+      <thead>
+        <tr>
+          <th>Winner</th>
+          <th>Class</th>
+          <th>Spec</th>
+          <th>SR</th>
+          <th>Type</th>
+          <th>Raid</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemHistory.map(entry => `
+          <tr>
+            <td>${entry.Winner}</td>
+            <td>${entry.playerClass || 'Unknown'}</td>
+            <td>${entry.playerSpec || 'Unknown'}</td>
+            <td>${entry.SR}</td>
+            <td>${entry.OS}</td>
+            <td>${entry.Raid}</td>
+            <td>${entry.Date}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 function renderClassTabs(classSummary) {
   const container = document.querySelector('.parchment-table-content');
   container.innerHTML = '';
@@ -365,14 +419,15 @@ function togglePlayerItems(row) {
               <th>SR</th>
               <th>OS</th>
               <th>Date</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             ${items.map(item => `
-              <tr>
+              <tr class="item-row" data-item-id="${item.ItemID}">
                 <td>
                   <a href="https://wowhead.com/classic/item=${item.ItemID}" 
-                     class="item-row notranslate d-block q1 q3">
+                     class="item-link notranslate d-block q1 q3">
                     <ins></ins><del></del>
                     <span class="itemlink-text">${item.Item}</span>
                   </a>
@@ -380,17 +435,51 @@ function togglePlayerItems(row) {
                 <td>${item.SR}</td>
                 <td>${item.OS}</td>
                 <td>${item.Date}</td>
+                <td class="expand-item">+</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       </td>
     `;
+
+    // Add click handlers for item rows
+    newRow.querySelectorAll('.item-row').forEach(itemRow => {
+      itemRow.onclick = async (e) => {
+        e.stopPropagation(); // Prevent bubbling to parent row
+        await toggleItemHistory(itemRow);
+      };
+    });
+    
     row.parentNode.insertBefore(newRow, row.nextSibling);
     
     if (typeof $WowheadPower !== 'undefined') {
       $WowheadPower.refreshLinks();
     }
+  }
+}
+
+async function toggleItemHistory(itemRow) {
+  const historyRow = itemRow.nextElementSibling;
+  if (historyRow && historyRow.classList.contains('item-history')) {
+    historyRow.remove();
+    itemRow.classList.remove('expanded');
+    itemRow.querySelector('.expand-item').textContent = '+';
+  } else {
+    const itemId = itemRow.dataset.itemId;
+    const itemHistory = await getItemHistory(itemId);
+    
+    const newHistoryRow = document.createElement('tr');
+    newHistoryRow.className = 'item-history';
+    newHistoryRow.innerHTML = `
+      <td colspan="5">
+        ${createItemHistoryRow(itemHistory)}
+      </td>
+    `;
+    
+    itemRow.parentNode.insertBefore(newHistoryRow, itemRow.nextSibling);
+    itemRow.classList.add('expanded');
+    itemRow.querySelector('.expand-item').textContent = '-';
   }
 }
 
