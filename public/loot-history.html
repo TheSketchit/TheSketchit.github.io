@@ -40,7 +40,7 @@
         <div class="chevron-navigation">
           <div class="chevron" onclick="selectRaid('Lil AQ')">Lil AQ</div>
           <div class="chevron" onclick="selectRaid('Big AQ')">Big AQ</div>
-          <div class="chevron" onclick="selectRaid('Nightmare Grove')">Nightmare Grove</div>
+          <div class="chevron" onclick="selectRaid('Blackwing Lair')">Blackwing Lair</div>
         </div>
         <div class="dropdown">
           <button class="dropbtn">History Raid Dates</button>
@@ -288,7 +288,7 @@ function processLootByClass(rows, playerData) {
 }
 
 async function getItemHistory(itemId) {
-  const allRaids = ['Lil AQ', 'Big AQ', 'Nightmare Grove'];
+  const allRaids = ['Lil AQ', 'Big AQ', 'Blackwing Lair'];
   let itemHistory = [];
   const playerData = await getPlayerData();  // Get player data first
   
