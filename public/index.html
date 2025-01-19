@@ -11,8 +11,8 @@
   
   <div class="top-banner">
     <div class="container">
-      <button onclick="goToGame()">o</button>
       <div id="auth-container">
+        <button onclick="goToHistory()">Loot History</button>
         <button onclick="goToLogin()">Login</button>
       </div>
     </div>
@@ -705,8 +705,8 @@
       window.location.href = '/login.html';
     }
 
-    function goToGame() {
-      window.location.href = '/public/bouncer.html';
+    function goToHistory() {
+      window.location.href = '/loot-history.html';
     }
     
     window.onload = function() {
