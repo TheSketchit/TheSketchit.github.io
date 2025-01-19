@@ -15,6 +15,7 @@
         <button onclick="goToHistory()">Loot History</button>
         <button onclick="goToLogin()">Login</button>
       </div>
+<button onclick="goToHistory()">Loot History</button>
     </div>
   </div>
   
@@ -121,11 +122,9 @@
       if (user) {
         isGuest = false;
         document.getElementById('auth-container').innerHTML = '<button onclick="signOut()">Sign Out</button>';
-        document.getElementById('auth-container').innerHTML = '<button onclick="goToHistory()">Loot History</button>';
       } else {
         isGuest = true;
         document.getElementById('auth-container').innerHTML = '<button onclick="goToLogin()">Login</button>';
-        document.getElementById('auth-container').innerHTML = '<button onclick="goToHistory()">Loot History</button>';
       }
       onLoginStateChange();
     });
