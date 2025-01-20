@@ -29,3 +29,20 @@ function createFireEffect() {
   // Spawn embers continuously
   setInterval(spawnEmber, 200);
 }
+
+const template = `
+<div class="fire-container">
+  <div class="heat-effect">
+    <div class="heat-layer heat-primary"></div>
+    <div class="heat-layer heat-secondary"></div>
+  </div>
+</div>
+`;
+
+// Initialize when the DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Add the template to the body
+  document.body.insertAdjacentHTML('beforeend', template);
+  // Start the effect
+  createFireEffect();
+});
