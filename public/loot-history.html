@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>WoW Loot History</title>
   <link rel="stylesheet" href="../css/styles.css">
-  <link rel="stylesheet" href="../css/embers.css">
+  <link rel="stylesheet" href="../css/ember-effect.css">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
@@ -22,9 +22,6 @@
       </div>
     </div>
   </div>
-
-  <canvas id="emberCanvas"></canvas>
-  <div class="heat-effect"></div>
 
   <div class="container">
     <h1>Loot History Tracker</h1>
@@ -68,7 +65,7 @@
     </div>
   </div>
 
-  <script src="../js/embers.js"></script>
+  <script src="../js/ember-effect.js"></script>
 
 <script>
 // Firebase config
@@ -538,6 +535,23 @@ function goToGame() {
 window.onload = () => {
   onLoginStateChange();
 };
+
+const template = `
+<div class="fire-container">
+  <div class="heat-effect">
+    <div class="heat-layer heat-primary"></div>
+    <div class="heat-layer heat-secondary"></div>
+  </div>
+</div>
+`;
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Add the template to the body
+  document.body.insertAdjacentHTML('beforeend', template);
+  // Start the effect
+  createFireEffect();
+});
+
 </script>
 </body>
   </html>
