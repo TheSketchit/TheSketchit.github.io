@@ -1,42 +1,90 @@
-#emberCanvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    pointer-events: none;
+/* ember-effect.css */
+.fire-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .heat-effect {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 200px; /* Adjust this to match your background image height */
-    background: 
-        linear-gradient(to top, 
-            rgba(255, 30, 0, 0.3), 
-            rgba(255, 90, 0, 0.2), 
-            rgba(255, 140, 0, 0.1), 
-            transparent 80%
-        );
-    -webkit-mask-image: url('../images/Repeating-BG.png');
-    mask-image: url('../images/Repeating-BG.png');
-    -webkit-mask-repeat: repeat-x;
-    mask-repeat: repeat-x;
-    -webkit-mask-position: bottom;
-    mask-position: bottom;
-    filter: blur(20px);
-    opacity: 0.7;
-    animation: flicker 4s infinite alternate;
-    z-index: 0;
-    pointer-events: none;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 256px;
 }
 
-@keyframes flicker {
-    0%, 100% { opacity: 0.7; }
-    25% { opacity: 0.6; }
-    50% { opacity: 0.75; }
-    75% { opacity: 0.65; }
+.heat-layer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.heat-primary {
+  background: linear-gradient(to top, 
+    rgba(255, 88, 0, 0.15) 0%,
+    rgba(255, 88, 0, 0.1) 50%,
+    transparent 100%
+  );
+  animation: heat 6s ease-in-out infinite;
+}
+
+.heat-secondary {
+  background: linear-gradient(to top, 
+    rgba(255, 88, 0, 0.1) 0%,
+    rgba(255, 88, 0, 0.05) 50%,
+    transparent 100%
+  );
+  animation: heat-delayed 8s ease-in-out infinite;
+  animation-delay: -3s;
+}
+
+.ember {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 88, 0, 0.6);
+  filter: blur(2px);
+  opacity: 0;
+  animation: float 1s ease-out forwards;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-100vh) translateX(var(--drift));
+    opacity: 0;
+  }
+}
+
+@keyframes heat {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: scaleY(1); 
+  }
+  50% { 
+    opacity: 0.4; 
+    transform: scaleY(1.05); 
+  }
+}
+
+@keyframes heat-delayed {
+  0%, 100% { 
+    opacity: 0.2; 
+    transform: scaleY(1.02); 
+  }
+  50% { 
+    opacity: 0.3; 
+    transform: scaleY(1.07); 
+  }
 }
