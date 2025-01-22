@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoW Soft Reserve Loot Tracker</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@0.263.1"></script>
+  <script type="text/babel" src="components/RaidNavigation.jsx"></script>
+  const root = ReactDOM.createRoot(document.getElementById('raid-navigation'));
+  root.render(React.createElement(RaidNavigation));
 </head>
 <body>
   
@@ -31,82 +37,7 @@
       <button onclick="enterEditMode()" id="editButton">Edit</button>
       <button onclick="saveEdits()" id="saveButton" style="display:none;">Save</button>
       <button onclick="cancelEdits()" id="cancelButton" style="display:none;">Cancel</button>
-      
-      <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-      <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-      <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
-      
-      <script type="text/babel">
-      const RaidNavigation = () => {
-        const [isOpen, setIsOpen] = useState(false);
-        const [activeRaid, setActiveRaid] = useState('Molten Core');
-      
-        const raids = [
-          'Sunken Temple', 'World Bosses', 'Onyxia', 'Molten Core', 
-          'Blackwing Lair', 'Zul Gurub', 'Crystal Vale', 'Lil AQ',
-          'Big AQ', 'Nightmare Grove'
-        ];
-      
-        useEffect(() => {
-          if (selectedRaid) {
-            setActiveRaid(selectedRaid);
-          }
-        }, [selectedRaid]);
-      
-        const handleRaidSelect = (raid) => {
-          setActiveRaid(raid);
-          selectRaid(raid);
-        };
-      
-        return (
-          <div className="w-full bg-gradient-to-b from-gray-900 to-gray-800 border-b-2 border-amber-700 shadow-lg">
-            <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 gap-2 flex-wrap">
-              <div className="flex flex-wrap gap-1 items-center flex-grow">
-                {raids.map(raid => (
-                  <button
-                    key={raid}
-                    className={`px-3 py-2 text-sm font-semibold rounded transition-all
-                      ${activeRaid === raid 
-                        ? 'bg-red-900 text-yellow-400 shadow-lg scale-105 border-2 border-yellow-600' 
-                        : 'bg-blue-900 text-yellow-200 hover:bg-blue-800 border border-blue-700'}
-                      transform hover:scale-105 hover:shadow-md`}
-                    onClick={() => handleRaidSelect(raid)}
-                  >
-                    {raid}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="relative">
-                <button
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-b from-amber-900 to-amber-950 
-                    text-yellow-400 rounded border-2 border-yellow-600 hover:from-amber-800 hover:to-amber-900
-                    transition-all transform hover:scale-105"
-                >
-                  <span>Raid Dates</span>
-                  <ChevronDownIcon size={16} />
-                </button>
-                
-                {isOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-gray-900 border-2 border-amber-700 
-                    rounded shadow-lg z-50">
-                    <div className="py-1" id="viewRaidDate">
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      };
 
-const root = ReactDOM.createRoot(document.getElementById('raid-navigation'));
-root.render(<RaidNavigation />);
-</script>
-
-      
       <div id="raid-navigation"></div>
 
       <div id="filterIndicator" style="display: none;"></div>
