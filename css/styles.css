@@ -508,6 +508,7 @@ th.sort-asc, th.sort-desc {
 .raid-dates-dropdown {
   position: relative;
   margin-left: 16px;
+  z-index: 100;
 }
 
 .raid-dates-button {
@@ -551,7 +552,7 @@ th.sort-asc, th.sort-desc {
     border: 1px solid #ffd700;
     border-radius: 4px;
     min-width: 180px;
-    z-index: 10;
+    z-index: 100;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     max-height: 300px;
     overflow-y: auto;
