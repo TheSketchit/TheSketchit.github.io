@@ -517,7 +517,6 @@ th.sort-asc, th.sort-desc {
 
 .raid-dates-content .dropdown-item {
     display: block !important;
-    position: static !important;
 }
 
 .raid-dates-dropdown:hover .raid-dates-content {
