@@ -97,6 +97,14 @@ body {
   box-shadow: 0 0 3px rgba(255, 215, 0, 0.3); 
 }
 
+.navigation-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
 
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
@@ -361,7 +369,23 @@ th.sort-asc, th.sort-desc {
 }
 
 /* Dropdown styles */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
 
+.dropbtn {
+  padding: 10px 20px;
+  margin: 0;
+  background-color: #333; /* Dark grey background */
+  color: #ffd700; /* Gold text color */
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  font-size: 14px;
+  border: none;
+  box-shadow: inset 1px 1px 5px rgba(255, 255, 255, 0.1), inset -1px -1px 5px rgba(0, 0, 0, 0.3);
+}
 
 .dropbtn:hover, .dropdown:hover .dropbtn {
   background-color: #555; /* Light grey on hover */
@@ -391,6 +415,22 @@ th.sort-asc, th.sort-desc {
   background-color: #777;
 }
 
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #333;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content .dropdown-item {
+  color: #ffd700;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  background-color: #333;
+}
 
 .dropdown-content .dropdown-item:hover {
   background-color: #555;
@@ -405,7 +445,27 @@ th.sort-asc, th.sort-desc {
 }
 
 /* Chevron navigation styles */
+.chevron-navigation {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 
+.chevron {
+  padding: 10px 20px;
+  margin: 0 5px;
+  background-color: #0044cc;
+  color: #ffd700;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  display: inline-block;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: inset 1px 1px 5px #fff, inset -1px -1px 5px #000;
+}
 
 .chevron:active {
   background-color: #002288;
@@ -423,6 +483,18 @@ th.sort-asc, th.sort-desc {
   animation: glow 3s infinite alternate, hover 2s infinite ease-in-out;
 }
 
+.chevron {
+  padding: 10px 20px;
+  margin: 0;
+  background-color: #0044cc;
+  color: #ffd700;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  font-size: 14px;
+  border: none;
+  box-shadow: inset 1px 1px 5px rgba(255, 255, 255, 0.3), inset -1px -1px 5px rgba(0, 0, 0, 0.3);
+}
 
 /* Keyframes for glowing border animation */
 @keyframes glow {
