@@ -289,8 +289,36 @@ th.sort-desc::after {
   border-top: 5px solid #333;
 }
 
-th.sort-asc, th.sort-desc {
-  background-color: #d3c5a1;
+th {
+  cursor: pointer;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #f8f8f8;
+  background: linear-gradient(to bottom, #aaaaaa 0%, #888888 100%);
+  border: 1px solid #666666;
+  box-shadow:
+    0 2px 5px rgba(0,0,0,0.4),             
+    inset 0 2px 3px rgba(255,255,255,0.1), 
+    inset 0 -2px 3px rgba(0,0,0,0.4);
+
+  text-shadow: 0 -1px 1px rgba(0,0,0,0.3);
+}
+
+th.sort-asc,
+th.sort-desc {
+  cursor: pointer;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: #f8f8f8;
+  background: linear-gradient(to bottom, #aaaaaa 0%, #888888 100%);
+  border: 1px solid #666666;
+  box-shadow:
+    0 2px 5px rgba(0,0,0,0.4),
+    inset 0 2px 3px rgba(255,255,255,0.1),
+    inset 0 -2px 3px rgba(0,0,0,0.4);
+  text-shadow: 0 -1px 1px rgba(0,0,0,0.3);
 }
 
 /* Notice styles */
