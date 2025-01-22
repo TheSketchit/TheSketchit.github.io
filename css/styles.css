@@ -501,7 +501,7 @@ th.sort-asc, th.sort-desc {
 }
 
 .raid-dates-content {
-    display: none;
+    display: none !important;
     position: absolute;
     right: 0;
     top: 100%;
@@ -509,14 +509,14 @@ th.sort-asc, th.sort-desc {
     border: 1px solid #ffd700;
     border-radius: 4px;
     min-width: 180px;
-    z-index: 100;
+    z-index: 1000 !important;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     max-height: 300px;
-    overflow-y: auto;
+    overflow-y: auto !important;
 }
 
 .raid-dates-dropdown:hover .raid-dates-content {
-  display: block;
+  display: block !important;
 }
 
 /* Keyframes for glowing border animation */
