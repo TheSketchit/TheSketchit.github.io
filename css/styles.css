@@ -199,51 +199,6 @@ button:hover {
   padding: 10px;
 }
 
-/* GIF backgrounds */
-.parchment-table-top-left {
-  width: 12px;
-  height: 12px;
-  background: url('../images/parchborder-top-left.gif') no-repeat;
-}
-
-.parchment-table-top-middle {
-  height: 12px;
-  background: url('../images/parchborder-top.gif') repeat-x;
-}
-
-.parchment-table-top-right {
-  width: 14px;
-  height: 12px;
-  background: url('../images/parchborder-top-right.gif') no-repeat;
-}
-
-.parchment-table-left {
-  width: 13px;
-  background: url('../images/parchborder-left.gif') repeat-y;
-}
-
-.parchment-table-right {
-  width: 14px;
-  background: url('../images/parchborder-right.gif') repeat-y;
-}
-
-.parchment-table-bottom-left {
-  width: 12px;
-  height: 14px;
-  background: url('../images/parchborder-bot-left.gif') no-repeat;
-}
-
-.parchment-table-bottom-middle {
-  height: 14px;
-  background: url('../images/parchborder-bot.gif') repeat-x;
-}
-
-.parchment-table-bottom-right {
-  width: 14px;
-  height: 14px;
-  background: url('../images/parchborder-bot-right.gif') no-repeat;
-}
-
 /* Table styles */
 #lootTable {
   width: 100%;
