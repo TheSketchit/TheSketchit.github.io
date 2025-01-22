@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WoW Soft Reserve Loot Tracker</title>
   <link rel="stylesheet" href="../css/styles.css">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/lucide-react@0.263.1"></script>
+  <script type="text/babel" src="components/RaidNavigation.jsx"></script>
+  const root = ReactDOM.createRoot(document.getElementById('raid-navigation'));
+  root.render(React.createElement(RaidNavigation));
 </head>
 <body>
   
@@ -626,16 +632,8 @@
 
     function selectRaid(raid) {
       selectedRaid = raid;
-      
-      // Reset filter and sort
       currentFilter = null;
       currentSort = { column: 'RaidDate', direction: 'desc' };
-      
-      document.querySelectorAll('.chevron').forEach(chevron => {
-        chevron.classList.remove('active');
-      });
-      document.querySelector(`.chevron[onclick="selectRaid('${raid}')"]`).classList.add('active');
-      
       populateRaidDateDropdown();
       displayStoredData();
       updateURL();
