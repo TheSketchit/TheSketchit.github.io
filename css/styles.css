@@ -98,12 +98,16 @@ body {
 }
 
 .navigation-container {
+  background: linear-gradient(to bottom, #2b1810 0%, #1a0f0a 100%);
+  border: 1px solid #463225;
+  border-bottom: none;
+  padding: 10px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
+  box-shadow: inset 0 1px 3px rgba(255, 215, 0, 0.1);
 }
 
 @keyframes pulse {
@@ -424,6 +428,12 @@ th.sort-asc, th.sort-desc {
   z-index: 1;
 }
 
+.dropdown-item {
+  padding: 8px 16px;
+  color: #ffd700;
+  transition: background-color 0.2s ease;
+}
+
 .dropdown-content .dropdown-item {
   color: #ffd700;
   padding: 12px 16px;
@@ -432,8 +442,8 @@ th.sort-asc, th.sort-desc {
   background-color: #333;
 }
 
-.dropdown-content .dropdown-item:hover {
-  background-color: #555;
+.dropdown-item:hover {
+  background-color: #333333;
 }
 
 .dropdown:hover .dropdown-content {
@@ -447,53 +457,107 @@ th.sort-asc, th.sort-desc {
 /* Chevron navigation styles */
 .chevron-navigation {
   display: flex;
-  justify-content: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  flex: 1;
 }
 
 .chevron {
-  padding: 10px 20px;
-  margin: 0 5px;
-  background-color: #0044cc;
+  background: linear-gradient(to bottom, #4a1c03 0%, #854113 100%);
   color: #ffd700;
-  border-radius: 5px;
+  border: 1px solid #ffd700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-  display: inline-block;
-  text-align: center;
-  position: relative;
-  z-index: 1;
-  box-shadow: inset 1px 1px 5px #fff, inset -1px -1px 5px #000;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .chevron:active {
-  background-color: #002288;
-  box-shadow: inset 0 1px 0 #FFE5C4, inset 0 -3px 0 #915100;
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .chevron:hover {
-  background-color: #0033aa;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(to bottom, #5a2203 0%, #955123 100%);
+  transform: translateY(-1px);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .chevron.active {
-  background-color: #850404;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-  animation: glow 3s infinite alternate, hover 2s infinite ease-in-out;
+  background: linear-gradient(to bottom, #850404 0%, #630303 100%);
+  box-shadow: 
+    inset 0 1px 3px rgba(0, 0, 0, 0.3),
+    0 0 8px rgba(255, 215, 0, 0.4);
+  animation: glow 3s infinite alternate;
 }
 
-.chevron {
-  padding: 10px 20px;
-  margin: 0;
-  background-color: #0044cc;
+/* Raid Dates Dropdown */
+.raid-dates-dropdown {
+  position: relative;
+  margin-left: 16px;
+}
+
+.raid-dates-button {
+  background: linear-gradient(to bottom, #1a1a1a 0%, #333333 100%);
   color: #ffd700;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #ffd700;
+  padding: 8px 16px;
+  border-radius: 4px;
   font-size: 14px;
-  border: none;
-  box-shadow: inset 1px 1px 5px rgba(255, 255, 255, 0.3), inset -1px -1px 5px rgba(0, 0, 0, 0.3);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  min-width: 180px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.raid-dates-button:after {
+  content: '▼';
+  font-size: 10px;
+  margin-left: auto;
+}
+
+.raid-dates-button:hover {
+  background: linear-gradient(to bottom, #2a2a2a 0%, #434343 100%);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 8px rgba(255, 215, 0, 0.2);
+}
+
+.raid-dates-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #1a1a1a;
+  border: 1px solid #ffd700;
+  border-radius: 4px;
+  min-width: 180px;
+  z-index: 10;
+  margin-top: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.raid-dates-dropdown:hover .raid-dates-content {
+  display: block;
 }
 
 /* Keyframes for glowing border animation */
