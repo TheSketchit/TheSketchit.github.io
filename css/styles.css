@@ -10,6 +10,7 @@ body {
     background-attachment: fixed;
 }
 
+
 .player-name {
   cursor: pointer;
   text-decoration: none;
@@ -34,12 +35,12 @@ body {
 }
 
 .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  position: relative;
-  text-align: center; /* Center the content */
-  z-index: 1; /* Ensure content is above the ember effect */
+    max-width: 86%;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    text-align: center; /* Center the content */
+    z-index: 1; /* Ensure content is above the ember effect */
 }
 
 #auth-container {
@@ -98,16 +99,17 @@ body {
 }
 
 .navigation-container {
-  background: linear-gradient(to bottom, #2b1810 0%, #1a0f0a 100%);
-  border: 1px solid #463225;
-  border-bottom: none;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 8px 8px 0 0;
-  margin-bottom: 0;
-  box-shadow: inset 0 1px 3px rgba(255, 215, 0, 0.1);
+    background: linear-gradient(to bottom, #2b1810 0%, #1a0f0a 100%);
+    border: 1px solid #463225;
+    border-bottom: none;
+    padding: .5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+    box-shadow: inset 0 1px 3px rgba(255, 215, 0, 0.1);
+    opacity: 80%;
 }
 
 @keyframes pulse {
@@ -122,11 +124,12 @@ body {
 }
 
 h1 {
-  padding-top: 20px;
-  color: #ffd700;
-  font-size: 3em;
-  margin-bottom: 20px;
-  text-align: center; /* Ensure the title is centered */
+    padding-top: 20px;
+    color: #ffd700;
+    font-size: 3em;
+    margin-bottom: 20px;
+    text-align: center; /* Ensure the title is centered */
+    max-width: none;
 }
 
 label, input, textarea, button, th, td, .dropbtn, .dropdown-item {
@@ -160,9 +163,8 @@ button:hover {
 
 /* Parchment Table styles */
 .parchment-table-container {
-  width: 100%;
-  margin: 20px auto;
-  position: relative;
+    width: 100%;
+    position: relative;
 }
 
 .parchment-table-top,
@@ -463,20 +465,20 @@ th.sort-asc, th.sort-desc {
 }
 
 .chevron {
-  background: linear-gradient(to bottom, #4a1c03 0%, #854113 100%);
-  color: #ffd700;
-  border: 1px solid #ffd700;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    color: #ffd700;
+    border: 1px solid #ffd700;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(to bottom, #1a3063 0%, #0c1b3b 100%);
+    ;
 }
 
 .chevron:active {
@@ -541,19 +543,18 @@ th.sort-asc, th.sort-desc {
 }
 
 .raid-dates-content {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: #1a1a1a;
-  border: 1px solid #ffd700;
-  border-radius: 4px;
-  min-width: 180px;
-  z-index: 10;
-  margin-top: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-  max-height: 300px;
-  overflow-y: auto;
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: #1a1a1a;
+    border: 1px solid #ffd700;
+    border-radius: 4px;
+    min-width: 180px;
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .raid-dates-dropdown:hover .raid-dates-content {
