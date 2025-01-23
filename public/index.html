@@ -33,8 +33,11 @@
 
       <div class="navigation-container">
         <button class="navigation-button" onclick="goToHistory()">Loot History</button>
-        <button class="raid-dates-button">Soft-Reserve Raid Dates</button>
-<div class="chevron-navigation">
+		<div class="raid-dates-dropdown">
+        	<button class="raid-dates-button">Soft-Reserve Raid Dates</button>
+			<div class="raid-dates-content" id="viewRaidDate"></div>
+			</div>
+		<div class="chevron-navigation">
         <div class="chevron" onclick="selectRaid('Sunken Temple')">Sunken Temple</div>
           <div class="chevron" onclick="selectRaid('World Bosses')">World Bosses</div>
           <div class="chevron" onclick="selectRaid('Onyxia')">Onyxia</div>
@@ -46,10 +49,7 @@
           <div class="chevron" onclick="selectRaid('Big AQ')">Big AQ</div>
           <div class="chevron" onclick="selectRaid('Nightmare Grove')">Nightmare Grove</div>
         </div>
-        <div class="raid-dates-dropdown">
-<div class="raid-dates-content" id="viewRaidDate"></div>
-        </div>
-</div>
+	  </div>
 
       <div id="filterIndicator" style="display: none;"></div>
       <button onclick="clearFilter()" id="clearFilterButton" style="display: none;">Clear Filter</button>

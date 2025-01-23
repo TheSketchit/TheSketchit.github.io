@@ -127,8 +127,8 @@ navigation-button:active {
     border-bottom: none;
     padding: .5%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 12px; /* Add consistent gap */
     border-radius: 8px 8px 0 0;
     margin-bottom: 0;
     box-shadow: inset 0 1px 3px rgba(255, 215, 0, 0.1);
@@ -395,7 +395,7 @@ th.sort-desc::after {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    flex: 1;
+    margin-left: auto;
 }
 
 .chevron {
@@ -440,7 +440,6 @@ th.sort-desc::after {
 /* Raid Dates Dropdown */
 .raid-dates-dropdown {
     position: relative;
-    margin-left: 16px;
     z-index: 100;
 }
 
@@ -448,7 +447,7 @@ th.sort-desc::after {
     background: linear-gradient(to bottom, #1a1a1a 0%, #333333 100%);
     color: #ffd700;
     border: 1px solid #ffd700;
-    padding: 8px 16px;
+    padding: 8px 8px;
     border-radius: 4px;
     font-size: 14px;
     font-weight: 500;
@@ -458,8 +457,7 @@ th.sort-desc::after {
     gap: 8px;
     white-space: nowrap;
     min-width: 180px;
-    box-shadow: 
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
         0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -507,6 +505,7 @@ th.sort-desc::after {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
     max-height: 300px;
     overflow-y: auto !important;
+    margin-top: -5px;
 }
 
 .raid-dates-content .dropdown-item {
