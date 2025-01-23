@@ -73,6 +73,24 @@ body {
     overflow: hidden;
 }
 
+
+
+.navigation-button:hover {
+    background: linear-gradient(to bottom, #5a2203 0%, #955123 100%);
+    box-shadow: 0 0 9px rgba(255, 215, 0, 0.7);
+    transform: translateY(13.2%) scale(1.05);
+}
+
+navigation-button:hover::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+navigation-button:active {
+    transform: translateY(16.2%) scale(0.95);
+    box-shadow: 0 0 3px rgba(255, 215, 0, 0.3);
+}
+
 #auth-container button::before {
     content: '';
     position: absolute;
@@ -170,8 +188,7 @@ input[type="date"], textarea {
     background: linear-gradient(to bottom, #2b1810 0%, #1a0f0a 100%);
     color: #ffd700;
     border: 1px solid #463225;
-    padding: 12px 8px;
-    text-transform: uppercase;
+    padding: 12px 4px;
     font-weight: bold;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -443,6 +460,24 @@ th.sort-desc::after {
     min-width: 180px;
     box-shadow: 
         inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.navigation-button {
+    background: linear-gradient(to bottom, #1a1a1a 0%, #333333 100%);
+    color: #ffd700;
+    border: 1px solid #ffd700;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    min-width: 50px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
         0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
