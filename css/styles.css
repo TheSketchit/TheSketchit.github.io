@@ -177,7 +177,7 @@ input[type="date"], textarea {
 }
 
 #lootTable {
-    width: 100%;
+    table-layout: auto;
     border-collapse: separate;
     border-spacing: 0;
     background-color: transparent;
@@ -587,13 +587,13 @@ th.sort-desc::after {
 }
 
 /* Column width definitions */
-#lootTable th:nth-child(1), #lootTable td:nth-child(1) { width: 25%; }
-#lootTable th:nth-child(2), #lootTable td:nth-child(2) { width: 15%; }
-#lootTable th:nth-child(3), #lootTable td:nth-child(3) { width: 15%; }
-#lootTable th:nth-child(4), #lootTable td:nth-child(4) { width: 10%; }
-#lootTable th:nth-child(5), #lootTable td:nth-child(5) { width: 10%; }
-#lootTable th:nth-child(6), #lootTable td:nth-child(6) { width: 15%; }
-#lootTable th:nth-child(7), #lootTable td:nth-child(7) { width: 10%; }
+#lootTable th:nth-child(1), #lootTable td:nth-child(1) { min-width: 200px; width: auto; } /* Item */
+#lootTable th:nth-child(2), #lootTable td:nth-child(2) { min-width: 120px; width: auto; } /* From */
+#lootTable th:nth-child(3), #lootTable td:nth-child(3) { min-width: 100px; width: auto; } /* Name */
+#lootTable th:nth-child(4), #lootTable td:nth-child(4) { min-width: 80px; width: auto; } /* Class */
+#lootTable th:nth-child(5), #lootTable td:nth-child(5) { min-width: 80px; width: auto; } /* Spec */
+#lootTable th:nth-child(6), #lootTable td:nth-child(6) { min-width: 100px; width: auto; } /* Raid Date */
+#lootTable th:nth-child(7), #lootTable td:nth-child(7) { min-width: 80px; width: auto; } /* SR Points */
 
 /* Class View Styles */
 .class-tabs {
