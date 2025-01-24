@@ -474,12 +474,6 @@ th.sort-desc::after {
         0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.navigation-button,
-.raid-dates-button {
-    flex: 0 1 auto;
-    white-space: nowrap;
-}
-
 .navigation-button {
     background: linear-gradient(to bottom, #1a1a1a 0%, #333333 100%);
     color: #ffd700;
