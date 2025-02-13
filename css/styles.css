@@ -244,9 +244,16 @@ input[type="date"], textarea {
     padding: 4px 0;
 }
 
+#lootTable .item-link {
+    color: #0070dd !important;
+    position: relative;
+    z-index: 2;  /* Ensure link stays above cell click handler */
+}
+
 #lootTable .itemlink-text {
-    color: inherit;
-    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+    padding: 4px 8px;
 }
 
 /* Quality colors for items */
