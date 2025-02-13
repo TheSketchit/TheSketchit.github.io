@@ -414,44 +414,6 @@
       }
     }
 
-    function migrateOnyxiaData() {
-      const worldBossesRef = firebase.database().ref('raidLootData/World Bosses & Onyxia');
-      const onyxiaRef = firebase.database().ref('raidLootData/Onyxia');
-    
-      worldBossesRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-    
-        const updates = {};
-        const onyxiaData = {};
-        const worldBossesData = {};
-    
-        Object.entries(data).forEach(([key, entry]) => {
-          if (entry.From === 'Onyxia') {
-            onyxiaData[key] = entry;
-          } else {
-            worldBossesData[key] = entry;
-          }
-        });
-    
-        updates['raidLootData/Onyxia'] = onyxiaData;
-        updates['raidLootData/World Bosses'] = worldBossesData;
-    
-        // Remove the old 'World Bosses & Onyxia' node
-        updates['raidLootData/World Bosses & Onyxia'] = null;
-    
-        firebase.database().ref().update(updates)
-          .then(() => {
-            console.log('Data migration completed successfully');
-            // Refresh the display
-            displayStoredData();
-          })
-          .catch((error) => {
-            console.error('Error migrating data:', error);
-          });
-      });
-    }
-
     function calculateSRs() {
       const chevrons = document.querySelectorAll('.chevron');
       chevrons.forEach(chevron => {
