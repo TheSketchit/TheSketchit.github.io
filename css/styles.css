@@ -237,24 +237,6 @@ input[type="date"], textarea {
     color: #ffd700;
 }
 
-/* WoWHead item link styles */
-#lootTable .item-row {
-    display: block;
-    text-decoration: none;
-    padding: 4px 0;
-}
-
-#lootTable .item-link {
-    color: #0070dd !important;
-    position: relative;
-    z-index: 2;  /* Ensure link stays above cell click handler */
-}
-
-#lootTable .itemlink-text {
-    cursor: pointer;
-    display: inline-block;
-    padding: 4px 8px;
-}
 
 /* Quality colors for items */
 .q1 { color: #ffffff !important; } /* Common */
@@ -708,22 +690,26 @@ th.sort-desc::after {
     color: #0070dd !important;
 }
 
-.item-link {
-    color: #0070dd !important;
+
+#lootTable .item-link {
+    cursor: pointer;
     text-decoration: none;
-    display: block;
-    padding: 4px 0;
-    line-height: 1.4;
-    white-space: normal;
+    color: #0070dd !important;
+    display: inline;
 }
 
-.item-link:hover {
+#lootTable .item-link:hover {
+    cursor: pointer;
     color: #0088ff !important;
     text-decoration: underline;
+    text-shadow: 
+        0 0 2px #000,
+        0 0 4px #000,
+        0 0 6px #000;
 }
 
-.itemlink-text {
-    color: inherit;
+#lootTable .itemlink-text {
+    cursor: pointer;
     text-decoration: none;
     white-space: normal;
 }
