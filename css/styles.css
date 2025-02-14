@@ -250,6 +250,110 @@ input[type="date"], textarea {
     background-color: rgba(45, 35, 25, 0.95);
 }
 
+tr.player-row {
+  position: relative; /* Required for positioning the pseudo-element */
+  transition: transform 0.2s ease-in-out; /* Smooth transition for the lift effect */
+}
+
+tr.player-row:hover {
+  transform: translateY(-3px); /* Lift up on hover */
+}
+
+tr.player-row::after {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: opacity 0.2s ease-in-out; 
+}
+
+tr.player-row:hover::after {
+  content: "+"; /* Display "+" on hover */
+  opacity: 1; /* Make it visible */
+}
+
+
+
+tr.player-row.expanded::after {
+  content: "-"; /* Change to "-" when expanded */
+}
+
+tr.item-details h2 { /* Assuming you have an h2 for the header */
+  font-size: 1rem; /* Reduce header font size */
+  margin: 0.5rem 0; /* Adjust margin as needed */
+  color: #ffd700; /* Match player name color for visual connection */
+}
+
+tr.item-details {
+  margin: 0px;
+  padding: 0px;
+  border: none; /* Remove border */
+  border-bottom: 4px solid #463225; /* Add bottom border to match player-row */
+}
+
+tr.item-history {
+	margin: 0px;
+	padding: 0px;
+	background-color: rgba(20, 20, 20, 0.95)
+}
+
+tr.item-row {
+  position: relative;
+  transition: transform 0.2s ease-in-out;
+}
+
+tr.item-row:hover {
+  transform: translateY(-3px); /* Lift up on hover */
+}
+
+tr.item-row::after {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  transition: opacity 0.2s ease-in-out;
+  opacity: 0; /* Initially hidden */
+}
+
+tr.item-row:hover::after {
+  content: "+"; /* Display "+" on hover */
+  opacity: 1; /* Make it visible */
+}
+
+tr.item-row.expanded::after {
+  content: "-"; /* Change to "-" when expanded */
+}
+
+.items-table-wrapper {
+  padding: 0; /* Remove padding */
+  margin: 0px;
+}
+
+table.items-table th,
+table.items-history-table td,
+table.item-details tr {
+  margin-left: 0; /* Remove left padding */
+}
+
+.item-history-table-wrapper {
+  margin: 0; /* Remove margin */
+  padding: 0; /* Remove padding */
+}
+
+
+table.item-history-table th {
+  font-size: 0.9rem; /* Reduce header font size */
+  padding: 4px 8px; /* Reduce header padding */
+}
+
+table.item-history-table td {
+  font-size: 0.9rem; /* Reduce row font size */
+  padding: 4px 8px; /* Reduce row padding */
+}
+
+
 /* Hover effects */
 #lootTable tr:hover td {
     background-color: rgba(70, 50, 30, 0.95);
