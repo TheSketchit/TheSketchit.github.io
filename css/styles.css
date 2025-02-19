@@ -650,7 +650,8 @@ th.sort-desc::after {
 }
 
 .dropdown-item:hover {
-    background-color: #333333;
+  background: linear-gradient(to bottom, #5a2203 0%, #955123 100%);
+  color: #ffffff;
 }
 
 .dropdown:hover .dropdown-content {
@@ -820,4 +821,85 @@ th.sort-desc::after {
 
 .notranslate {
     white-space: normal;
+}
+
+.loot-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: rgba(20, 20, 20, 0.95);
+  border: 1px solid #463225;
+}
+
+.loot-history-table th {
+  background: linear-gradient(to bottom, #2b1810 0%, #1a0f0a 100%);
+  color: #ffd700;
+  padding: 12px 8px;
+  text-align: left;
+  border: 1px solid #463225;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.loot-history-table td {
+  padding: 8px;
+  border: 1px solid #463225;
+  color: #ffffff;
+  background-color: rgba(40, 30, 20, 0.95);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #ffd700;
+  margin: 4px 0;
+  opacity: 0.3;
+}
+
+.loot-history-table tr:nth-child(even) td {
+  background-color: rgba(45, 35, 25, 0.95);
+}
+
+.loot-history-table tr:hover td {
+  background-color: rgba(70, 50, 30, 0.95);
+}
+
+/* Column widths */
+.loot-history-table th:nth-child(1), 
+.loot-history-table td:nth-child(1) { width: 100px; } /* Date */
+.loot-history-table th:nth-child(2),
+.loot-history-table td:nth-child(2) { width: 200px; } /* Item */
+.loot-history-table th:nth-child(3),
+.loot-history-table td:nth-child(3) { width: 120px; } /* Winner */
+.loot-history-table th:nth-child(4),
+.loot-history-table td:nth-child(4) { width: 100px; } /* Class */
+.loot-history-table th:nth-child(5),
+.loot-history-table td:nth-child(5) { width: 100px; } /* Spec */
+.loot-history-table th:nth-child(6),
+.loot-history-table td:nth-child(6) { width: 80px; } /* SR */
+.loot-history-table th:nth-child(7),
+.loot-history-table td:nth-child(7) { width: 100px; } /* Type */
+.loot-history-table th:nth-child(8),
+.loot-history-table td:nth-child(8) { width: 120px; } /* Raid (for full history) */
+
+.raid-select-button {
+  background: linear-gradient(to bottom, #1a3063 0%, #0c1b3b 100%);
+  color: #ffd700;
+  border: 1px solid #ffd700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 180px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.raid-select-button:hover {
+  background: linear-gradient(to bottom, #5a2203 0%, #955123 100%);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+              0 4px 8px rgba(0, 0, 0, 0.3);
 }

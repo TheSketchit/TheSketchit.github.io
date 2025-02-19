@@ -32,38 +32,42 @@
       <textarea id="csvInput" rows="10" cols="100"></textarea><br>
       <button onclick="processCSV()" id="saveLootButton">Save Loot History</button>
 
-      <div class="navigation-container">
-        <button class="navigation-button" onclick="goToGame()">Back to SR History</button>
-        <div class="chevron-navigation">
-          <div class="chevron" onclick="selectRaid('Naxxramas')">Naxxramas</div>
-          <div class="chevron" onclick="selectRaid('Big AQ')">Big AQ</div>
-          <div class="chevron" onclick="selectRaid('Blackwing Lair')">Blackwing Lair</div>
-        </div>
-        <div class="dropdown">
-          <button class="dropbtn">History Raid Dates</button>
-          <div class="dropdown-content" id="viewRaidDate"></div>
-        </div>
-      </div>
+	<div class="navigation-container">
+	  <button class="navigation-button" onclick="goToGame()">Back to SR History</button>
+	  <div class="chevron-navigation">
+		<div class="chevron" onclick="selectRaid('Naxxramas')">Naxxramas</div>
+		<div class="chevron" onclick="selectRaid('Big AQ')">Big AQ</div>
+		<div class="chevron" onclick="selectRaid('Blackwing Lair')">Blackwing Lair</div>
+	  </div>
+	  <div class="dropdown">
+		<button class="raid-select-button">Full Loot History ▼</button>
+		<div class="dropdown-content">
+		  <div class="dropdown-item" onclick="showFullHistory()">All Raids</div>
+		  <div class="dropdown-divider"></div>
+		  <div class="dropdown-item" onclick="showFullHistory('Naxxramas')">Naxxramas</div>
+		  <div class="dropdown-item" onclick="showFullHistory('Big AQ')">Big AQ</div>
+		  <div class="dropdown-item" onclick="showFullHistory('Blackwing Lair')">Blackwing Lair</div>
+		</div>
+	  </div>
+	</div>
 
-      <div class="parchment-table-container">
-        <div class="parchment-table-top">
-          <div class="parchment-table-top-left"></div>
-          <div class="parchment-table-top-middle"></div>
-          <div class="parchment-table-top-right"></div>
-        </div>
-        <div class="parchment-table-middle">
-          <div class="parchment-table-left"></div>
-          <div class="parchment-table-content"></div>
-          <div class="parchment-table-right"></div>
-        </div>
-        <div class="parchment-table-bottom">
-          <div class="parchment-table-bottom-left"></div>
-          <div class="parchment-table-bottom-middle"></div>
-          <div class="parchment-table-bottom-right"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+	<div class="parchment-table-container">
+	  <div class="parchment-table-top">
+		<div class="parchment-table-top-left"></div>
+		<div class="parchment-table-top-middle"></div>
+		<div class="parchment-table-top-right"></div>
+	  </div>
+	  <div class="parchment-table-middle">
+		<div class="parchment-table-left"></div>
+		<div class="parchment-table-content"></div>
+		<div class="parchment-table-right"></div>
+	  </div>
+	  <div class="parchment-table-bottom">
+		<div class="parchment-table-bottom-left"></div>
+		<div class="parchment-table-bottom-middle"></div>
+		<div class="parchment-table-bottom-right"></div>
+	  </div>
+	</div>
 
   <script src="../js/ember-effect.js"></script>
 
@@ -80,6 +84,9 @@ var firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
+let currentFilter = null;
+let currentHistoryRaid = null;
+let currentSort = { column: 'Date', direction: 'desc' };
 let isGuest = true;
 let selectedRaid = null;
 
@@ -149,7 +156,7 @@ function checkForDuplicates(data) {
 
       if (newRows.length < data.length) {
         const duplicateCount = data.length - newRows.length;
-        alert(`${duplicateCount} duplicate item(s) were found and will not be added.`);
+        alert('${duplicateCount} duplicate items were found and will not be added.');
       }
 
       newRows.forEach(row => saveToFirebase(row));
@@ -309,6 +316,181 @@ async function getItemHistory(itemId) {
   }
   
   return itemHistory.sort((a, b) => new Date(b.Date) - new Date(a.Date));
+}
+	  
+
+async function showFullHistory(specificRaid = null) {
+  currentHistoryRaid = specificRaid; // Keep track of which raid we're viewing
+  currentFilter = null; // Clear filter when changing raids via dropdown
+  currentSort = { column: 'Date', direction: 'desc' }; // Reset sort
+  const container = document.querySelector('.parchment-table-content');
+  const playerData = await getPlayerData();
+  
+  // Clear any existing content
+  container.innerHTML = '';
+  
+  // Create table
+  const table = document.createElement('table');
+  table.id = 'lootTable';
+  table.className = 'loot-history-table';
+  
+  // Setup headers
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  
+  const headers = ['Date', 'Item', 'Winner', 'Class', 'Spec', 'SR', 'Type'];
+  if (!specificRaid) headers.push('Raid');
+  
+  headers.forEach(header => {
+    const th = document.createElement('th');
+    th.onclick = () => sortTable(header);
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // Create tbody
+  const tbody = document.createElement('tbody');
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  // Get data from each raid
+  const raids = specificRaid ? [specificRaid] : ['Naxxramas', 'Big AQ', 'Blackwing Lair'];
+  let allLoot = [];
+
+  for (const raid of raids) {
+    const ref = firebase.database().ref(`lootHistoryData/${raid}`);
+    try {
+      const snapshot = await ref.once('value');
+      const data = snapshot.val() || {};
+      
+      Object.entries(data).forEach(([key, item]) => {
+        const playerInfo = playerData[item.Winner] || playerData[item.Winner.toLowerCase()] || { class: 'Unknown', spec: 'Unknown' };
+        allLoot.push({
+          key,
+          ...item,
+          playerClass: playerInfo.class,
+          playerSpec: playerInfo.spec,
+          raid: raid
+        });
+      });
+    } catch (error) {
+      console.error(`Error fetching data for ${raid}:`, error);
+    }
+  }
+
+  // Apply filter
+  if (currentFilter) {
+    allLoot = allLoot.filter(row => row[currentFilter.column] === currentFilter.value);
+  }
+
+  // Apply sort
+  allLoot.sort((a, b) => {
+      if (currentSort.column === 'Date') {
+    return currentSort.direction === 'asc' 
+      ? new Date(a.Date) - new Date(b.Date)
+      : new Date(b.Date) - new Date(a.Date);
+  }
+  const aVal = a[currentSort.column];
+  const bVal = b[currentSort.column];
+  return currentSort.direction === 'asc'
+    ? String(aVal).localeCompare(String(bVal))
+    : String(bVal).localeCompare(String(aVal));
+});
+
+  // Display rows
+  allLoot.forEach(item => {
+    const tr = document.createElement('tr');
+    
+	tr.innerHTML = `
+	  <td onclick="filterByColumn('Date', '${item.Date}')">${item.Date}</td>
+	  <td>
+		<a href="https://wowhead.com/classic/item=${item.ItemID}" 
+		   data-wowhead="item=${item.ItemID}"
+		   class="item-link">
+		  ${item.Item}
+		</a>
+	  </td>
+	  <td onclick="filterByColumn('Winner', '${item.Winner}')">${item.Winner}</td>
+	  <td onclick="filterByColumn('Class', '${item.playerClass}')">${item.playerClass}</td>
+	  <td onclick="filterByColumn('Spec', '${item.playerSpec}')">${item.playerSpec}</td>
+	  <td onclick="filterByColumn('SR', '${item.SR}')">${item.SR}</td>
+	  <td onclick="filterByColumn('Type', '${item.OS}')">${item.OS}</td>
+	  ${!specificRaid ? `<td onclick="filterByColumn('Raid', '${item.raid}')">${item.raid}</td>` : ''}
+	`;
+    
+    tbody.appendChild(tr);
+  });
+
+  // Update the UI indicators
+  updateSortIndicators();
+  updateFilterIndicator();
+  
+  // Refresh tooltips
+  if (typeof $WowheadPower !== 'undefined') {
+    $WowheadPower.refreshLinks();
+  }
+}
+	  
+
+// Sorting and filtering functions only for full history
+function sortTable(column) {
+  if (currentSort.column === column) {
+    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.column = column;
+    currentSort.direction = 'asc';
+  }
+  showFullHistory(currentHistoryRaid);
+  updateSortIndicators();
+}
+
+function filterByColumn(column, value) {
+  if (!document.querySelector('.loot-history-table')) return; 
+  // Just set the new filter, replacing any existing one
+  currentFilter = { column, value };
+  showFullHistory(currentHistoryRaid);
+  
+  // Update filter indicator
+  const filterIndicator = document.getElementById('filterIndicator');
+  const clearFilterButton = document.getElementById('clearFilterButton');
+  
+  filterIndicator.textContent = `Filtered by ${column}: ${value}`;
+  filterIndicator.style.display = 'block';
+  clearFilterButton.style.display = 'block';
+}
+
+
+function updateSortIndicators() {
+  const headers = document.querySelectorAll('#lootTable th');
+  headers.forEach(header => {
+    header.classList.remove('sort-asc', 'sort-desc');
+    if (header.textContent === currentSort.column) {
+      header.classList.add(`sort-${currentSort.direction}`);
+    }
+  });
+}
+
+function updateFilterIndicator() {
+  const filterIndicator = document.getElementById('filterIndicator');
+  const clearFilterButton = document.getElementById('clearFilterButton');
+  
+  if (currentFilter) {
+    filterIndicator.textContent = `Filtered by ${currentFilter.column}: ${currentFilter.value}`;
+    filterIndicator.style.display = 'block';
+    clearFilterButton.style.display = 'block';
+  } else {
+    filterIndicator.style.display = 'none';
+    clearFilterButton.style.display = 'none';
+  }
+}
+
+function clearFilter() {
+  currentFilter = null;
+  showFullHistory(currentHistoryRaid);
+  updateFilterIndicator();
 }
 
 function createItemHistoryRow(itemHistory) {
