@@ -338,12 +338,14 @@ async function showFullHistory(specificRaid = null) {
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   
-  const headers = ['Date', 'Item', 'Winner', 'Class', 'Spec', 'SR', 'Type'];
+  // Note: These are just "display" names; they don't have to match the data keys.
+  // BUT for sorting, you'll need to handle them in sortTable() carefully.
+  const headers = ['Date', 'Item', 'Winner', 'Player Class', 'Player Spec', 'SR', 'OS'];
   if (!specificRaid) headers.push('Raid');
   
   headers.forEach(header => {
     const th = document.createElement('th');
-    th.onclick = () => sortTable(header);
+    th.onclick = () => sortTable(header); // For sorting (optional)
     th.textContent = header;
     headerRow.appendChild(th);
   });
@@ -367,10 +369,19 @@ async function showFullHistory(specificRaid = null) {
       const data = snapshot.val() || {};
       
       Object.entries(data).forEach(([key, item]) => {
-        const playerInfo = playerData[item.Winner] || playerData[item.Winner.toLowerCase()] || { class: 'Unknown', spec: 'Unknown' };
+        const playerInfo = playerData[item.Winner] 
+          || playerData[item.Winner.toLowerCase()] 
+          || { class: 'Unknown', spec: 'Unknown' };
+          
+        // Notice we're storing them as playerClass, playerSpec, OS, raid, etc.
         allLoot.push({
           key,
-          ...item,
+          Date: item.Date,
+          Item: item.Item,
+          ItemID: item.ItemID,
+          Winner: item.Winner,
+          SR: item.SR,
+          OS: item.OS,               // or rename to Type if you prefer
           playerClass: playerInfo.class,
           playerSpec: playerInfo.spec,
           raid: raid
@@ -381,45 +392,53 @@ async function showFullHistory(specificRaid = null) {
     }
   }
 
-  // Apply filter
+  // Apply filter if one is set (none at first)
   if (currentFilter) {
+    // Make sure row[currentFilter.column] actually exists on the row object
     allLoot = allLoot.filter(row => row[currentFilter.column] === currentFilter.value);
   }
 
-  // Apply sort
+  // Sort the data (just like before)
   allLoot.sort((a, b) => {
-      if (currentSort.column === 'Date') {
-    return currentSort.direction === 'asc' 
-      ? new Date(a.Date) - new Date(b.Date)
-      : new Date(b.Date) - new Date(a.Date);
-  }
-  const aVal = a[currentSort.column];
-  const bVal = b[currentSort.column];
-  return currentSort.direction === 'asc'
-    ? String(aVal).localeCompare(String(bVal))
-    : String(bVal).localeCompare(String(aVal));
-});
+    if (currentSort.column === 'Date') {
+      return currentSort.direction === 'asc' 
+        ? new Date(a.Date) - new Date(b.Date)
+        : new Date(b.Date) - new Date(a.Date);
+    }
+    // For other columns, we do a string compare
+    const aVal = a[currentSort.column] || '';
+    const bVal = b[currentSort.column] || '';
+    return currentSort.direction === 'asc'
+      ? String(aVal).localeCompare(String(bVal))
+      : String(bVal).localeCompare(String(aVal));
+  });
 
-  // Display rows
+  // Now actually create the rows
   allLoot.forEach(item => {
     const tr = document.createElement('tr');
     
-	tr.innerHTML = `
-	  <td onclick="filterByColumn('Date', '${item.Date}')">${item.Date}</td>
-	  <td>
-		<a href="https://wowhead.com/classic/item=${item.ItemID}" 
-		   data-wowhead="item=${item.ItemID}"
-		   class="item-link">
-		  ${item.Item}
-		</a>
-	  </td>
-	  <td onclick="filterByColumn('Winner', '${item.Winner}')">${item.Winner}</td>
-	  <td onclick="filterByColumn('Class', '${item.playerClass}')">${item.playerClass}</td>
-	  <td onclick="filterByColumn('Spec', '${item.playerSpec}')">${item.playerSpec}</td>
-	  <td onclick="filterByColumn('SR', '${item.SR}')">${item.SR}</td>
-	  <td onclick="filterByColumn('Type', '${item.OS}')">${item.OS}</td>
-	  ${!specificRaid ? `<td onclick="filterByColumn('Raid', '${item.raid}')">${item.raid}</td>` : ''}
-	`;
+    // IMPORTANT: We must filter by the key name that actually exists in `item`
+    // e.g., 'playerClass', 'playerSpec', 'OS', 'raid', etc.
+    tr.innerHTML = `
+      <td onclick="filterByColumn('Date', '${item.Date}')">${item.Date}</td>
+      <td>
+        <a href="https://wowhead.com/classic/item=${item.ItemID}" 
+           data-wowhead="item=${item.ItemID}"
+           class="item-link">
+          ${item.Item}
+        </a>
+      </td>
+      <td onclick="filterByColumn('Winner', '${item.Winner}')">${item.Winner}</td>
+      <td onclick="filterByColumn('playerClass', '${item.playerClass}')">${item.playerClass}</td>
+      <td onclick="filterByColumn('playerSpec', '${item.playerSpec}')">${item.playerSpec}</td>
+      <td onclick="filterByColumn('SR', '${item.SR}')">${item.SR}</td>
+      <td onclick="filterByColumn('OS', '${item.OS}')">${item.OS}</td>
+      ${
+        !specificRaid 
+          ? `<td onclick="filterByColumn('raid', '${item.raid}')">${item.raid}</td>` 
+          : ''
+      }
+    `;
     
     tbody.appendChild(tr);
   });
@@ -428,15 +447,34 @@ async function showFullHistory(specificRaid = null) {
   updateSortIndicators();
   updateFilterIndicator();
   
-  // Refresh tooltips
+  // Refresh Wowhead tooltips
   if (typeof $WowheadPower !== 'undefined') {
     $WowheadPower.refreshLinks();
   }
 }
-	  
 
-// Sorting and filtering functions only for full history
-function sortTable(column) {
+	  
+// A small map from "header name" -> "property in the data"
+const columnMap = {
+  "Date": "Date",
+  "Item": "Item",
+  "Winner": "Winner",
+  "Class": "playerClass",
+  "Spec": "playerSpec",
+  "SR": "SR",
+  "OS": "OS",
+  "Raid": "raid"
+};
+
+function sortTable(displayName) {
+  // Convert the display name (e.g. "Class") to actual key (e.g. "playerClass")
+  const column = columnMap[displayName];
+
+  if (!column) {
+    console.error(`No column mapping found for ${displayName}`);
+    return;
+  }
+
   if (currentSort.column === column) {
     currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
   } else {
@@ -447,20 +485,27 @@ function sortTable(column) {
   updateSortIndicators();
 }
 
-function filterByColumn(column, value) {
-  if (!document.querySelector('.loot-history-table')) return; 
-  // Just set the new filter, replacing any existing one
+function filterByColumn(displayName, value) {
+  const column = columnMap[displayName];
+  if (!column) {
+    console.error(`No column mapping found for ${displayName}`);
+    return;
+  }
+
+  if (!document.querySelector('.loot-history-table')) return;
+
   currentFilter = { column, value };
   showFullHistory(currentHistoryRaid);
-  
-  // Update filter indicator
+
   const filterIndicator = document.getElementById('filterIndicator');
   const clearFilterButton = document.getElementById('clearFilterButton');
-  
-  filterIndicator.textContent = `Filtered by ${column}: ${value}`;
+
+  filterIndicator.textContent = `Filtered by ${displayName}: ${value}`;
   filterIndicator.style.display = 'block';
   clearFilterButton.style.display = 'block';
 }
+
+
 
 
 function updateSortIndicators() {
