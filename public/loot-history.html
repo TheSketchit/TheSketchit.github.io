@@ -432,9 +432,6 @@ async function showFullHistory(specificRaid = null) {
     `;
     tbody.appendChild(tr);
   });
-
-  updateSortIndicators();
-  updateFilterIndicator();
   
   if (typeof $WowheadPower !== 'undefined') {
     $WowheadPower.refreshLinks();
@@ -444,14 +441,45 @@ async function showFullHistory(specificRaid = null) {
 
 // Sorting and filtering functions only for full history
 function sortTable(column) {
+  if (!document.querySelector('.loot-history-table')) return;
+  
   if (currentSort.column === column) {
     currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
   } else {
     currentSort.column = column;
     currentSort.direction = 'asc';
   }
-  showFullHistory(currentHistoryRaid);
-  updateSortIndicators();
+
+  // Get current rows and sort them
+  const tbody = document.querySelector('#lootTable tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  
+  rows.sort((a, b) => {
+    let aVal, bVal;
+    
+    // Get value from correct cell based on column
+    const aRow = a.cells[headers.indexOf(column)];
+    const bRow = b.cells[headers.indexOf(column)];
+    
+    if (column === 'Date') {
+      aVal = new Date(aRow.textContent);
+      bVal = new Date(bRow.textContent);
+    } else {
+      aVal = aRow.textContent;
+      bVal = bRow.textContent;
+    }
+    
+    // Do the comparison
+    if (currentSort.direction === 'asc') {
+      return aVal > bVal ? 1 : -1;
+    } else {
+      return aVal < bVal ? 1 : -1;
+    }
+  });
+
+  // Re-append rows in new order
+  rows.forEach(row => tbody.appendChild(row));
+
 }
 
 function filterByColumn(column, value) {
@@ -472,7 +500,6 @@ function filterByColumn(column, value) {
 function clearFilter() {
   currentFilter = null;
   showFullHistory(currentHistoryRaid);
-  updateFilterIndicator();
 }
 
 function createItemHistoryRow(itemHistory) {
