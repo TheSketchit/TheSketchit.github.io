@@ -437,69 +437,49 @@ async function showFullHistory(specificRaid = null) {
     $WowheadPower.refreshLinks();
   }
 }
-	  
 
-// Sorting and filtering functions only for full history
 function sortTable(column) {
-  if (!document.querySelector('.loot-history-table')) return;
-  
-  if (currentSort.column === column) {
-    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-  } else {
-    currentSort.column = column;
-    currentSort.direction = 'asc';
-  }
-
-  // Get current rows and sort them
   const tbody = document.querySelector('#lootTable tbody');
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  
-  rows.sort((a, b) => {
-    let aVal, bVal;
-    
-    // Get value from correct cell based on column
-    const aRow = a.cells[headers.indexOf(column)];
-    const bRow = b.cells[headers.indexOf(column)];
+  const rows = Array.from(tbody.getElementsByTagName('tr'));
+
+  currentSort.direction = currentSort.column === column ? 
+    (currentSort.direction === 'asc' ? 'desc' : 'asc') : 'asc';
+  currentSort.column = column;
+
+  const compare = (a, b) => {
+    const aVal = a.children[headers.indexOf(column)].textContent;
+    const bVal = b.children[headers.indexOf(column)].textContent;
     
     if (column === 'Date') {
-      aVal = new Date(aRow.textContent);
-      bVal = new Date(bRow.textContent);
-    } else {
-      aVal = aRow.textContent;
-      bVal = bRow.textContent;
+      return currentSort.direction === 'asc' 
+        ? new Date(aVal) - new Date(bVal)
+        : new Date(bVal) - new Date(aVal);
     }
     
-    // Do the comparison
-    if (currentSort.direction === 'asc') {
-      return aVal > bVal ? 1 : -1;
-    } else {
-      return aVal < bVal ? 1 : -1;
-    }
-  });
+    return currentSort.direction === 'asc' 
+      ? aVal.localeCompare(bVal)
+      : bVal.localeCompare(aVal);
+  };
 
-  // Re-append rows in new order
+  rows.sort(compare);
   rows.forEach(row => tbody.appendChild(row));
-
+  updateSortIndicators();
 }
 
 function filterByColumn(column, value) {
-  if (!document.querySelector('.loot-history-table')) return; 
-  // Just set the new filter, replacing any existing one
-  currentFilter = { column, value };
-  showFullHistory(currentHistoryRaid);
-  
-  // Update filter indicator
-  const filterIndicator = document.getElementById('filterIndicator');
-  const clearFilterButton = document.getElementById('clearFilterButton');
-  
-  filterIndicator.textContent = `Filtered by ${column}: ${value}`;
-  filterIndicator.style.display = 'block';
-  clearFilterButton.style.display = 'block';
+  const rows = document.querySelectorAll('#lootTable tbody tr');
+  const colIndex = Array.from(document.querySelectorAll('#lootTable th'))
+    .findIndex(th => th.textContent === column);
+
+  rows.forEach(row => {
+    const cell = row.cells[colIndex];
+    row.style.display = cell.textContent === value ? '' : 'none';
+  });
 }
 
 function clearFilter() {
-  currentFilter = null;
-  showFullHistory(currentHistoryRaid);
+  const rows = document.querySelectorAll('#lootTable tbody tr');
+  rows.forEach(row => row.style.display = '');
 }
 
 function createItemHistoryRow(itemHistory) {
