@@ -317,35 +317,30 @@ async function getItemHistory(itemId) {
   
   return itemHistory.sort((a, b) => new Date(b.Date) - new Date(a.Date));
 }
-	  
 
 async function showFullHistory(specificRaid = null) {
-  currentHistoryRaid = specificRaid; // Keep track of which raid we're viewing
-  currentFilter = null; // Clear filter when changing raids via dropdown
-  currentSort = { column: 'Date', direction: 'desc' }; // Reset sort
+  currentHistoryRaid = specificRaid;
+  currentFilter = null;
+  currentSort = { column: 'Date', direction: 'desc' };
+  
   const container = document.querySelector('.parchment-table-content');
   const playerData = await getPlayerData();
   
-  // Clear any existing content
   container.innerHTML = '';
   
-  // Create table
   const table = document.createElement('table');
   table.id = 'lootTable';
   table.className = 'loot-history-table';
   
-  // Setup headers
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
   
-  // Note: These are just "display" names; they don't have to match the data keys.
-  // BUT for sorting, you'll need to handle them in sortTable() carefully.
-  const headers = ['Date', 'Item', 'Winner', 'Player Class', 'Player Spec', 'SR', 'OS'];
+  const headers = ['Date', 'Item', 'Winner', 'Class', 'Spec', 'SR', 'Type'];
   if (!specificRaid) headers.push('Raid');
   
   headers.forEach(header => {
     const th = document.createElement('th');
-    th.onclick = () => sortTable(header); // For sorting (optional)
+    th.onclick = () => sortTable(header);
     th.textContent = header;
     headerRow.appendChild(th);
   });
@@ -353,12 +348,10 @@ async function showFullHistory(specificRaid = null) {
   thead.appendChild(headerRow);
   table.appendChild(thead);
   
-  // Create tbody
   const tbody = document.createElement('tbody');
   table.appendChild(tbody);
   container.appendChild(table);
 
-  // Get data from each raid
   const raids = specificRaid ? [specificRaid] : ['Naxxramas', 'Big AQ', 'Blackwing Lair'];
   let allLoot = [];
 
@@ -369,19 +362,10 @@ async function showFullHistory(specificRaid = null) {
       const data = snapshot.val() || {};
       
       Object.entries(data).forEach(([key, item]) => {
-        const playerInfo = playerData[item.Winner] 
-          || playerData[item.Winner.toLowerCase()] 
-          || { class: 'Unknown', spec: 'Unknown' };
-          
-        // Notice we're storing them as playerClass, playerSpec, OS, raid, etc.
+        const playerInfo = playerData[item.Winner] || playerData[item.Winner.toLowerCase()] || { class: 'Unknown', spec: 'Unknown' };
         allLoot.push({
           key,
-          Date: item.Date,
-          Item: item.Item,
-          ItemID: item.ItemID,
-          Winner: item.Winner,
-          SR: item.SR,
-          OS: item.OS,               // or rename to Type if you prefer
+          ...item,
           playerClass: playerInfo.class,
           playerSpec: playerInfo.spec,
           raid: raid
@@ -392,33 +376,44 @@ async function showFullHistory(specificRaid = null) {
     }
   }
 
-  // Apply filter if one is set (none at first)
   if (currentFilter) {
-    // Make sure row[currentFilter.column] actually exists on the row object
-    allLoot = allLoot.filter(row => row[currentFilter.column] === currentFilter.value);
+    allLoot = allLoot.filter(row => {
+      switch(currentFilter.column) {
+        case 'Date':
+          return row.Date === currentFilter.value;
+        case 'Winner':
+          return row.Winner === currentFilter.value;
+        case 'Class':
+          return row.playerClass === currentFilter.value;
+        case 'Spec':
+          return row.playerSpec === currentFilter.value;
+        case 'SR':
+          return row.SR === currentFilter.value;
+        case 'Type':
+          return row.OS === currentFilter.value;
+        case 'Raid':
+          return row.raid === currentFilter.value;
+        default:
+          return row[currentFilter.column] === currentFilter.value;
+      }
+    });
   }
 
-  // Sort the data (just like before)
   allLoot.sort((a, b) => {
     if (currentSort.column === 'Date') {
       return currentSort.direction === 'asc' 
         ? new Date(a.Date) - new Date(b.Date)
         : new Date(b.Date) - new Date(a.Date);
     }
-    // For other columns, we do a string compare
-    const aVal = a[currentSort.column] || '';
-    const bVal = b[currentSort.column] || '';
+    const aVal = a[currentSort.column];
+    const bVal = b[currentSort.column];
     return currentSort.direction === 'asc'
       ? String(aVal).localeCompare(String(bVal))
       : String(bVal).localeCompare(String(aVal));
   });
 
-  // Now actually create the rows
   allLoot.forEach(item => {
     const tr = document.createElement('tr');
-    
-    // IMPORTANT: We must filter by the key name that actually exists in `item`
-    // e.g., 'playerClass', 'playerSpec', 'OS', 'raid', etc.
     tr.innerHTML = `
       <td onclick="filterByColumn('Date', '${item.Date}')">${item.Date}</td>
       <td>
@@ -429,52 +424,26 @@ async function showFullHistory(specificRaid = null) {
         </a>
       </td>
       <td onclick="filterByColumn('Winner', '${item.Winner}')">${item.Winner}</td>
-      <td onclick="filterByColumn('playerClass', '${item.playerClass}')">${item.playerClass}</td>
-      <td onclick="filterByColumn('playerSpec', '${item.playerSpec}')">${item.playerSpec}</td>
+      <td onclick="filterByColumn('Class', '${item.playerClass}')">${item.playerClass}</td>
+      <td onclick="filterByColumn('Spec', '${item.playerSpec}')">${item.playerSpec}</td>
       <td onclick="filterByColumn('SR', '${item.SR}')">${item.SR}</td>
-      <td onclick="filterByColumn('OS', '${item.OS}')">${item.OS}</td>
-      ${
-        !specificRaid 
-          ? `<td onclick="filterByColumn('raid', '${item.raid}')">${item.raid}</td>` 
-          : ''
-      }
+      <td onclick="filterByColumn('Type', '${item.OS}')">${item.OS}</td>
+      ${!specificRaid ? `<td onclick="filterByColumn('Raid', '${item.raid}')">${item.raid}</td>` : ''}
     `;
-    
     tbody.appendChild(tr);
   });
 
-  // Update the UI indicators
   updateSortIndicators();
   updateFilterIndicator();
   
-  // Refresh Wowhead tooltips
   if (typeof $WowheadPower !== 'undefined') {
     $WowheadPower.refreshLinks();
   }
 }
-
 	  
-// A small map from "header name" -> "property in the data"
-const columnMap = {
-  "Date": "Date",
-  "Item": "Item",
-  "Winner": "Winner",
-  "Class": "playerClass",
-  "Spec": "playerSpec",
-  "SR": "SR",
-  "OS": "OS",
-  "Raid": "raid"
-};
 
-function sortTable(displayName) {
-  // Convert the display name (e.g. "Class") to actual key (e.g. "playerClass")
-  const column = columnMap[displayName];
-
-  if (!column) {
-    console.error(`No column mapping found for ${displayName}`);
-    return;
-  }
-
+// Sorting and filtering functions only for full history
+function sortTable(column) {
   if (currentSort.column === column) {
     currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
   } else {
@@ -485,51 +454,19 @@ function sortTable(displayName) {
   updateSortIndicators();
 }
 
-function filterByColumn(displayName, value) {
-  const column = columnMap[displayName];
-  if (!column) {
-    console.error(`No column mapping found for ${displayName}`);
-    return;
-  }
-
-  if (!document.querySelector('.loot-history-table')) return;
-
+function filterByColumn(column, value) {
+  if (!document.querySelector('.loot-history-table')) return; 
+  // Just set the new filter, replacing any existing one
   currentFilter = { column, value };
   showFullHistory(currentHistoryRaid);
-
-  const filterIndicator = document.getElementById('filterIndicator');
-  const clearFilterButton = document.getElementById('clearFilterButton');
-
-  filterIndicator.textContent = `Filtered by ${displayName}: ${value}`;
-  filterIndicator.style.display = 'block';
-  clearFilterButton.style.display = 'block';
-}
-
-
-
-
-function updateSortIndicators() {
-  const headers = document.querySelectorAll('#lootTable th');
-  headers.forEach(header => {
-    header.classList.remove('sort-asc', 'sort-desc');
-    if (header.textContent === currentSort.column) {
-      header.classList.add(`sort-${currentSort.direction}`);
-    }
-  });
-}
-
-function updateFilterIndicator() {
+  
+  // Update filter indicator
   const filterIndicator = document.getElementById('filterIndicator');
   const clearFilterButton = document.getElementById('clearFilterButton');
   
-  if (currentFilter) {
-    filterIndicator.textContent = `Filtered by ${currentFilter.column}: ${currentFilter.value}`;
-    filterIndicator.style.display = 'block';
-    clearFilterButton.style.display = 'block';
-  } else {
-    filterIndicator.style.display = 'none';
-    clearFilterButton.style.display = 'none';
-  }
+  filterIndicator.textContent = `Filtered by ${column}: ${value}`;
+  filterIndicator.style.display = 'block';
+  clearFilterButton.style.display = 'block';
 }
 
 function clearFilter() {
