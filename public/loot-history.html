@@ -415,12 +415,13 @@ async function showFullHistory(specificRaid = null) {
   allLoot.forEach(item => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td onclick="filterByColumn('Date', '${item.Date}')">${item.Date}</td>
-      <td>
-        <a href="https://wowhead.com/classic/item=${item.ItemID}" 
-           data-wowhead="item=${item.ItemID}"
-           class="item-link">
-          ${item.Item}
+    	<td onclick="filterByColumn('Date', '${item.Date}')">${item.Date}</td>
+	<td onclick="filterByColumn('Item', '${item.Item}')" class="item-cell">
+	 <a href="https://wowhead.com/classic/item=${item.ItemID}" 
+	  data-wowhead="item=${item.ItemID}"
+	  class="item-link"
+	  onclick="event.stopPropagation()">  <!-- Stop click from bubbling to cell -->
+	  ${item.Item}
         </a>
       </td>
       <td onclick="filterByColumn('Winner', '${item.Winner}')">${item.Winner}</td>
