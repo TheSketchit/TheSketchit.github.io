@@ -448,8 +448,18 @@ function sortTable(column) {
   currentSort.column = column;
 
   const compare = (a, b) => {
-    const aVal = a.children[headers.indexOf(column)].textContent;
-    const bVal = b.children[headers.indexOf(column)].textContent;
+    let aVal, bVal;
+    
+    if (column === 'Item') {
+      // For items, get the text from the link inside the cell
+      aVal = a.querySelector('.item-link').textContent;
+      bVal = b.querySelector('.item-link').textContent;
+    } else {
+      aVal = a.children[Array.from(a.parentNode.parentNode.querySelector('thead tr').children)
+        .findIndex(th => th.textContent === column)].textContent;
+      bVal = b.children[Array.from(b.parentNode.parentNode.querySelector('thead tr').children)
+        .findIndex(th => th.textContent === column)].textContent;
+    }
     
     if (column === 'Date') {
       return currentSort.direction === 'asc' 
@@ -469,12 +479,16 @@ function sortTable(column) {
 
 function filterByColumn(column, value) {
   const rows = document.querySelectorAll('#lootTable tbody tr');
-  const colIndex = Array.from(document.querySelectorAll('#lootTable th'))
-    .findIndex(th => th.textContent === column);
-
   rows.forEach(row => {
-    const cell = row.cells[colIndex];
-    row.style.display = cell.textContent === value ? '' : 'none';
+    let cellValue;
+    if (column === 'Item') {
+      cellValue = row.querySelector('.item-link').textContent;
+    } else {
+      const colIndex = Array.from(row.parentNode.parentNode.querySelector('thead tr').children)
+        .findIndex(th => th.textContent === column);
+      cellValue = row.children[colIndex].textContent;
+    }
+    row.style.display = cellValue === value ? '' : 'none';
   });
 }
 
