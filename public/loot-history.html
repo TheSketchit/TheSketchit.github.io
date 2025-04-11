@@ -35,6 +35,7 @@
 	<div class="navigation-container">
 	  <button class="navigation-button" onclick="goToGame()">Back to SR History</button>
 	  <div class="chevron-navigation">
+		<div class="chevron" onclick="selectRaid('Scarlet Enclave')">Scarlet Enclave</div>
 		<div class="chevron" onclick="selectRaid('Naxxramas')">Naxxramas</div>
 		<div class="chevron" onclick="selectRaid('Big AQ')">Big AQ</div>
 		<div class="chevron" onclick="selectRaid('Blackwing Lair')">Blackwing Lair</div>
@@ -44,6 +45,7 @@
 		<div class="dropdown-content">
 		  <div class="dropdown-item" onclick="showFullHistory()">All Raids</div>
 		  <div class="dropdown-divider"></div>
+		  <div class="dropdown-item" onclick="showFullHistory('Scarlet Enclave')">Scarlet Enclave</div>
 		  <div class="dropdown-item" onclick="showFullHistory('Naxxramas')">Naxxramas</div>
 		  <div class="dropdown-item" onclick="showFullHistory('Big AQ')">Big AQ</div>
 		  <div class="dropdown-item" onclick="showFullHistory('Blackwing Lair')">Blackwing Lair</div>
@@ -292,7 +294,7 @@ function processLootByClass(rows, playerData) {
 }
 
 async function getItemHistory(itemId) {
-  const allRaids = ['Naxxramas', 'Big AQ', 'Blackwing Lair'];
+  const allRaids = ['Scarlet Enclave', 'Naxxramas', 'Big AQ', 'Blackwing Lair'];
   let itemHistory = [];
   const playerData = await getPlayerData();  // Get player data first
   
@@ -352,7 +354,7 @@ async function showFullHistory(specificRaid = null) {
   table.appendChild(tbody);
   container.appendChild(table);
 
-  const raids = specificRaid ? [specificRaid] : ['Naxxramas', 'Big AQ', 'Blackwing Lair'];
+  const raids = specificRaid ? [specificRaid] : ['Scarlet Enclave', 'Naxxramas', 'Big AQ', 'Blackwing Lair'];
   let allLoot = [];
 
   for (const raid of raids) {
