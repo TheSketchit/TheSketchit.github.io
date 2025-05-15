@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guild Testimonies - &lt;Guild Name&gt;</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    #sidebar {
+      width: 240px;
+      background-color: rgba(20, 20, 20, 0.95);
+      color: #ffd700;
+      padding: 20px;
+      height: 100vh;
+      overflow-y: auto;
+      position: fixed;
+      border-right: 1px solid #463225;
+    }
+
+    #sidebar h1 {
+      font-size: 1.4em;
+      border-bottom: 2px solid #ffd700;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    #sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    #sidebar li {
+      margin-bottom: 12px;
+    }
+
+    #sidebar a {
+      color: #ffd700;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    #sidebar a:hover {
+      color: #fff7cc;
+      text-shadow: 0 0 2px #000, 0 0 4px #000;
+      text-decoration: underline;
+    }
+
+    main {
+      margin-left: 260px;
+      padding: 2em;
+      color: #ffffff;
+    }
+
+    h2 {
+      color: #ffd700;
+      font-size: 2em;
+      border-bottom: 1px solid #463225;
+      padding-bottom: 0.3em;
+      margin-top: 2em;
+    }
+
+    .wow-frame {
+      display: inline-block;
+      padding: 6px;
+      margin-top: 1em;
+      background: linear-gradient(to bottom, #1a1a1a 0%, #000000 100%);
+      border: 4px solid #463225;
+      border-radius: 8px;
+      box-shadow:
+        0 0 5px #000,
+        0 0 10px rgba(255, 215, 0, 0.3),
+        inset 0 0 8px rgba(255, 215, 0, 0.2);
+    }
+
+    .wow-frame img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-banner"></div>
+  <nav id="sidebar">
+    <h1>Guild Members</h1>
+    <ul id="navList"></ul>
+  </nav>
+
+  <main class="container">
+    <h1>Guild Testimonials</h1>
+
+    <h2 id="Rexba">Rexba</h2>
+    <p class="player-name">Once Warchief, now a chill Elemental Shaman who just wants loot and peace.</p>
+    <div class="wow-frame">
+      <img src="https://wow.zamimg.com/uploads/screenshots/normal/910631.jpg" alt="Thrall">
+    </div>
+
+    <h2 id="jaina">Jaina Proudmoore</h2>
+    <p class="player-name">Every raid needs a little frostbite. She never misses a cast and always brings snacks.</p>
+    <div class="wow-frame">
+      <img src="https://wow.zamimg.com/uploads/screenshots/normal/1014567.jpg" alt="Jaina Proudmoore">
+    </div>
+
+    <h2 id="guldan">Gul'dan</h2>
+    <p class="player-name">Sure, he betrayed everyone — but he tops meters, and that’s what counts.</p>
+    <div class="wow-frame">
+      <img src="https://wow.zamimg.com/uploads/screenshots/normal/953627.jpg" alt="Gul'dan">
+    </div>
+  </main>
+
+  <script>
+    // Auto-generate navigation based on h2 headers
+    const navList = document.getElementById('navList');
+    const headers = document.querySelectorAll('main h2');
+
+    headers.forEach(header => {
+      const id = header.id;
+      const text = header.textContent;
+      const li = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = `#${id}`;
+      link.textContent = text;
+      li.appendChild(link);
+      navList.appendChild(li);
+    });
+  </script>
+</body>
+</html>
