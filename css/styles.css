@@ -912,3 +912,93 @@ th.sort-desc::after {
   position: relative;
   z-index: 2;  /* Make link clickable over cell */
 }
+
+.member-section {
+    display: flex;
+    align-items: flex-start;
+    background: rgba(20, 20, 20, 0.96);
+    border: 1.5px solid #463225;
+    border-radius: 12px;
+    margin-bottom: 2em;
+    box-shadow: 0 0 8px #000a, 0 2px 12px #222a;
+    overflow: hidden;
+    padding: 0;
+    max-width: 100%;
+}
+
+.member-text {
+    flex: 1;
+    padding: 2em 1.5em 2em 2em;
+    text-align: left;
+}
+
+.member-text h3 {
+    margin-top: 0;
+    margin-bottom: 0.8em;
+    color: #ffd700;
+    font-size: 1.25em;
+    text-align: left;
+    font-family: Semplicita Pro, Open Sans, Arial, Helvetica, sans-serif;
+    text-shadow: 1px 1px 3px #000;
+}
+
+.member-text blockquote {
+    border-left: 4px solid #ffd700;
+    margin: 0;
+    padding-left: 1.2em;
+    background: rgba(30, 25, 20, 0.05);
+    font-size: 1.08em;
+    color: #fff7cc;
+    font-family: inherit;
+    text-shadow: 1px 1px 2px #000a;
+}
+
+.member-text p {
+    margin: 0 0 1.1em 0;
+    line-height: 1.65;
+}
+
+.member-text .editor-note {
+    color: #ffd700;
+    font-style: italic;
+    font-family: "Consolas", "Courier New", monospace;
+    background: rgba(255, 215, 0, 0.08);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    font-size: 0.98em;
+}
+
+.member-screenshot {
+    min-width: 200px;
+    max-width: 320px;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.6em 1.2em;
+}
+
+.member-screenshot img {
+    width: 100%;
+    border: 3px solid #ffd700;
+    border-radius: 9px;
+    box-shadow: 0 0 16px #000, 0 0 6px #ffd70050 inset;
+    background: #222;
+    object-fit: cover;
+    max-height: 220px;
+}
+
+/* Responsive adjustment */
+@media (max-width: 900px) {
+    .member-section {
+        flex-direction: column;
+        padding: 0;
+    }
+    .member-screenshot {
+        min-width: 0;
+        max-width: 100%;
+        padding: 1em 1em 1.6em 1em;
+    }
+}
+
