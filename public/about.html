@@ -2,128 +2,171 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guild Testimonies - &lt;Guild Name&gt;</title>
-  <link rel="stylesheet" href="../css/styles.css">
+  <title>"Regret"ing SoD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    #sidebar {
+    body {
+      background: #181210 url('https://wow.zamimg.com/images/wow/icons/large/inv_misc_map_01.jpg') repeat-x bottom;
+      color: #e0d5b0;
+      margin: 0;
+      font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
       width: 240px;
-      background-color: rgba(20, 20, 20, 0.95);
-      color: #ffd700;
-      padding: 20px;
-      height: 100vh;
-      overflow-y: auto;
+      background: rgba(23,12,6,0.98);
+      border-right: 5px solid #b68b45;
+      box-shadow: 3px 0 8px #2d1608aa;
       position: fixed;
-      border-right: 1px solid #463225;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      padding: 1.5em 1em;
+      z-index: 10;
+      overflow-y: auto;
     }
-
-    #sidebar h1 {
-      font-size: 1.4em;
-      border-bottom: 2px solid #ffd700;
-      padding-bottom: 10px;
-      margin-bottom: 15px;
-    }
-
-    #sidebar ul {
-      list-style: none;
-      padding: 0;
-    }
-
-    #sidebar li {
-      margin-bottom: 12px;
-    }
-
-    #sidebar a {
+    .sidebar h2 {
       color: #ffd700;
+      font-size: 1.3em;
+      margin-top: 0;
+      letter-spacing: 1px;
+      text-align: center;
+      border-bottom: 2px solid #b68b45;
+      padding-bottom: 0.5em;
+      margin-bottom: 1em;
+    }
+    .sidebar a {
+      color: #e0d5b0;
       text-decoration: none;
-      transition: color 0.3s;
-    }
-
-    #sidebar a:hover {
-      color: #fff7cc;
-      text-shadow: 0 0 2px #000, 0 0 4px #000;
-      text-decoration: underline;
-    }
-
-    main {
-      margin-left: 260px;
-      padding: 2em;
-      color: #ffffff;
-    }
-
-    h2 {
-      color: #ffd700;
-      font-size: 2em;
-      border-bottom: 1px solid #463225;
-      padding-bottom: 0.3em;
-      margin-top: 2em;
-    }
-
-    .wow-frame {
-      display: inline-block;
-      padding: 6px;
-      margin-top: 1em;
-      background: linear-gradient(to bottom, #1a1a1a 0%, #000000 100%);
-      border: 4px solid #463225;
-      border-radius: 8px;
-      box-shadow:
-        0 0 5px #000,
-        0 0 10px rgba(255, 215, 0, 0.3),
-        inset 0 0 8px rgba(255, 215, 0, 0.2);
-    }
-
-    .wow-frame img {
       display: block;
-      max-width: 100%;
-      height: auto;
-      border-radius: 4px;
+      padding: 0.5em 0.5em;
+      margin: 0.2em 0;
+      border-radius: 8px;
+      transition: background 0.2s;
+      font-size: 1em;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: linear-gradient(90deg, #b68b45 0%, #ffd700 100%);
+      color: #2d1608;
+      font-weight: bold;
+    }
+    main {
+      flex: 1 1 auto;
+      margin-left: 240px;
+      padding: 2.5em 2em 2em 3vw;
+      max-width: 900px;
+    }
+    .member-section {
+      display: flex;
+      align-items: flex-start;
+      background: rgba(32,20,6,0.88);
+      border: 2px solid #b68b45;
+      border-radius: 18px;
+      margin-bottom: 2.2em;
+      box-shadow: 0 0 14px #b68b4560, 0 0 4px #000;
+      overflow: hidden;
+    }
+    .member-text {
+      flex: 1;
+      padding: 2em 1.5em 2em 2em;
+    }
+    .member-text h3 {
+      color: #ffd700;
+      font-size: 1.4em;
+      margin-top: 0;
+      text-shadow: 2px 2px 4px #2d1608;
+    }
+    .member-text p {
+      font-size: 1.09em;
+      margin: 0.5em 0 0 0;
+      line-height: 1.7;
+      text-shadow: 1px 1px 2px #151007;
+    }
+    .member-screenshot {
+      min-width: 220px;
+      max-width: 320px;
+      background: #111;
+      padding: 1.5em 1.5em 1.5em 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .member-screenshot img {
+      width: 100%;
+      border: 5px double #b68b45;
+      border-radius: 14px;
+      box-shadow: 0 0 24px #000, 0 0 6px #ffd70060 inset;
+      background: #222;
+      object-fit: cover;
+      max-height: 220px;
+    }
+    @media (max-width: 900px) {
+      .container { flex-direction: column; }
+      main { margin-left: 0; padding: 1em; }
+      .sidebar { position: static; width: 100%; border-right: none; box-shadow: none; }
+      .member-section { flex-direction: column; }
+      .member-screenshot { min-width: 0; max-width: 100%; padding: 1em; }
     }
   </style>
 </head>
 <body>
-  <div class="top-banner"></div>
-  <nav id="sidebar">
-    <h1>Guild Members</h1>
-    <ul id="navList"></ul>
-  </nav>
+  <div class="container">
+    <nav class="sidebar">
+      <h2>Regret Guild Members</h2>
+      <a href="#Rexba">Rexba</a>
+      <!-- Add more nav links as you add more members -->
+    </nav>
+    <main>
+      <h1 style="color:#ffd700; letter-spacing:1px; margin-bottom:2em; text-align:center; text-shadow: 2px 2px 8px #2d1608;">&lt;Your Guild Name&gt; - Memories</h1>
 
-  <main class="container">
-    <h1>Guild Testimonials</h1>
-
-    <h2 id="Rexba">Rexba</h2>
-    <p class="player-name">Once Warchief, now a chill Elemental Shaman who just wants loot and peace.</p>
-    <div class="wow-frame">
-      <img src="https://wow.zamimg.com/uploads/screenshots/normal/910631.jpg" alt="Thrall">
-    </div>
-
-    <h2 id="jaina">Jaina Proudmoore</h2>
-    <p class="player-name">Every raid needs a little frostbite. She never misses a cast and always brings snacks.</p>
-    <div class="wow-frame">
-      <img src="https://wow.zamimg.com/uploads/screenshots/normal/1014567.jpg" alt="Jaina Proudmoore">
-    </div>
-
-    <h2 id="guldan">Gul'dan</h2>
-    <p class="player-name">Sure, he betrayed everyone — but he tops meters, and that’s what counts.</p>
-    <div class="wow-frame">
-      <img src="https://wow.zamimg.com/uploads/screenshots/normal/953627.jpg" alt="Gul'dan">
-    </div>
-  </main>
-
-  <script>
-    // Auto-generate navigation based on h2 headers
-    const navList = document.getElementById('navList');
-    const headers = document.querySelectorAll('main h2');
-
-    headers.forEach(header => {
-      const id = header.id;
-      const text = header.textContent;
-      const li = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = `#${id}`;
-      link.textContent = text;
-      li.appendChild(link);
-      navList.appendChild(li);
-    });
-  </script>
+      
+      <section id="Rexba" class="member-section">
+        <div class="member-text">
+          <h3>Rexba</h3>
+          <blockquote>
+            <p>Raiding will always be some of my favorite memories. No matter which phase or raid there was ALWAYS something going on. I think some of my favorite raid memories starts with if you knew there was any sort of gauntlet style area whether it be AQ, BWL or even Naxx, you knew Sketch was going to crash out because of a totem pulling mobs, we even got to the point where we are pulling bosses with rogue totems.</p>
+            <p>Another favorite memory was you just knew who was going to be playing floor PoV half the raid and they would always swear they were never in anything, but it never was not funny when it happened.</p>
+            <p>I would probably say my favorite phase would be between phase 4, phase 1 and phase 8.</p>
+            <p>Phase 1 was definitely a wild ride. It was the 1st time something like this was done in WoW especially in a classic environment. The mystery of what runes we would be getting, how we would get them, the new level 25 EPICS (though that staff still avoids me to this day), the amazing open world PvP in Ashenvale. Phase 1 had it all, even BFD was great. The raid was smaller with only 10 people so it felt more personable in a sense. Though we attempted to always mix up groups, there were certain people I just always looked forward to playing with as they were just amazing people to be around.</p>
+            <p>Phase 4, we finally got to level 60 and the journey to prebis began. We constantly had tons of dungeon groups going trying to go for the .5 quest chain. We were setting up groups for silithus to get people their pre-bis, doing all these things just to get us prepared for what was at the time, the 1st raid that had different difficulties which was suuuper exciting at the time to be able to work through, even though Heat level 3 was by far the easiest of them all lol.</p>
+            <p>Phase 8 might edge it out just a little for me because we got the brand new raid. Not only was it original content but it was challenging content. It was sooo much fun to finally be able to truly progress through a raid with the people I have not just enjoyed playing with but being around in general. It was fun to see how we progressed with hitting some speed bumps and talking through it as a guild in terms of strategy and what works best for us.</p>
+            <p>One of the best memories was Caldoran. From our 1st pulls of struggling with fire positioning to coming in the next week with all of Thursday available for progression. We had strong prog throughout the night and it was such an amazing feeling seeing the bosses health drop lower with each pull as we cleaned things up. Getting to Phase 2 the 1st time, you could feel it that everyone knew we were so close to the kill. Wiping on Ashbringer in Phase 2 at 1%, you just knew everyone was fully locked in and it was insane to see that happen. Until next pull happened and Shears' internet decided it was too excited as well and DC'd him which forced us to run into fire to make sure he could get the guilds 1st Ashbringer.</p>
+            <p>Jas logging in right before the last pull just felt like it was meant to be since he had been with us since Phase 3 and became such a pillar of the guild.</p>
+            <p>Seeing Caldoran fall over and everyone just let out cheers, it was probably the most rewarding feeling I have had in SoD, and the fact that we were able to get this done before the raid buff came in.</p>
+            <p>I came into SoD with the intention of just sitting back and just playing the game without really any responsibility, but boy did that change almost immediately. <span class="editor-note">Editor's Note: lol</span> Sketch came to me about co-leading a guild with him and I just couldn't say no.</p>
+            <p>Co-leading the guild has definitely come with some difficulties. Not many (if any) know about the amount of drama there was behind the scenes at times. We definitely have some \"Regret Lore\" that we will touch on later (small hint).</p>
+            <p>Even with all the drama, totem pulling, loot drama and a marriage almost breaking up (or maybe it did) I would do it all over again. I was glad to be able to do it with Sketch. We have spent countless hours at work and at home brainstorming ideas how to make the guild as transparent and fair as we could while also making sure it was as fun for everyone involved and I think we did almost as good of a job as we could.</p>
+            <p>Most of all though, we have met some pretty great people starting all the way in Phase 1 with the OGs that are still left standing Aloki, Fullofowls, Jujaba, Ashketchum, Skeezelord(aka instagib), Turboblastin and everyone in-between and up to Phase 8. Every raid night is always something I still look forward to and get excited for.</p>
+          </blockquote>
+        </div>
+        <div class="member-screenshot">
+          <img src="images/thrallhammer-memory.jpg" alt="Thrallhammer's MC memory screenshot">
+        </div>
+      </section>
+      <section id="jasmiller" class="member-section">
+        <div class="member-text">
+          <h3>Jasmiller</h3>
+          <p>"One of my favorite moments: the whole raid pausing in Ashenvale while I was stuck in a tree. You jerks took screenshots and put them on Discord for weeks."</p>
+        </div>
+        <div class="member-screenshot">
+          <img src="images/jasmiller-tree.jpg" alt="Jasmiller in a tree">
+        </div>
+      </section>
+      <section id="kargosh" class="member-section">
+        <div class="member-text">
+          <h3>Kargosh</h3>
+          <p>"When we pugged a gnome priest for UBRS and he ended up raid leading us through the entire run. He kept calling us 'kids' and we just let him. 10/10 would gnome again."</p>
+        </div>
+        <div class="member-screenshot">
+          <img src="images/kargosh-ubrs.jpg" alt="Kargosh UBRS run">
+        </div>
+      </section>
+      <!-- Add more member sections as needed -->
+    </main>
+  </div>
 </body>
 </html>
