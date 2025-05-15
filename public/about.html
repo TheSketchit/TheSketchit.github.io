@@ -7,10 +7,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     .editor-note {
-      color: #b68b45;
+      color: #00acee;
       font-style: italic;
       font-family: 'Consolas', 'Courier New', monospace;
-      background: rgba(30,25,10,0.1);
+      background: rgba(30,50,80,0.15);
       border-radius: 4px;
       padding: 2px 6px;
     }
@@ -67,12 +67,19 @@
     .member-section {
       display: flex;
       align-items: flex-start;
-      background: rgba(32,20,6,0.88);
-      border: 2px solid #b68b45;
+      background: rgba(24,28,38,0.98);  /* Dark grey/blue-grey, nearly opaque */
+      border: 2px solid #23293b;        /* Muted blue-grey border */
       border-radius: 18px;
       margin-bottom: 2.2em;
-      box-shadow: 0 0 14px #b68b4560, 0 0 4px #000;
+      box-shadow: 0 0 14px #141d2c80, 0 0 4px #000;
       overflow: hidden;
+    }
+    .member-text p {
+      font-size: 1.09em;
+      margin: 0.5em 0 0 0;
+      line-height: 1.7;
+      color: #00acee;  /* Blizzard blue post color */
+      text-shadow: 1px 1px 2px #010816;
     }
     .member-text {
       flex: 1;
