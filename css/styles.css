@@ -984,7 +984,7 @@ h1, h2, h3, h4, h5, h6 {
     margin-top: 0;
     margin-bottom: 0.8em;
     color: #ffd700;
-    font-size: 1.25em;
+    font-weight: normal; 
     text-align: left;
     text-shadow: 1px 1px 3px #000;
 }
