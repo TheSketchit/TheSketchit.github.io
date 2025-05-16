@@ -88,6 +88,71 @@
     pointer-events: none;
   }
 
+  .chapter-header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 38px 0 24px 0;
+    background: none;
+  }
+  
+  .chapter-header-inner {
+    background: linear-gradient(135deg, #2a1400 0%, #54431e 70%, #22180a 100%);
+    border: 5px double #b68b45;
+    box-shadow: 0 4px 32px #000a, 0 0 8px #ffd70050 inset;
+    border-radius: 28px;
+    padding: 24px 44px 20px 44px;
+    max-width: 720px;
+    min-width: 320px;
+    text-align: center;
+    position: relative;
+  }
+  
+  .chapter-title {
+    font-family: 'LifeCraft', 'Times New Roman', serif;
+    color: #ffd700;
+    font-size: 2.5em;
+    letter-spacing: 2.5px;
+    margin-bottom: 12px;
+    text-shadow:
+      0 1px 16px #000,
+      0 2px 2px #5e2200,
+      1px 1px 0px #875f0d,
+      0 0 24px #b68b45aa;
+    text-transform: uppercase;
+  }
+  
+  .chapter-desc {
+    color: #e0c58d;
+    font-size: 1.2em;
+    letter-spacing: 0.2px;
+    line-height: 1.4;
+    font-family: 'Open Sans', Arial, Helvetica, sans-serif;
+    text-shadow:
+      0 1px 8px #2c1400,
+      0 1px 1px #000,
+      0 0 7px #b68b4530;
+    margin-bottom: 2px;
+  }
+  
+  .chapter-server {
+    color: #2ce3e3;
+    font-size: 1em;
+    font-family: 'Open Sans', Arial, Helvetica, sans-serif;
+    font-weight: bold;
+    text-shadow: 0 1px 8px #000;
+  }
+  @media (max-width: 800px) {
+    .chapter-header-inner {
+      padding: 14px 6vw 12px 6vw;
+      min-width: 0;
+    }
+    .chapter-title { font-size: 1.25em; }
+    .chapter-desc { font-size: 1em; }
+  }
+
+
     .member-section {
       display: flex;
       align-items: flex-start;
@@ -140,29 +205,12 @@
       object-fit: cover;
       max-height: 220px;
     }
-    .member-video {
-      margin: 1.5em auto 2.5em auto;
-      padding: 0.8em;
-      background: rgba(24,28,38,0.99);
-      border: 3px double #ffd700;
-      border-radius: 16px;
-      box-shadow: 0 0 20px #000, 0 0 8px #ffd70040 inset;
-      max-width: 720px;
-      display: flex;
-      justify-content: center;
-    }
-    
-    .member-video iframe,
-    .member-video video {
-      width: 100%;
-      max-width: 670px;
-      aspect-ratio: 16 / 9;
-      min-height: 220px;
-      border-radius: 9px;
-      border: 2.5px solid #ffd700;
-      background: #18181a;
-      box-shadow: 0 0 12px #0008;
-      display: block;
+
+
+    @font-face {
+      font-family: 'LifeCraft';
+      src: url('../fonts/LifeCraft.ttf') format('truetype');
+      font-display: swap;
     }
     
     @media (max-width: 700px) {
@@ -242,6 +290,16 @@
   </style>
 </head>
 <body>
+
+      <div class="chapter-header">
+      <div class="chapter-header-inner">
+        <div class="chapter-title">&lt;Regret&gt; Chapter</div>
+        <div class="chapter-desc">World of Warcraft: Season of Discovery<br>
+          <span class="chapter-server">Server: Wild Growth - Horde</span>
+        </div>
+      </div>
+    </div>
+  
     <div class="container">
     <nav class="sidebar">
       <h2>Regret - Season of Discovery Guild Members</h2>
