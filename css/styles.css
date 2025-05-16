@@ -178,6 +178,7 @@ navigation-button:active {
 
 /* Headers */
 h1 {
+    font-family: 'LifeCraft', serif;
     padding-top: 20px;
     color: #ffd700;
     font-size: 3em;
