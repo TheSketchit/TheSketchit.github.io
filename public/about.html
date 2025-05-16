@@ -140,6 +140,44 @@
       object-fit: cover;
       max-height: 220px;
     }
+    .member-video {
+      margin: 1.5em auto 2.5em auto;
+      padding: 0.8em;
+      background: rgba(24,28,38,0.99);
+      border: 3px double #ffd700;
+      border-radius: 16px;
+      box-shadow: 0 0 20px #000, 0 0 8px #ffd70040 inset;
+      max-width: 720px;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .member-video iframe,
+    .member-video video {
+      width: 100%;
+      max-width: 670px;
+      aspect-ratio: 16 / 9;
+      min-height: 220px;
+      border-radius: 9px;
+      border: 2.5px solid #ffd700;
+      background: #18181a;
+      box-shadow: 0 0 12px #0008;
+      display: block;
+    }
+    
+    @media (max-width: 700px) {
+      .member-video {
+        padding: 0.3em;
+        border-radius: 7px;
+      }
+      .member-video iframe,
+      .member-video video {
+        min-height: 150px;
+        border-radius: 5px;
+        border-width: 1.5px;
+      }
+    }
+
     @media (max-width: 900px) {
       .container {
         flex-direction: column;
@@ -246,16 +284,28 @@
           <img src="../images/rexba.png" alt="Here Comes the Money Shot">
         </div>
       </section>
-      <!--    <section id="jasmiller" class="member-section">
+      <section id="Fullofowls" class="member-section">
         <div class="member-text">
-          <h3>Jasmiller</h3>
-          <p>"One of my favorite moments: the whole raid pausing in Ashenvale while I was stuck in a tree. You jerks took screenshots and put them on Discord for weeks."</p>
+        <h3>Fullofowls</h3>
+          <body>
+            It's been a fun ride with Regret. I really appreciate Sketchit and Rexba taking on the leadership burden and letting slackers like me have a wonderful place to chill each week. I think it's like after you have a bad headache and afterward you are like wow I don't appreciate enough days where I feel great. Looking back on not only you two but the rest of the motley crew, its easy to take for granted what a great group this is, even if 1 or 2 furries snuck in.<br><br>
+            Remember when we had 4 (or more) raid groups in BFD and Group 3 led by Prime threatened to rebel because loot took almost an hour? That was hilarious...<br><br>
+            My favorite memory of SOD will be when we were still on the Living Flame PVP server and it was a pretty one-sided affair; the alliance outnumbered us by a mile and world-pvp was a constant thorn. During phase 1 one day about 10 of us gathered together and camped the pool on the way to the BFD entrance. Body after unsuspecting body dropped from above to their doom as we slaughtered alliance chars for over an hour. Obv it didn't make up for the rest of the time there, however :)<br><br>
+            Thanks to everyone! 
+          </body>
         </div>
         <div class="member-screenshot">
-          <img src="images/jasmiller-tree.jpg" alt="Jasmiller in a tree">
+        <a href="../images/owls.png" class="lightbox-trigger">
+          <img src="../images/owls.png" alt="This guy is a hoot!">
+        </div>
+        <div class="member-video">
+          <!--<video controls poster="images/your-thumbnail.jpg">-->
+            <source src="../videos/owls-clip.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
         </div>
       </section>
-      <section id="kargosh" class="member-section">
+      <!--    <section id="kargosh" class="member-section">
         <div class="member-text">
           <h3>Kargosh</h3>
           <p>"When we pugged a gnome priest for UBRS and he ended up raid leading us through the entire run. He kept calling us 'kids' and we just let him. 10/10 would gnome again."</p>
