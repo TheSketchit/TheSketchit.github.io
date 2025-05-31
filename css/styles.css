@@ -49,20 +49,6 @@ body {
   }
 }
 
-.gold-fade-line {
-  width: 80%;
-  margin: 3em auto 3em auto;
-  height: 3px;
-  border: none;
-  background: linear-gradient(to right, 
-    rgba(255, 215, 0, 0), 
-    #FFD700 32%, 
-    #FFD700 68%, 
-    rgba(255, 215, 0, 0));
-  opacity: 0.95;
-  border-radius: 3px;
-  display: block;
-}
 
 /* Player name styles */
 .player-name {
@@ -125,6 +111,58 @@ body {
     position: relative;
     overflow: hidden;
 }
+
+.member-entry {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 2em;
+}
+.member-entry .member-text {
+  flex: 1;
+}
+.member-entry .member-screenshot {
+  margin-left: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+}
+.member-entry .member-screenshot img {
+  max-width: 140px;
+  max-height: 180px;
+  border-radius: 12px;
+  border: 3px double #ffd700;
+  box-shadow: 0 0 12px #000;
+  background: #222;
+}
+.gold-fade-line {
+  width: 80%;
+  margin: 3em auto 1.5em auto;
+  height: 3px;
+  border: none;
+  background: linear-gradient(to right, 
+    rgba(255, 215, 0, 0), 
+    #FFD700 32%, 
+    #FFD700 68%, 
+    rgba(255, 215, 0, 0));
+  opacity: 0.95;
+  border-radius: 3px;
+  display: block;
+}
+@media (max-width: 800px) {
+  .member-entry {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .member-entry .member-screenshot {
+    margin: 1em 0 0 0;
+    max-width: 100%;
+  }
+  .gold-fade-line {
+    width: 98%;
+  }
+}
+
 
 
 
