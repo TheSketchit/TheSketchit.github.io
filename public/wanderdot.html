@@ -350,6 +350,7 @@
         const COFFEE_BUFF_DURATION = 20000;
         const PIZZA_BUFF_DURATION = 30000;
         const KANGAROO_BUFF_DURATION = 30000;
+        const EUREKA_BUFF_DURATION = 30000;
         const WATCH_TIME_EXTENSION = 20000;
 
         const items = {
@@ -365,6 +366,10 @@
             pizza: { endTime: 0, blinkTimer: null, indicator: pizzaBuffIndicator, duration: PIZZA_BUFF_DURATION, isEureka: false },
             kangaroo: { endTime: 0, blinkTimer: null, indicator: kangarooBuffIndicator, duration: KANGAROO_BUFF_DURATION, isEnding: false, isEureka: false }
         };
+        
+        // --- UFO & MUSHROOM STATE ---
+        let ufo = { active: false, x: 0, y: 0, speed: 300, direction: 1 };
+        let mushrooms = [];
 
         // Kangaroo bounce state
         let distanceTraveledOnCurrentBounce = 0;
