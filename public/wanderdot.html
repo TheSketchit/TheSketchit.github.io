@@ -254,7 +254,7 @@
         // ====================================================================
 
         const Config = {
-            SAVE_KEY: 'WanderDot_Refactored_V3_Save',
+            SAVE_KEY: 'WanderDot_Refactored_V4_Save',
             SAVE_INTERVAL: 10000, // ms
 
             // Mood Thresholds
@@ -266,13 +266,12 @@
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
             COLOR_ANNOYED: { r: 255, g: 165, b: 0 },
             COLOR_MAD: { r: 152, g: 14, b: 11 },
+            COLOR_HANGRY_GLOW: 'rgba(255, 100, 100, 0.7)', // NEW
             
             // Terrain Colors
             COLOR_FIELD: { r: 1, g: 50, b: 32 }, // Dark Green
             COLOR_DIRT: { r: 101, g: 67, b: 33 }, // Brown
-            // NEW: Blue Mist (Misty Medium Blue)
             COLOR_ALIEN_BLUE: { r: 100, g: 149, b: 237 }, 
-            // NEW: Clay (Faint Dark Orange)
             COLOR_ALIEN_CLAY: { r: 205, g: 133, b: 63 },
 
             // World Grid
@@ -286,7 +285,7 @@
             // WanderDot Base Stats
             BASE_SPEED: 120,
             BASE_RADIUS: 20,
-            EAT_MUSHROOM_CHANCE: 0.005, // Chance per frame when near mushroom
+            EAT_MUSHROOM_CHANCE: 0.02, // Increased significantly from 0.005
             EAT_DETECTION_RADIUS: 100,
             EAT_DURATION: 2000, // ms
 
@@ -297,7 +296,6 @@
 
             // Buffs & Items Configuration
             WATCH_TIME_EXTENSION: 20000,
-            // NEW: Mushroom Buff Duration Range (15s to 2min)
             MUSHROOM_BUFF_MIN: 15000,
             MUSHROOM_BUFF_MAX: 120000,
             SEED_MATURATION_TIME: 60000, // 1 minute
@@ -308,7 +306,6 @@
                 pizza: { emoji: '🍕', type: 'buff', duration: 30000 },
                 kangaroo: { emoji: '🦘', type: 'buff', duration: 30000 },
                 lightbulb: { emoji: '💡', type: 'utility' },
-                // Internal definition for the mushroom buff
                 mushroom: { emoji: '🍄', type: 'buff' } 
             },
 
@@ -317,12 +314,16 @@
                 idle: ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'],
                 commandReceived: ['🤔','👀'],
                 annoyed: ['😒', '🙄', '😑', '🤨'],
-                mad: ['😫', '🤡', '👺', '😡'],
+                mad: ['😫', '🤡', '👺', '😡', '🤬'],
                 madZone: ['👿', '☠️', '👎', '🤬'],
                 cooldownToAnnoyed: ['😤'],
                 cooldownToNormal: ['🥰'],
                 directClick: ['😘', '🤭', '😛', '😳', '🥵', '🍆', '💦'],
-                // NEW: Entities
+                // NEW: Eating progression
+                EATING_SEEKING: '👅',
+                EATING_CONSUMING: '🤤',
+                EATING_SATISFIED: '😋',
+                // Entities
                 SEED: '🫘',
                 FLOWER: '🌼',
                 BROWN_MUSHROOM: '🍄‍🟫',
@@ -984,9 +985,9 @@
 
                 // Mood state
                 this.annoyance = 0;
-                this.previousMoodState = 'normal';
                 this.currentMoodState = 'normal';
                 this.isCalm = false;
+                this.isHangry = false; // NEW: Hangry state flag
                 
                 // Behavior state
                 this.isEating = false;
@@ -1001,22 +1002,50 @@
 
             loadState(saveData) {
                 this.annoyance = saveData.annoyance ?? 0;
+                // Restore hangry state if saved (useful if saved while hangry)
+                this.isHangry = saveData.isHangry ?? false;
             }
 
             saveState() {
                 return {
                     annoyance: this.annoyance,
                     x: this.x,
-                    y: this.y
+                    y: this.y,
+                    isHangry: this.isHangry // NEW: Save hangry state
                 };
             }
 
             setTarget(x, y) {
+                // NEW: Ignore commands if Hangry
+                if (this.isHangry) {
+                    return false; // Indicate command ignored
+                }
+
+                // NEW: Check if command interrupts eating
+                if (this.isEating) {
+                    this.triggerHangry();
+                    return false; // Command ignored, Hangry state activated
+                }
+
                 this.targetX = x;
                 this.targetY = y;
-                this.isEating = false; // Cancel eating if commanded by user
-                this.eatingTarget = null;
+                return true; // Indicate command accepted
             }
+
+            // NEW: Helper to trigger Hangry state
+            triggerHangry() {
+                this.isHangry = true;
+                // Ensure annoyance is high enough to trigger 'mad' state
+                this.annoyance = Math.max(this.annoyance, Config.MAD_THRESHOLD + 1);
+                // Reset eating state
+                this.isEating = false;
+                this.eatingTarget = null;
+                this.eatingStartTime = 0;
+                this.clearTarget();
+                // Show angry thought bubble immediately
+                Game.instance.uiManager.showThought(Utils.randomChoice(Config.Emojis.mad));
+            }
+
 
             clearTarget() {
                 this.targetX = null;
@@ -1029,7 +1058,7 @@
                 this.updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager);
             }
 
-            // --- MOOD LOGIC (Implementation unchanged) ---
+            // --- MOOD LOGIC ---
             getMoodState(annoyanceValue) {
                 if (annoyanceValue > Config.MAD_THRESHOLD) return 'mad';
                 if (annoyanceValue > Config.ANNOYANCE_THRESHOLD) return 'annoyed';
@@ -1053,7 +1082,7 @@
             }
 
             getReactionEmoji(isDirectClick) {
-                if (isDirectClick) {
+                 if (isDirectClick) {
                     const levels = [20, 30, 45, 60, 75, 90];
                     let level = Config.Emojis.directClick.length - 1;
                     for (let i = 0; i < levels.length; i++) {
@@ -1089,6 +1118,10 @@
                 if (this.currentMoodState !== previousState) {
                     if (previousState === 'mad' && this.currentMoodState === 'annoyed') {
                         transitionEmoji = Config.Emojis.cooldownToAnnoyed[0];
+                        // NEW: Exit Hangry state when cooling down to annoyed
+                        if (this.isHangry) {
+                            this.isHangry = false;
+                        }
                     } else if (previousState === 'annoyed' && this.currentMoodState === 'normal') {
                          this.isCalm = true;
                          transitionEmoji = Config.Emojis.cooldownToNormal[0];
@@ -1104,7 +1137,6 @@
             updateAppearance(buffManager) {
                 const buffs = buffManager.getActiveBuffs();
                 
-                // Apply Buff Effects
                 let speed = Config.BASE_SPEED;
                 let radius = Config.BASE_RADIUS;
 
@@ -1114,15 +1146,13 @@
                 if (buffs.pizza) {
                     radius *= (1 + 0.3 * buffs.pizza.potency);
                 }
-                // NEW: Mushroom Buff
                 if (buffs.mushroom) {
-                    radius *= (1 + 0.6 * buffs.mushroom.potency); // Stronger than pizza
+                    radius *= (1 + 0.6 * buffs.mushroom.potency);
                 }
 
                 this.speed = speed;
                 this.radius = radius;
 
-                // Apply Mood Effects (Color and Speed Multiplier)
                  if (this.annoyance > Config.MAD_THRESHOLD) {
                     this.color = Utils.lerpColor(Config.COLOR_MAD, Config.COLOR_MAD, 0);
                     this.currentSpeedMultiplier = 0.3;
@@ -1145,13 +1175,11 @@
                 // 1. Determine behavior and direction
                 let movementAllowed = true;
                 
-                if (this.eatingTarget) {
-                    // Check if the target still exists (might have been destroyed by impact)
-                    if (!entityManager.mushrooms.includes(this.eatingTarget)) {
-                        this.eatingTarget = null;
-                        this.isEating = false;
-                        this.clearTarget();
-                    }
+                // Check if eating target still exists
+                if (this.eatingTarget && !entityManager.mushrooms.includes(this.eatingTarget)) {
+                    this.eatingTarget = null;
+                    this.isEating = false;
+                    this.clearTarget();
                 }
 
                 if (this.isEating) {
@@ -1165,7 +1193,6 @@
                         this.wander(entityManager, buffManager);
                     }
                 } else {
-                    // If movement is disallowed (e.g., chewing)
                     this.dx = 0;
                     this.dy = 0;
                 }
@@ -1189,14 +1216,13 @@
                 if (buffs.kangaroo) {
                     this.handleBounce(distanceMoved, buffManager, worldManager);
                 } else {
-                    // Reset vertical offset if not bouncing
                     this.verticalOffset = 0; 
                     if (movementAllowed) {
                          worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
                     }
                 }
 
-                // 5. Boundary Collision (only if moving)
+                // 5. Boundary Collision
                 if (movementAllowed) {
                     this.handleBoundaries(bounds);
                 }
@@ -1204,18 +1230,27 @@
 
             // NEW: Mushroom Eating Behavior
             handleEatingBehavior(entityManager, buffManager) {
+                const uiManager = Game.instance.uiManager;
+
                 // Stage 1: Moving towards the mushroom (targetX is set)
                 if (this.targetX !== null) {
+                    // Ensure the seeking thought bubble is displayed
+                    if (uiManager.getCurrentThought() !== Config.Emojis.EATING_SEEKING) {
+                        // Show for a long duration, ensuring it stays up until consumption or interruption
+                        uiManager.showThought(Config.Emojis.EATING_SEEKING, Config.EAT_DURATION + 60000); 
+                    }
                     return true; // Continue moving
                 }
 
                 // Stage 2: Reached the mushroom, start chewing animation
                 if (this.eatingStartTime === 0) {
                     this.eatingStartTime = Date.now();
-                    // Remove the mushroom from the world (if it hasn't been already)
+                    // Remove the mushroom from the world
                     if (this.eatingTarget) {
                         entityManager.removeMushroomByObject(this.eatingTarget);
                     }
+                    // Show chewing thought bubble
+                    uiManager.showThought(Config.Emojis.EATING_CONSUMING, Config.EAT_DURATION);
                 }
 
                 // Stage 3: Check if chewing is done
@@ -1227,6 +1262,9 @@
                     // Apply the buff
                     const duration = Utils.randomRange(Config.MUSHROOM_BUFF_MIN, Config.MUSHROOM_BUFF_MAX);
                     buffManager.addBuffTime('mushroom', duration);
+
+                    // Show satisfied thought bubble
+                    uiManager.showThought(Config.Emojis.EATING_SATISFIED, 2000);
 
                     return true; // Resume normal movement
                 }
@@ -1242,12 +1280,10 @@
                 const vecY = targetY - this.y;
                 const distanceToTarget = Math.sqrt(vecX * vecX + vecY * vecY);
 
-                // Define stopping distance: smaller if moving to eat, otherwise standard radius
                 const stopDistance = this.isEating ? 5 : this.radius;
 
                 if (distanceToTarget < stopDistance) {
                     this.clearTarget();
-                    // Randomize direction after reaching target (unless we just arrived to eat)
                     if (!this.isEating) {
                         this.dx = (Math.random() - 0.5) * 2;
                         this.dy = (Math.random() - 0.5) * 2;
@@ -1259,14 +1295,22 @@
             }
 
             wander(entityManager, buffManager) {
-                // NEW: Check for nearby mushrooms (only if not already mushroom buffed)
+                // NEW: If currently eating (seeking) OR Hangry, do NOT wander randomly.
+                if (this.isEating || this.isHangry) {
+                    return;
+                }
+                
+                // Check for nearby mushrooms (only if not already mushroom buffed)
                 if (!buffManager.getActiveBuffs().mushroom) {
                     const nearbyMushroom = entityManager.getNearbyMushroom(this.x, this.y, Config.EAT_DETECTION_RADIUS);
                     if (nearbyMushroom && Math.random() < Config.EAT_MUSHROOM_CHANCE) {
                         this.isEating = true;
                         this.eatingTarget = nearbyMushroom;
-                        this.setTarget(nearbyMushroom.x, nearbyMushroom.y);
-                        return; // Start moving towards mushroom
+                        // We set the target directly, bypassing the public setTarget Hangry check
+                        this.targetX = nearbyMushroom.x;
+                        this.targetY = nearbyMushroom.y;
+                        // The thought bubble (👅) will be set in handleEatingBehavior on the next frame
+                        return; 
                     }
                 }
 
@@ -1280,16 +1324,13 @@
             handleBounce(distanceMoved, buffManager, worldManager) {
                 this.distanceTraveledOnCurrentBounce += distanceMoved;
 
-                // Calculate vertical offset
                 let currentBounceHeight = Config.BOUNCE_HEIGHT;
                 if (this.currentMoodState === 'mad') {
                     currentBounceHeight /= 2;
                 }
-                // Ensure progress doesn't exceed PI for a clean landing arc
                 const bounceProgress = Math.min(Math.PI, (this.distanceTraveledOnCurrentBounce / Config.BOUNCE_DISTANCE) * Math.PI);
                 this.verticalOffset = Math.sin(bounceProgress) * currentBounceHeight;
 
-                // Check for landing
                 if (this.distanceTraveledOnCurrentBounce >= Config.BOUNCE_DISTANCE) {
                     this.land(buffManager, worldManager);
                 }
@@ -1302,7 +1343,6 @@
                 this.verticalOffset = 0;
                 this.distanceTraveledOnCurrentBounce = 0;
 
-                // REFINED: Check if the buff ended mid-air (isEnding flag) and finalize deactivation upon landing
                 if (buffManager.isKangarooEnding()) {
                     buffManager.deactivateBuff('kangaroo', true);
                 }
@@ -1323,6 +1363,16 @@
 
                 if (hitBoundary && this.targetX !== null) {
                     this.clearTarget();
+                     // If boundary collision interrupted eating, cancel it without penalty
+                    if (this.isEating) {
+                        this.isEating = false;
+                        this.eatingTarget = null;
+                        // Clear the seeking thought bubble if it's active
+                        const uiManager = Game.instance.uiManager;
+                        if (uiManager.getCurrentThought() === Config.Emojis.EATING_SEEKING) {
+                            uiManager.hideThought();
+                        }
+                    }
                 }
             }
 
@@ -1331,7 +1381,6 @@
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
 
-                // Squish/Stretch during bounce
                 if (buffs.kangaroo) {
                     const bounceProgress = Math.min(Math.PI, (this.distanceTraveledOnCurrentBounce / Config.BOUNCE_DISTANCE) * Math.PI);
                     scaleFactor = 1 - Math.sin(bounceProgress) * 0.2;
@@ -1339,8 +1388,8 @@
 
                 const currentRadius = this.radius * scaleFactor;
 
-                // Draw Shadow (Skipped if chewing, as it's stationary on the ground)
-                // Show shadow if moving (targetX set) or bouncing, hide only if stationary chewing (eatingStartTime > 0)
+                // Draw Shadow
+                // Show shadow if moving or bouncing, hide only if stationary chewing (eatingStartTime > 0)
                 if (!(this.isEating && this.eatingStartTime > 0)) {
                     ctx.beginPath();
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
@@ -1358,11 +1407,9 @@
                 
                 let drawY = this.y - this.verticalOffset;
 
-                // NEW: Eating Animation (Wiggle up and down)
-                // Only wiggle if we have arrived and started chewing (eatingStartTime > 0)
+                // Eating Animation (Wiggle up and down)
                 if (this.isEating && this.eatingStartTime > 0) {
                     const elapsed = Date.now() - this.eatingStartTime;
-                    // Wiggle effect: Sin wave based on elapsed time
                     drawY += Math.sin(elapsed / 100) * 5;
                 }
 
@@ -1378,14 +1425,21 @@
                     ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
                 }
 
+                // NEW: Draw Hangry Glow
+                if (this.isHangry) {
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = Config.COLOR_HANGRY_GLOW;
+                }
+
                 ctx.beginPath();
                 ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
                 ctx.fill();
                 ctx.closePath();
                 
-                // NEW: Draw held item (Mushroom) during chewing phase
+                // Draw held item (Mushroom) during chewing phase
                 if (this.isEating && this.eatingStartTime > 0) {
+                    ctx.shadowBlur = 0; // Don't glow the mushroom itself
                     ctx.font = `${this.radius}px monospace`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
@@ -1400,15 +1454,15 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
+        // (Implementation remains unchanged from previous iteration)
         class BuffManager {
             constructor(entityManager) {
-                this.entityManager = entityManager; // Dependency Injection
+                this.entityManager = entityManager;
                 this.buffs = {};
                 this.initializeDefinitions();
             }
 
             initializeDefinitions() {
-                // Initialize buff definitions based on Config
                 Object.entries(Config.Items).forEach(([name, data]) => {
                     if (data.type === 'buff') {
                         this.buffs[name] = {
@@ -1426,7 +1480,6 @@
 
             initializeUI() {
                 const container = document.getElementById('buff-container');
-                // Sort buffs for consistent display order
                 const sortedKeys = Object.keys(this.buffs).sort((a, b) => a.localeCompare(b));
 
                 sortedKeys.forEach(name => {
@@ -1532,20 +1585,16 @@
                 
                 if ((buff.endTime === 0 && !buff.isEnding)) return;
 
-                // REFINED: Kangaroo landing check
                 if (name === 'kangaroo' && !force) {
-                    // Check if the dot is significantly off the ground
                     if (Game.instance.wanderDot.verticalOffset > 0.1) {
                         buff.isEnding = true;
-                        buff.endTime = 0; // Stop the timer display
-                        return; // Wait for landing
+                        buff.endTime = 0;
+                        return;
                     }
                 }
 
-                // NEW: Mushroom buff expiration effect (Drop Seed)
                 if (name === 'mushroom') {
                     const dot = Game.instance.wanderDot;
-                    // Drop seed at the WanderDot's current location
                     this.entityManager.addEntity('seed', dot.x, dot.y);
                 }
 
@@ -1554,7 +1603,6 @@
                 buff.isEnding = false;
                 clearTimeout(buff.blinkTimer);
 
-                // UI Animation
                 buff.indicator.classList.add('blip-out');
                 buff.indicator.addEventListener('animationend', () => {
                     buff.indicator.style.display = 'none';
@@ -1562,12 +1610,10 @@
                 }, { once: true });
             }
 
-            // Utility getters
             getActiveBuffs() {
                 const currentTime = Date.now();
                 const active = {};
                 Object.entries(this.buffs).forEach(([name, buff]) => {
-                    // Buff is active if time remains OR if it's ending (Kangaroo mid-air)
                     if (buff.endTime > currentTime || buff.isEnding) {
                         active[name] = {
                             isEureka: buff.isEureka,
@@ -1582,10 +1628,8 @@
                 return this.buffs.kangaroo?.isEnding;
             }
 
-            // Item effects
             applyWatchExtension() {
                 Object.keys(this.buffs).forEach(name => {
-                    // Do not extend Mushroom buff
                     if (name !== 'mushroom' && this.buffs[name].endTime > Date.now()) {
                         this.addBuffTime(name, Config.WATCH_TIME_EXTENSION);
                     }
@@ -1594,7 +1638,6 @@
 
             applyEureka() {
                 Object.entries(this.buffs).forEach(([name, buff]) => {
-                     // Do not apply Eureka to Mushroom buff
                     if (name !== 'mushroom' && buff.endTime > Date.now()) {
                         buff.isEureka = true;
                         buff.indicator.classList.add('eureka-state');
@@ -1604,7 +1647,7 @@
         }
 
         class ItemManager {
-            // (Implementation remains unchanged, handles collectible items)
+            // (Implementation remains unchanged from previous iteration)
             constructor(buffManager) {
                 this.buffManager = buffManager;
                 this.items = {};
@@ -1613,7 +1656,6 @@
 
             initializeDefinitions() {
                 Object.entries(Config.Items).forEach(([name, data]) => {
-                    // Exclude internal buffs like 'mushroom' from the item bar inventory
                     if (name !== 'mushroom') {
                         this.items[name] = {
                             count: 0,
@@ -1717,8 +1759,8 @@
         // 5. PARTICLE SYSTEM & UFO
         // ====================================================================
 
+        // (Implementation remains unchanged from previous iteration)
         class ParticleSystem {
-            // (Implementation remains unchanged)
             constructor(ctx) {
                 this.ctx = ctx;
                 this.particles = [];
@@ -1781,7 +1823,6 @@
         }
 
         class UFO {
-            // (Implementation remains unchanged)
             constructor(ctx, bounds) {
                 this.ctx = ctx;
                 this.bounds = bounds;
@@ -1813,7 +1854,6 @@
                 
                 particleManager.spawnUFOMist(this.x, this.y);
                 
-                // Terraforming effect
                 if(Math.random() < 0.1) {
                     worldManager.alterGround(this.x + (Math.random() - 0.5) * 50, this.y + (Math.random() - 0.5) * 50);
                 }
@@ -1839,13 +1879,11 @@
         // ====================================================================
 
         class UIManager {
-            // (Implementation remains largely unchanged, only minor updates to accommodate eating state)
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
                 this.thoughtBubble = document.getElementById('thought-bubble');
                 this.worldTimerElement = document.getElementById('world-timer');
                 
-                // (State initialization remains the same)
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
                 this.thoughtTimeout = null;
@@ -1881,6 +1919,15 @@
                 this.thoughtBubble.addEventListener('mouseleave', () => this.handleBubbleLeave());
             }
 
+            // NEW: Helper to get current emoji
+            getCurrentThought() {
+                if (this.thoughtBubble.style.display === 'block') {
+                    const span = this.thoughtBubble.querySelector('span');
+                    return span ? span.textContent : null;
+                }
+                return null;
+            }
+
             hideThought() {
                 if (!this.isMouseOverBubble) {
                     this.thoughtBubble.style.opacity = 0;
@@ -1904,9 +1951,10 @@
             startMadTimer() {
                 this.stopMadTimer();
                 this.madThoughtTimer = setInterval(() => {
-                    if (this.wanderDot.currentMoodState === 'mad') {
+                    // Don't show mad thoughts if Hangry (Hangry overrides standard mad behavior)
+                    if (this.wanderDot.currentMoodState === 'mad' && !this.wanderDot.isHangry) {
                         this.showThought(Utils.randomChoice(Config.Emojis.madZone));
-                    } else {
+                    } else if (this.wanderDot.currentMoodState !== 'mad') {
                         this.stopMadTimer();
                     }
                 }, 3000);
@@ -1918,7 +1966,7 @@
             }
 
             handleThoughtClick() {
-                const emoji = this.thoughtBubble.querySelector('span').textContent;
+                const emoji = this.getCurrentThought();
                 
                 const collected = Game.instance.itemManager.addItem(emoji);
                 
@@ -1972,8 +2020,7 @@
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
 
-                // Do not show thoughts if currently chewing (eatingStartTime > 0)
-                if (this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0) return;
+                // Note: We allow thoughts during eating phases (seeking/consuming) as they are indicators (👅, 🤤)
 
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
@@ -2013,13 +2060,18 @@
                 
                 clearTimeout(this.idleThoughtTimer);
                 this.idleThoughtTimer = setTimeout(() => {
-                    // Only show if idle (no target AND not eating) and not annoyed
-                    if (this.wanderDot.targetX === null && !this.wanderDot.isEating && this.wanderDot.annoyance < Config.WARNING_ANNOYANCE_THRESHOLD) {
+                    // Only show if idle (no target AND not eating) AND not annoyed AND not Hangry
+                    if (this.wanderDot.targetX === null && 
+                        !this.wanderDot.isEating && 
+                        !this.wanderDot.isHangry &&
+                        this.wanderDot.annoyance < Config.WARNING_ANNOYANCE_THRESHOLD) {
+                        
                         const nextEmoji = this.getNextIdleEmoji();
                         this.showThought(nextEmoji, IDLE_THOUGHT_DURATION);
                         
                         this.scheduleNextIdleThought(IDLE_THOUGHT_DURATION + 300 + BREAK_DURATION);
                     } else {
+                        // If busy, eating, or annoyed/hangry, check again later
                         this.scheduleNextIdleThought(BREAK_DURATION);
                     }
                 }, delay);
@@ -2122,7 +2174,6 @@
                 this.ctx = this.mainCanvas.getContext('2d');
                 this.pathCanvas = document.getElementById('pathCanvas');
                 this.pathCtx = this.pathCanvas.getContext('2d');
-                // Renamed pebbleCanvas to entityCanvas
                 this.entityCanvas = document.getElementById('entityCanvas');
                 this.entityCtx = this.entityCanvas.getContext('2d');
                 this.resizeCanvases();
@@ -2134,12 +2185,10 @@
             }
 
             initializeGameObjects() {
-                // Initialize in order of dependency
                 this.entityManager = new EntityManager(this.entityCtx);
                 this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.entityManager);
                 this.wanderDot = new WanderDot(this.bounds.width / 2, this.bounds.height / 2);
                 this.uiManager = new UIManager(this.wanderDot);
-                // BuffManager now depends on EntityManager for seed dropping
                 this.buffManager = new BuffManager(this.entityManager);
                 this.itemManager = new ItemManager(this.buffManager);
                 
@@ -2162,11 +2211,11 @@
 
             // --- PERSISTENCE ---
             saveGame() {
-                // Prevent saving during the transient eating state
+                // Prevent saving during the transient eating state (chewing phase)
                 if (this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0) return;
 
                 const saveData = {
-                    version: 3,
+                    version: 4,
                     worldCreationTime: this.worldCreationTime,
                     world: this.worldManager.saveState(),
                     entities: this.entityManager.saveState(),
@@ -2192,17 +2241,16 @@
                     
                     this.worldCreationTime = saveData.worldCreationTime ?? Date.now();
                     
-                    // Load World and Entities (Handles legacy loading if needed)
                     if (saveData.world) this.worldManager.loadState(saveData.world);
                     
+                    // Handle legacy loading structures if necessary
                     if (saveData.entities) {
                         this.entityManager.loadState(saveData.entities);
-                    } else if (saveData.world) {
-                        // Legacy load from V1/V2 structure
+                    } else if (saveData.world && saveData.version < 3) {
                          this.entityManager.loadState({
                             pebbles: saveData.world.pebbles, 
                             mushrooms: saveData.world.mushrooms,
-                            dynamicEntities: saveData.world.dynamicObjects // V2 used dynamicObjects
+                            dynamicEntities: saveData.world.dynamicObjects
                         });
                     }
                     
@@ -2233,7 +2281,6 @@
                 this.bounds.height = window.innerHeight;
                 this.resizeCanvases();
                 this.worldManager.handleResize(this.bounds.width, this.bounds.height);
-                // Force redraw entities on resize
                 this.entityManager.needsRedraw = true;
             }
 
@@ -2255,28 +2302,44 @@
                 const distanceToCenter = Utils.distance(clickX, clickY, this.wanderDot.x, this.wanderDot.y - this.wanderDot.verticalOffset);
                 const isDirectClick = distanceToCenter <= this.wanderDot.radius;
 
-                const annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff));
-                
-                const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
+                let commandAccepted = false;
 
-                this.uiManager.showThought(reactionEmoji);
-                const currentMood = this.wanderDot.currentMoodState;
+                // Try to issue command
+                if (!isDirectClick) {
+                   // Attempt to set target. If it returns false, the command was ignored (Hangry or interrupted eating)
+                   commandAccepted = this.wanderDot.setTarget(clickX, clickY);
+                } else {
+                    // Direct click always registers as interaction (unless Hangry)
+                    commandAccepted = !this.wanderDot.isHangry; 
+                    if (commandAccepted) {
+                        this.wanderDot.clearTarget();
+                        // Cancel eating without penalty on direct click
+                        if (this.wanderDot.isEating) {
+                             this.wanderDot.isEating = false;
+                             this.wanderDot.eatingTarget = null;
+                        }
+                    }
+                }
+
+                // Calculate and apply annoyance if an interaction occurred OR if the dot is Hangry (to reinforce the anger)
+                if (commandAccepted || this.wanderDot.isHangry) {
+                    const annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff));
+                    const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
+                    
+                    // Show reaction thought, unless the dot is currently chewing (to avoid overriding 🤤)
+                    if (!(this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0)) {
+                         this.uiManager.showThought(reactionEmoji);
+                    }
+                }
                 
+                // Manage Mad Timer
+                const currentMood = this.wanderDot.currentMoodState;
                 if (currentMood === 'mad' && !this.uiManager.madThoughtTimer) {
                      this.uiManager.startMadTimer();
                 } 
 
-                // Set new target if not a direct click (also cancels eating)
-                if (!isDirectClick) {
-                   this.wanderDot.setTarget(clickX, clickY);
-                } else {
-                    // Direct click stops movement and cancels eating
-                    this.wanderDot.clearTarget();
-                    this.wanderDot.isEating = false;
-                    this.wanderDot.eatingTarget = null;
-                }
-
                 this.lastClickTime = currentTime;
+                // Always reschedule idle thoughts after a click attempt
                 this.uiManager.scheduleNextIdleThought();
             }
 
@@ -2290,10 +2353,8 @@
                 }
                 const deltaTime = (currentTime - this.lastFrameTime) / 1000;
                 
-                // Handle large deltaTime spikes (e.g., tab inactive)
                 if (deltaTime > 0.1) {
                      this.lastFrameTime = currentTime;
-                     // Still allow time-based updates (like seed growth, buffs) to occur
                      this.updateTimeBasedSystems();
                      return;
                 }
@@ -2309,14 +2370,13 @@
             }
 
             updateTimeBasedSystems() {
-                // Update systems that rely on real-time passage even if the main loop is paused
                 this.entityManager.update(this.worldManager);
                 this.buffManager.update();
                 this.uiManager.update(this.worldCreationTime);
             }
 
             update(deltaTime) {
-                // Update WanderDot (handles mood, movement, world interaction)
+                // Update WanderDot
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
                 
                 if (transitionEmoji) {
@@ -2326,7 +2386,6 @@
                     }
                 }
 
-                // Update time-based systems (Seeds, Buffs, UI)
                 this.updateTimeBasedSystems();
 
                 // Update UFO
@@ -2337,7 +2396,7 @@
                 // Clear main canvas
                 this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
 
-                // Draw environment/entities (Optimized drawing)
+                // Draw environment/entities
                 this.entityManager.draw(this.bounds);
                 
                 // Draw main actors
