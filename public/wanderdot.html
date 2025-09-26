@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wander Dot</title>
+    <style>
+        /* Basic styles for the page */
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevents scrollbars from appearing */
+            background-color: #013220; /* Dark green for the field */
+            font-family: monospace; /* A font that suits ASCII art */
+            cursor: default; /* Use a standard cursor */
+        }
+
+        /* Container for all canvas and grass elements */
+        #world-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Container for the grass elements */
+        #grass-field {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none; /* Allows clicks to pass through to the canvas */
+            z-index: 0;
+        }
+
+        /* Individual grass tufts */
+        .grass-tuft {
+            position: absolute;
+            user-select: none;
+            font-weight: bold;
+        }
+
+        /* The canvas elements will be stacked */
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #mainCanvas { z-index: 3; } /* Circle and UI elements */
+        #pebbleCanvas { z-index: 2; } /* Pebbles */
+        #pathCanvas { z-index: 1; } /* Dirt Path */
+
+
+        /* Styling for the thought bubble */
+        #thought-bubble {
+            position: absolute;
+            display: none; /* Hidden by default */
+            font-size: 2.5rem; /* Size of the emoji */
+            padding: 0.6rem; /* Reduced padding */
+            background-color: rgba(25, 25, 112, 0.5); /* MODIFIED: 50% Opacity */
+            border: 2px solid #ccc; /* Lighter border for contrast */
+            border-radius: 50%;
+            backdrop-filter: blur(3px);
+            /* Initial transform is now handled by the animation */
+            transition: opacity 0.3s ease-in-out; /* Removed transform from transition */
+            user-select: none; /* Prevent text selection */
+            z-index: 4; /* Ensure bubble is on top of everything */
+            /* MODIFIED: Chained animations. Rise up once, then hover infinitely. */
+            animation: rise-up 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), hover-effect 2.5s ease-in-out 0.4s infinite;
+        }
+
+        /* ADDED: Keyframe animation for the rise-up effect */
+        @keyframes rise-up {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -30%) scale(0.4);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -120%) scale(1);
+            }
+        }
+
+        /* MODIFIED: Renamed old animation to be more specific. No functional change. */
+        @keyframes hover-effect {
+            0%, 100% {
+                transform: translate(-50%, -120%);
+            }
+            50% {
+                transform: translate(-50%, calc(-120% - 6px));
+            }
+        }
+
+        /* ADDED: A bounce effect for rapid thoughts */
+        @keyframes bounce-higher {
+            0%, 100% {
+                transform: translate(-50%, -120%);
+            }
+            50% {
+                transform: translate(-50%, calc(-120% - 15px)); /* Bounce higher than normal hover */
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- NEW: Container to help manage layers -->
+    <div id="world-container">
+        <div id="grass-field"></div>
+        <canvas id="pathCanvas"></canvas>
+        <canvas id="pebbleCanvas"></canvas>
+        <canvas id="mainCanvas"></canvas>
+        <div id="thought-bubble"></div>
+    </div>
+
+    <script>
+        // --- 1. SETUP ---
+        const mainCanvas = document.getElementById('mainCanvas');
+        const ctx = mainCanvas.getContext('2d');
+        const thoughtBubble = document.getElementById('thought-bubble');
+        
+        const pathCanvas = document.getElementById('pathCanvas');
+        const pathCtx = pathCanvas.getContext('2d');
+        const pebbleCanvas = document.getElementById('pebbleCanvas');
+        const pebbleCtx = pebbleCanvas.getContext('2d');
+        
+        mainCanvas.width = pathCanvas.width = pebbleCanvas.width = window.innerWidth;
+        mainCanvas.height = pathCanvas.height = pebbleCanvas.height = window.innerHeight;
+
+        // --- 2. EMOJI MOODS ---
+        const idleEmojis = ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'];
+        const normalEmojis = ['😊', '👍', '👌', '😁'];
+        const warningAnnoyedEmojis = ['😐', '😑', '🤔'];
+        const annoyedEmojis = ['😒', '🙄', '😑', '🤨'];
+        const warningMadEmojis = ['😠'];
+        const madEmojis = ['😫', '🤡', '👺', '😡'];
+        const madZoneEmojis = ['👿', '☠️', '👎', '🤬'];
+        const cooldownToAnnoyedEmoji = ['😤'];
+        const cooldownToNormalEmoji = ['🥰'];
+        const directClickEmojis = ['😘', '🤭', '😛', '😳', '🥵', '🍆', '💦'];
+
+
+        // --- 3. THE CIRCLE & STATE MANAGEMENT ---
+        let circle = {
+            x: mainCanvas.width / 2,
+            y: mainCanvas.height / 2,
+            radius: 20,
+            color: '#FFFFE0',
+            dx: (Math.random() - 0.5) * 2,
+            dy: (Math.random() - 0.5) * 2,
+            speed: 120, // Speed is now pixels per second
+            targetX: null,
+            targetY: null,
+            // NEW: For correct pathing
+            previousX: mainCanvas.width / 2,
+            previousY: mainCanvas.height / 2,
+        };
+
+        // Mood state
+        let annoyance = 0;
+        const WARNING_ANNOYANCE_THRESHOLD = 25;
+        const ANNOYANCE_THRESHOLD = 40;
+        const WARNING_MAD_THRESHOLD = 68;
+        const MAD_THRESHOLD = 75;
+        let previousMoodState = 'normal';
+        let currentMoodState = 'normal';
+        let isCalm = false;
+        let isCoolingDownFromAnnoyed = false; 
+
+        // Color definitions
+        const COLOR_NORMAL = { r: 255, g: 255, b: 224 };
+        const COLOR_ANNOYED = { r: 255, g: 165, b: 0 };
+        const COLOR_MAD = { r: 152, g: 14, b: 11 };
+
+        let lastClickTime = 0;
+        let idleThoughtTimer;
+        let madThoughtTimer;
+        let thoughtTimeout;
+        let fadeTimeout;
+        let lastFrameTime = 0; // For delta time calculation
+        
+        // --- WORLD SYSTEM (Paths, Grass, Pebbles) ---
+        let pathGrid;
+        const GRID_CELL_SIZE = 10;
+        const MAX_WEAR = 100;
+        // MODIFIED: This is now scaled by distance traveled.
+        const WEAR_PER_PIXEL = 0.05; 
+        const GRASS_REMOVAL_THRESHOLD = MAX_WEAR * 0.5;
+        const PEBBLE_SPAWN_THRESHOLD = MAX_WEAR * 0.7;
+
+        const COLOR_FIELD = { r: 1, g: 50, b: 32 };
+        const COLOR_DIRT = { r: 101, g: 67, b: 33 };
+
+        let grassTufts = [];
+        let pebbles = [];
+        const pebbleChars = ['..', '.-.', ".;'", '-_,`', ':'];
+        const pebbleColors = ['#000000', '#1C1C1C', '#2A1A10', '#3D2B1F'];
+
+        function initWorldSystem() {
+            const gridWidth = Math.ceil(mainCanvas.width / GRID_CELL_SIZE);
+            const gridHeight = Math.ceil(mainCanvas.height / GRID_CELL_SIZE);
+
+            pathGrid = new Array(gridWidth);
+            for (let i = 0; i < gridWidth; i++) {
+                pathGrid[i] = new Array(gridHeight).fill(0).map(() => ({ wear: 0, hasPebble: false }));
+            }
+            
+            pathCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+            pebbleCtx.clearRect(0, 0, pebbleCanvas.width, pebbleCanvas.height);
+
+            grassTufts = [];
+            pebbles = [];
+        }
+        
+        // MODIFIED: Entirely new pathing logic
+        function updatePathBasedOnMovement(startX, startY, endX, endY) {
+            const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+            // The number of steps is proportional to the distance moved.
+            // This ensures wear is applied consistently regardless of speed.
+            const steps = Math.ceil(distance / (GRID_CELL_SIZE / 2));
+            if (steps === 0) return;
+
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const currentX = lerp(startX, endX, t);
+                const currentY = lerp(startY, endY, t);
+                
+                applyWearToPoint(currentX, currentY, distance/steps);
+            }
+        }
+        
+        function applyWearToPoint(x, y, distanceSegment) {
+             const gridX = Math.floor(x / GRID_CELL_SIZE);
+             const gridY = Math.floor(y / GRID_CELL_SIZE);
+
+             if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
+                const cell = pathGrid[gridX][gridY];
+                const oldWear = cell.wear;
+                
+                // Wear is based on the small distance segment traveled
+                cell.wear = Math.min(MAX_WEAR, cell.wear + (WEAR_PER_PIXEL * distanceSegment));
+
+                if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                    drawPathCell(gridX, gridY);
+                    
+                    if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && Math.random() < 0.01) {
+                        spawnPebble(gridX, gridY);
+                    }
+                }
+            }
+        }
+
+
+        function drawPathCell(gridX, gridY) {
+            const cell = pathGrid[gridX][gridY];
+            const wearRatio = cell.wear / MAX_WEAR;
+            const pathColor = lerpColor(COLOR_FIELD, COLOR_DIRT, wearRatio);
+            const pathOpacity = wearRatio * 0.8;
+
+            pathCtx.fillStyle = pathColor;
+            pathCtx.globalAlpha = pathOpacity;
+            pathCtx.clearRect(gridX * GRID_CELL_SIZE, gridY * GRID_CELL_SIZE, GRID_CELL_SIZE, GRID_CELL_SIZE);
+            pathCtx.fillRect(gridX * GRID_CELL_SIZE, gridY * GRID_CELL_SIZE, GRID_CELL_SIZE, GRID_CELL_SIZE);
+            pathCtx.globalAlpha = 1.0;
+        }
+
+        function spawnPebble(gridX, gridY) {
+            pathGrid[gridX][gridY].hasPebble = true;
+            const pebble = {
+                x: gridX * GRID_CELL_SIZE + Math.random() * GRID_CELL_SIZE,
+                y: gridY * GRID_CELL_SIZE + Math.random() * GRID_CELL_SIZE,
+                char: pebbleChars[Math.floor(Math.random() * pebbleChars.length)],
+                color: pebbleColors[Math.floor(Math.random() * pebbleColors.length)]
+            };
+            pebbles.push(pebble);
+            drawPebble(pebble);
+        }
+        
+        function drawPebble(pebble) {
+            pebbleCtx.font = 'bold 0.7rem monospace';
+            pebbleCtx.fillStyle = pebble.color;
+            pebbleCtx.globalAlpha = 0.8;
+            pebbleCtx.fillText(pebble.char, pebble.x, pebble.y);
+            pebbleCtx.globalAlpha = 1.0;
+        }
+
+        function updateGrassVisibility() {
+            grassTufts.forEach(tuft => {
+                if (tuft.visible) {
+                    const gridX = Math.floor(tuft.x / GRID_CELL_SIZE);
+                    const gridY = Math.floor(tuft.y / GRID_CELL_SIZE);
+                    if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
+                        if (pathGrid[gridX][gridY].wear > GRASS_REMOVAL_THRESHOLD) {
+                            tuft.element.style.display = 'none';
+                            tuft.visible = false;
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 4. ANIMATION & MOOD LOGIC ---
+
+        function lerp(start, end, amount) {
+            return start * (1 - amount) + end * amount;
+        }
+
+        function lerpColor(colorA, colorB, amount) {
+            const r = Math.round(lerp(colorA.r, colorB.r, amount));
+            const g = Math.round(lerp(colorA.g, colorB.g, amount));
+            const b = Math.round(lerp(colorA.b, colorB.b, amount));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function getMoodState(annoyanceValue) {
+            if (annoyanceValue > MAD_THRESHOLD) return 'mad';
+            if (annoyanceValue > ANNOYANCE_THRESHOLD) return 'annoyed';
+            return 'normal';
+        }
+
+        function updateMood(deltaTime) {
+            if (annoyance > 0) {
+                const cooldownPerSecond = (annoyance > MAD_THRESHOLD) ? 1.8 : 3.0;
+                annoyance = Math.max(0, annoyance - (cooldownPerSecond * deltaTime));
+            }
+
+            currentMoodState = getMoodState(annoyance);
+
+            if (currentMoodState !== previousMoodState) {
+                if (previousMoodState === 'mad' && currentMoodState === 'annoyed') {
+                    showThought(cooldownToAnnoyedEmoji[0]);
+                    stopMadTimer();
+                } else if (previousMoodState === 'annoyed' && currentMoodState === 'normal') {
+                    isCoolingDownFromAnnoyed = true;
+                }
+                previousMoodState = currentMoodState;
+            }
+            
+            if (isCoolingDownFromAnnoyed && annoyance < 1) {
+                showThought(cooldownToNormalEmoji[0]);
+                isCalm = true;
+                isCoolingDownFromAnnoyed = false;
+            }
+
+            if (annoyance > MAD_THRESHOLD) {
+                circle.color = `rgb(${COLOR_MAD.r}, ${COLOR_MAD.g}, ${COLOR_MAD.b})`;
+                circle.currentSpeedMultiplier = 0.3;
+            } else if (annoyance > ANNOYANCE_THRESHOLD) {
+                const transitionAmount = (annoyance - ANNOYANCE_THRESHOLD) / (MAD_THRESHOLD - ANNOYANCE_THRESHOLD);
+                circle.color = lerpColor(COLOR_ANNOYED, COLOR_MAD, transitionAmount);
+                circle.currentSpeedMultiplier = lerp(0.5, 0.3, transitionAmount);
+            } else {
+                const transitionAmount = annoyance / ANNOYANCE_THRESHOLD;
+                circle.color = lerpColor(COLOR_NORMAL, COLOR_ANNOYED, transitionAmount);
+                circle.currentSpeedMultiplier = lerp(1.0, 0.5, transitionAmount);
+            }
+        }
+
+        function drawCircle() {
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.ellipse(circle.x, circle.y + circle.radius, circle.radius, circle.radius / 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+
+            ctx.beginPath();
+            ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+            ctx.fillStyle = circle.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function updateCirclePosition(deltaTime) {
+            // Store previous position for pathing
+            circle.previousX = circle.x;
+            circle.previousY = circle.y;
+
+            if (circle.targetX !== null && circle.targetY !== null) {
+                const vecX = circle.targetX - circle.x;
+                const vecY = circle.targetY - circle.y;
+                const distance = Math.sqrt(vecX * vecX + vecY * vecY);
+
+                if (distance < circle.radius) {
+                    circle.targetX = null;
+                    circle.targetY = null;
+                    circle.dx = (Math.random() - 0.5) * 2;
+                    circle.dy = (Math.random() - 0.5) * 2;
+                    scheduleNextIdleThought();
+                } else {
+                    circle.dx = vecX / distance;
+                    circle.dy = vecY / distance;
+                }
+            } else {
+                if (Math.random() < 0.015) {
+                    circle.dx = (Math.random() - 0.5) * 2;
+                    circle.dy = (Math.random() - 0.5) * 2;
+                }
+            }
+            
+            const effectiveSpeed = circle.speed * circle.currentSpeedMultiplier;
+            circle.x += circle.dx * effectiveSpeed * deltaTime;
+            circle.y += circle.dy * effectiveSpeed * deltaTime;
+
+            // NEW: Call the correct pathing function
+            updatePathBasedOnMovement(circle.previousX, circle.previousY, circle.x, circle.y);
+
+            // Handle wall collisions
+            if (circle.x + circle.radius > mainCanvas.width || circle.x - circle.radius < 0) {
+                circle.dx *= -1;
+                if (circle.targetX) { scheduleNextIdleThought(); }
+                circle.targetX = null;
+                circle.x = Math.max(circle.radius, Math.min(mainCanvas.width - circle.radius, circle.x));
+            }
+            if (circle.y + circle.radius > mainCanvas.height || circle.y - circle.radius < 0) {
+                circle.dy *= -1;
+                if (circle.targetY) { scheduleNextIdleThought(); }
+                circle.targetY = null;
+                circle.y = Math.max(circle.radius, Math.min(mainCanvas.height - circle.radius, circle.y));
+            }
+        }
+
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            if (lastFrameTime === 0) {
+                lastFrameTime = currentTime;
+            }
+            const deltaTime = (currentTime - lastFrameTime) / 1000;
+            lastFrameTime = currentTime;
+
+            ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+            
+            updateMood(deltaTime);
+            updateCirclePosition(deltaTime);
+            updateGrassVisibility();
+            
+            drawCircle();
+
+            if (thoughtBubble.style.display === 'block') {
+                thoughtBubble.style.left = `${circle.x}px`;
+                thoughtBubble.style.top = `${circle.y - circle.radius}px`;
+            }
+        }
+
+        // --- 5. THOUGHT BUBBLE & INTERACTION ---
+
+        function showThought(emoji, duration = 2000) {
+            const isBubbleVisible = thoughtBubble.style.display === 'block';
+            clearTimeout(thoughtTimeout);
+            clearTimeout(fadeTimeout);
+            thoughtBubble.style.animation = 'none';
+            thoughtBubble.offsetHeight;
+            if (isBubbleVisible) {
+                thoughtBubble.style.animation = 'bounce-higher 0.4s ease-out, hover-effect 2.5s ease-in-out 0.4s infinite';
+            } else {
+                thoughtBubble.style.animation = '';
+            }
+            thoughtBubble.textContent = emoji;
+            thoughtBubble.style.opacity = 1;
+            thoughtBubble.style.display = 'block';
+            thoughtTimeout = setTimeout(() => {
+                thoughtBubble.style.opacity = 0;
+                fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
+            }, duration);
+        }
+
+        function scheduleNextIdleThought(delay = 7000) {
+            const FADE_DURATION = 300;
+            const IDLE_THOUGHT_DURATION = 4000;
+            const BREAK_DURATION = 7000;
+            clearTimeout(idleThoughtTimer);
+            idleThoughtTimer = setTimeout(() => {
+                if (circle.targetX === null && annoyance < WARNING_ANNOYANCE_THRESHOLD) {
+                    showThought(idleEmojis[Math.floor(Math.random() * idleEmojis.length)], IDLE_THOUGHT_DURATION);
+                    scheduleNextIdleThought(IDLE_THOUGHT_DURATION + FADE_DURATION + BREAK_DURATION);
+                } else {
+                    scheduleNextIdleThought(BREAK_DURATION);
+                }
+            }, delay);
+        }
+        
+        function startMadTimer() {
+            stopMadTimer();
+            madThoughtTimer = setInterval(() => {
+                if (getMoodState(annoyance) === 'mad') {
+                    showThought(madZoneEmojis[Math.floor(Math.random() * madZoneEmojis.length)]);
+                }
+            }, 3000);
+        }
+
+        function stopMadTimer() {
+            clearInterval(madThoughtTimer);
+        }
+
+        // --- 6. GRASS FIELD GENERATION ---
+        function generateGrassField() {
+            const field = document.getElementById('grass-field');
+            field.innerHTML = '';
+            const grassTypes = ['^^', '^^^', '/\\/\\', '-^-', 'vV'];
+            const grassColors = ['#228B22', '#3CB371', '#6B8E23', '#556B2F'];
+            const tuftCount = 300;
+
+            for (let i = 0; i < tuftCount; i++) {
+                const tuft = document.createElement('span');
+                const xPos = Math.random() * 100;
+                const yPos = Math.random() * 100;
+
+                tuft.classList.add('grass-tuft');
+                tuft.textContent = grassTypes[Math.floor(Math.random() * grassTypes.length)];
+                tuft.style.color = grassColors[Math.floor(Math.random() * grassColors.length)];
+                tuft.style.left = `${xPos}vw`;
+                tuft.style.top = `${yPos}vh`;
+                tuft.style.fontSize = `${Math.random() * 0.8 + 0.5}rem`;
+                tuft.style.opacity = Math.random() * 0.5 + 0.4;
+                field.appendChild(tuft);
+                
+                grassTufts.push({
+                    element: tuft,
+                    x: xPos / 100 * mainCanvas.width,
+                    y: yPos / 100 * mainCanvas.height,
+                    visible: true
+                });
+            }
+        }
+
+        // --- 7. EVENT LISTENERS & INITIALIZATION ---
+        window.addEventListener('resize', () => {
+            mainCanvas.width = pathCanvas.width = pebbleCanvas.width = window.innerWidth;
+            mainCanvas.height = pathCanvas.height = pebbleCanvas.height = window.innerHeight;
+            
+            initWorldSystem();
+            generateGrassField();
+            pebbles.forEach(drawPebble);
+        });
+
+        mainCanvas.addEventListener('click', (event) => {
+            const clickX = event.clientX;
+            const clickY = event.clientY;
+
+            clearTimeout(idleThoughtTimer);
+            const currentTime = Date.now();
+            const timeDiff = currentTime - lastClickTime;
+            const distanceToCenter = Math.sqrt(Math.pow(clickX - circle.x, 2) + Math.pow(clickY - circle.y, 2));
+            const isDirectClick = distanceToCenter <= circle.radius;
+            let annoyanceToAdd;
+            if (isCalm) {
+                annoyanceToAdd = 5;
+                isCalm = false;
+            } else {
+                annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff)); 
+            }
+            if(isDirectClick) {
+                annoyanceToAdd *= 1.5;
+            }
+            const oldAnnoyance = annoyance;
+            annoyance = Math.min(100, annoyance + annoyanceToAdd);
+            let reactionEmoji;
+            if (isDirectClick) {
+                if (annoyance < 20) reactionEmoji = directClickEmojis[0];
+                else if (annoyance < 30) reactionEmoji = directClickEmojis[1];
+                else if (annoyance < 45) reactionEmoji = directClickEmojis[2];
+                else if (annoyance < 60) reactionEmoji = directClickEmojis[3];
+                else if (annoyance < 75) reactionEmoji = directClickEmojis[4];
+                else if (annoyance < 90) reactionEmoji = directClickEmojis[5];
+                else reactionEmoji = directClickEmojis[6];
+            } else {
+                if (annoyance > MAD_THRESHOLD) {
+                    reactionEmoji = madEmojis[Math.floor(Math.random() * madEmojis.length)];
+                    if (oldAnnoyance <= MAD_THRESHOLD) {
+                        startMadTimer();
+                    }
+                } else if (annoyance > WARNING_MAD_THRESHOLD) {
+                    reactionEmoji = warningMadEmojis[Math.floor(Math.random() * warningMadEmojis.length)];
+                } else if (annoyance > ANNOYANCE_THRESHOLD) {
+                    reactionEmoji = annoyedEmojis[Math.floor(Math.random() * annoyedEmojis.length)];
+                } else if (annoyance > WARNING_ANNOYANCE_THRESHOLD) {
+                    reactionEmoji = warningAnnoyedEmojis[Math.floor(Math.random() * warningAnnoyedEmojis.length)];
+                } else {
+                    reactionEmoji = normalEmojis[Math.floor(Math.random() * normalEmojis.length)];
+                }
+            }
+            showThought(reactionEmoji);
+            circle.targetX = clickX;
+            circle.targetY = clickY;
+            lastClickTime = currentTime;
+            scheduleNextIdleThought();
+        });
+
+        // --- 8. START ---
+        initWorldSystem();
+        generateGrassField();
+        requestAnimationFrame(animate); // Start the loop correctly
+        scheduleNextIdleThought();
+    </script>
+</body>
+</html>
