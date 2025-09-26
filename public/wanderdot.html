@@ -59,19 +59,39 @@
             display: none; /* Hidden by default */
             font-size: 2.5rem; /* Size of the emoji */
             padding: 0.6rem; /* Reduced padding */
-            background-color: rgba(25, 25, 112, 0.5); /* MODIFIED: 50% Opacity */
-            border: 2px solid #ccc; /* Lighter border for contrast */
+            background-color: rgba(25, 25, 112, 0.5);
+            border: 2px solid #ccc;
             border-radius: 50%;
             backdrop-filter: blur(3px);
-            /* Initial transform is now handled by the animation */
-            transition: opacity 0.3s ease-in-out; /* Removed transform from transition */
+            transition: opacity 0.3s ease-in-out; 
             user-select: none; /* Prevent text selection */
             z-index: 4; /* Ensure bubble is on top of everything */
-            /* MODIFIED: Chained animations. Rise up once, then hover infinitely. */
+            cursor: pointer; /* Show it's clickable */
             animation: rise-up 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), hover-effect 2.5s ease-in-out 0.4s infinite;
         }
 
-        /* ADDED: Keyframe animation for the rise-up effect */
+        #thought-bubble > span {
+            pointer-events: none;
+        }
+
+        #buff-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 10px;
+        }
+
+        .buff-indicator {
+             font-size: 1.5rem;
+             display: none;
+             z-index: 5;
+             text-shadow: 0 0 5px black;
+        }
+
+
+        /* Keyframe animations */
         @keyframes rise-up {
             from {
                 opacity: 0;
@@ -83,7 +103,6 @@
             }
         }
 
-        /* MODIFIED: Renamed old animation to be more specific. No functional change. */
         @keyframes hover-effect {
             0%, 100% {
                 transform: translate(-50%, -120%);
@@ -93,25 +112,42 @@
             }
         }
 
-        /* ADDED: A bounce effect for rapid thoughts */
         @keyframes bounce-higher {
             0%, 100% {
                 transform: translate(-50%, -120%);
             }
             50% {
-                transform: translate(-50%, calc(-120% - 15px)); /* Bounce higher than normal hover */
+                transform: translate(-50%, calc(-120% - 15px));
             }
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.2; }
+        }
+        .blinking {
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blip-out {
+            to { transform: scale(0); opacity: 0; }
+        }
+        .blip-out {
+            animation: blip-out 0.3s forwards;
         }
     </style>
 </head>
 <body>
-    <!-- NEW: Container to help manage layers -->
     <div id="world-container">
         <div id="grass-field"></div>
         <canvas id="pathCanvas"></canvas>
         <canvas id="pebbleCanvas"></canvas>
         <canvas id="mainCanvas"></canvas>
         <div id="thought-bubble"></div>
+        <div id="buff-container">
+            <div id="buff-indicator-coffee" class="buff-indicator"></div>
+            <div id="buff-indicator-pizza" class="buff-indicator"></div>
+            <div id="buff-indicator-kangaroo" class="buff-indicator"></div>
+        </div>
     </div>
 
     <script>
@@ -119,7 +155,10 @@
         const mainCanvas = document.getElementById('mainCanvas');
         const ctx = mainCanvas.getContext('2d');
         const thoughtBubble = document.getElementById('thought-bubble');
-        
+        const coffeeBuffIndicator = document.getElementById('buff-indicator-coffee');
+        const pizzaBuffIndicator = document.getElementById('buff-indicator-pizza');
+        const kangarooBuffIndicator = document.getElementById('buff-indicator-kangaroo');
+
         const pathCanvas = document.getElementById('pathCanvas');
         const pathCtx = pathCanvas.getContext('2d');
         const pebbleCanvas = document.getElementById('pebbleCanvas');
@@ -146,13 +185,13 @@
             x: mainCanvas.width / 2,
             y: mainCanvas.height / 2,
             radius: 20,
+            baseRadius: 20,
             color: '#FFFFE0',
             dx: (Math.random() - 0.5) * 2,
             dy: (Math.random() - 0.5) * 2,
-            speed: 120, // Speed is now pixels per second
+            speed: 120, 
             targetX: null,
             targetY: null,
-            // NEW: For correct pathing
             previousX: mainCanvas.width / 2,
             previousY: mainCanvas.height / 2,
         };
@@ -178,14 +217,33 @@
         let madThoughtTimer;
         let thoughtTimeout;
         let fadeTimeout;
-        let lastFrameTime = 0; // For delta time calculation
+        let lastFrameTime = 0;
         
+        // Buff states
+        let isCoffeeBuffActive = false;
+        let coffeeBuffTimer, coffeeBuffBlinkTimer;
+        const COFFEE_BUFF_DURATION = 20000;
+
+        let isPizzaBuffActive = false;
+        let pizzaBuffTimer, pizzaBuffBlinkTimer;
+        const PIZZA_BUFF_DURATION = 30000;
+        
+        let isKangarooBuffActive = false;
+        let kangarooBuffTimer, kangarooBuffBlinkTimer;
+        const KANGAROO_BUFF_DURATION = 30000;
+
+        // Kangaroo bounce state
+        let distanceTraveledOnCurrentBounce = 0;
+        const BOUNCE_DISTANCE = 120;
+        const BOUNCE_HEIGHT = 60;
+        let jiggleEndTime = 0;
+
         // --- WORLD SYSTEM (Paths, Grass, Pebbles) ---
         let pathGrid;
         const GRID_CELL_SIZE = 10;
         const MAX_WEAR = 100;
-        // MODIFIED: This is now scaled by distance traveled.
         const WEAR_PER_PIXEL = 0.05; 
+        let currentWearPerPixel = WEAR_PER_PIXEL; 
         const GRASS_REMOVAL_THRESHOLD = MAX_WEAR * 0.5;
         const PEBBLE_SPAWN_THRESHOLD = MAX_WEAR * 0.7;
 
@@ -213,11 +271,8 @@
             pebbles = [];
         }
         
-        // MODIFIED: Entirely new pathing logic
         function updatePathBasedOnMovement(startX, startY, endX, endY) {
             const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-            // The number of steps is proportional to the distance moved.
-            // This ensures wear is applied consistently regardless of speed.
             const steps = Math.ceil(distance / (GRID_CELL_SIZE / 2));
             if (steps === 0) return;
 
@@ -226,29 +281,38 @@
                 const currentX = lerp(startX, endX, t);
                 const currentY = lerp(startY, endY, t);
                 
-                applyWearToPoint(currentX, currentY, distance/steps);
+                applyWearToPoint(currentX, currentY, distance/steps, currentWearPerPixel);
             }
         }
         
-        function applyWearToPoint(x, y, distanceSegment) {
-             const gridX = Math.floor(x / GRID_CELL_SIZE);
-             const gridY = Math.floor(y / GRID_CELL_SIZE);
+        function applyWearToPoint(x, y, distanceSegment, wearMultiplier) {
+             const centerX = Math.floor(x / GRID_CELL_SIZE);
+             const centerY = Math.floor(y / GRID_CELL_SIZE);
+             const wearRadius = isPizzaBuffActive ? 2 : 1;
 
-             if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
-                const cell = pathGrid[gridX][gridY];
-                const oldWear = cell.wear;
-                
-                // Wear is based on the small distance segment traveled
-                cell.wear = Math.min(MAX_WEAR, cell.wear + (WEAR_PER_PIXEL * distanceSegment));
-
-                if (Math.floor(cell.wear) > Math.floor(oldWear)) {
-                    drawPathCell(gridX, gridY);
+             for(let i = -wearRadius; i <= wearRadius; i++) {
+                for (let j = -wearRadius; j <= wearRadius; j++) {
+                    if (i*i + j*j > wearRadius * wearRadius) continue;
                     
-                    if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && Math.random() < 0.01) {
-                        spawnPebble(gridX, gridY);
+                    const gridX = centerX + i;
+                    const gridY = centerY + j;
+
+                    if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
+                        const cell = pathGrid[gridX][gridY];
+                        const oldWear = cell.wear;
+                        
+                        cell.wear = Math.min(MAX_WEAR, cell.wear + (wearMultiplier * distanceSegment));
+
+                        if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                            drawPathCell(gridX, gridY);
+                            
+                            if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && Math.random() < 0.01) {
+                                spawnPebble(gridX, gridY);
+                            }
+                        }
                     }
                 }
-            }
+             }
         }
 
 
@@ -358,38 +422,69 @@
         }
 
         function drawCircle() {
+            let verticalOffset = 0;
+            let scaleFactor = 1;
+            
+            // --- Kangaroo Bounce visual logic ---
+            if (isKangarooBuffActive && circle.targetX !== null) {
+                const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
+                verticalOffset = Math.sin(bounceProgress) * BOUNCE_HEIGHT;
+                scaleFactor = 1 - Math.sin(bounceProgress) * 0.2; // Shrinks at peak
+            }
+
+            const currentRadius = circle.radius * scaleFactor;
+            
+            // Shadow
             ctx.beginPath();
             ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-            ctx.ellipse(circle.x, circle.y + circle.radius, circle.radius, circle.radius / 3, 0, 0, Math.PI * 2);
+            const shadowY = circle.y + circle.radius + verticalOffset;
+            const shadowRadiusX = currentRadius;
+            const shadowRadiusY = currentRadius / 3;
+            ctx.ellipse(circle.x, shadowY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-
+            
+            ctx.save();
+            ctx.translate(circle.x, circle.y - verticalOffset);
+            
+            // --- Jiggle Effect on Landing ---
+            const jiggleDuration = 300;
+            const timeSinceJiggle = Date.now() - jiggleEndTime;
+            if (timeSinceJiggle < jiggleDuration) {
+                const jiggleProgress = timeSinceJiggle / jiggleDuration;
+                const jiggleAmount = Math.sin(jiggleProgress * Math.PI * 2) * (1 - jiggleProgress) * 0.2;
+                ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
+            }
+            
+            // Circle body
             ctx.beginPath();
-            ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+            ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
             ctx.fillStyle = circle.color;
             ctx.fill();
             ctx.closePath();
+            
+            ctx.restore();
         }
 
         function updateCirclePosition(deltaTime) {
-            // Store previous position for pathing
             circle.previousX = circle.x;
             circle.previousY = circle.y;
 
             if (circle.targetX !== null && circle.targetY !== null) {
                 const vecX = circle.targetX - circle.x;
                 const vecY = circle.targetY - circle.y;
-                const distance = Math.sqrt(vecX * vecX + vecY * vecY);
+                const distanceToTarget = Math.sqrt(vecX * vecX + vecY * vecY);
 
-                if (distance < circle.radius) {
+                if (distanceToTarget < circle.radius) {
                     circle.targetX = null;
                     circle.targetY = null;
                     circle.dx = (Math.random() - 0.5) * 2;
                     circle.dy = (Math.random() - 0.5) * 2;
+                    if(isKangarooBuffActive) distanceTraveledOnCurrentBounce = 0;
                     scheduleNextIdleThought();
                 } else {
-                    circle.dx = vecX / distance;
-                    circle.dy = vecY / distance;
+                    circle.dx = vecX / distanceToTarget;
+                    circle.dy = vecY / distanceToTarget;
                 }
             } else {
                 if (Math.random() < 0.015) {
@@ -399,13 +494,26 @@
             }
             
             const effectiveSpeed = circle.speed * circle.currentSpeedMultiplier;
-            circle.x += circle.dx * effectiveSpeed * deltaTime;
-            circle.y += circle.dy * effectiveSpeed * deltaTime;
+            const distanceMoved = effectiveSpeed * deltaTime;
+            
+            circle.x += circle.dx * distanceMoved;
+            circle.y += circle.dy * distanceMoved;
+            
+            // --- Pathing Logic ---
+            if (isKangarooBuffActive) {
+                if (circle.targetX !== null) {
+                    distanceTraveledOnCurrentBounce += distanceMoved;
+                    if (distanceTraveledOnCurrentBounce >= BOUNCE_DISTANCE) {
+                        applyWearToPoint(circle.x, circle.y, BOUNCE_DISTANCE, WEAR_PER_PIXEL * 1.7);
+                        jiggleEndTime = Date.now();
+                        distanceTraveledOnCurrentBounce = 0;
+                    }
+                }
+            } else {
+                 updatePathBasedOnMovement(circle.previousX, circle.previousY, circle.x, circle.y);
+            }
 
-            // NEW: Call the correct pathing function
-            updatePathBasedOnMovement(circle.previousX, circle.previousY, circle.x, circle.y);
-
-            // Handle wall collisions
+            // Wall collisions
             if (circle.x + circle.radius > mainCanvas.width || circle.x - circle.radius < 0) {
                 circle.dx *= -1;
                 if (circle.targetX) { scheduleNextIdleThought(); }
@@ -456,7 +564,7 @@
             } else {
                 thoughtBubble.style.animation = '';
             }
-            thoughtBubble.textContent = emoji;
+            thoughtBubble.innerHTML = `<span>${emoji}</span>`;
             thoughtBubble.style.opacity = 1;
             thoughtBubble.style.display = 'block';
             thoughtTimeout = setTimeout(() => {
@@ -492,6 +600,111 @@
         function stopMadTimer() {
             clearInterval(madThoughtTimer);
         }
+        
+        // --- BUFF FUNCTIONS ---
+        function activateCoffeeBuff() {
+            if(isCoffeeBuffActive) return;
+            isCoffeeBuffActive = true;
+            circle.speed *= 1.3;
+            currentWearPerPixel *= 2;
+
+            coffeeBuffIndicator.textContent = '☕';
+            coffeeBuffIndicator.className = 'buff-indicator';
+            coffeeBuffIndicator.style.display = 'block';
+
+            clearTimeout(thoughtTimeout);
+            clearTimeout(fadeTimeout);
+            thoughtBubble.style.display = 'none';
+
+            coffeeBuffBlinkTimer = setTimeout(() => {
+                coffeeBuffIndicator.classList.add('blinking');
+            }, COFFEE_BUFF_DURATION - 3000);
+
+            coffeeBuffTimer = setTimeout(deactivateCoffeeBuff, COFFEE_BUFF_DURATION);
+        }
+
+        function deactivateCoffeeBuff() {
+            if(!isCoffeeBuffActive) return;
+            isCoffeeBuffActive = false;
+            circle.speed /= 1.3;
+            currentWearPerPixel = WEAR_PER_PIXEL;
+            
+            coffeeBuffIndicator.className = 'buff-indicator blip-out';
+            coffeeBuffIndicator.addEventListener('animationend', () => {
+                coffeeBuffIndicator.style.display = 'none';
+                coffeeBuffIndicator.className = 'buff-indicator';
+            }, { once: true });
+
+            clearTimeout(coffeeBuffBlinkTimer);
+        }
+
+        function activatePizzaBuff() {
+            if(isPizzaBuffActive) return;
+            isPizzaBuffActive = true;
+            circle.radius *= 1.3;
+
+            pizzaBuffIndicator.textContent = '🍕';
+            pizzaBuffIndicator.className = 'buff-indicator';
+            pizzaBuffIndicator.style.display = 'block';
+
+            clearTimeout(thoughtTimeout);
+            clearTimeout(fadeTimeout);
+            thoughtBubble.style.display = 'none';
+
+            pizzaBuffBlinkTimer = setTimeout(() => {
+                pizzaBuffIndicator.classList.add('blinking');
+            }, PIZZA_BUFF_DURATION - 3000);
+
+            pizzaBuffTimer = setTimeout(deactivatePizzaBuff, PIZZA_BUFF_DURATION);
+        }
+
+        function deactivatePizzaBuff() {
+            if(!isPizzaBuffActive) return;
+            isPizzaBuffActive = false;
+            circle.radius = circle.baseRadius;
+            
+            pizzaBuffIndicator.className = 'buff-indicator blip-out';
+            pizzaBuffIndicator.addEventListener('animationend', () => {
+                pizzaBuffIndicator.style.display = 'none';
+                pizzaBuffIndicator.className = 'buff-indicator';
+            }, { once: true });
+
+            clearTimeout(pizzaBuffBlinkTimer);
+        }
+        
+        function activateKangarooBuff() {
+            if(isKangarooBuffActive) return;
+            isKangarooBuffActive = true;
+            distanceTraveledOnCurrentBounce = 0;
+
+            kangarooBuffIndicator.textContent = '🦘';
+            kangarooBuffIndicator.className = 'buff-indicator';
+            kangarooBuffIndicator.style.display = 'block';
+
+            clearTimeout(thoughtTimeout);
+            clearTimeout(fadeTimeout);
+            thoughtBubble.style.display = 'none';
+
+            kangarooBuffBlinkTimer = setTimeout(() => {
+                kangarooBuffIndicator.classList.add('blinking');
+            }, KANGAROO_BUFF_DURATION - 3000);
+
+            kangarooBuffTimer = setTimeout(deactivateKangarooBuff, KANGAROO_BUFF_DURATION);
+        }
+
+        function deactivateKangarooBuff() {
+            if(!isKangarooBuffActive) return;
+            isKangarooBuffActive = false;
+            
+            kangarooBuffIndicator.className = 'buff-indicator blip-out';
+            kangarooBuffIndicator.addEventListener('animationend', () => {
+                kangarooBuffIndicator.style.display = 'none';
+                kangarooBuffIndicator.className = 'buff-indicator';
+            }, { once: true });
+
+            clearTimeout(kangarooBuffBlinkTimer);
+        }
+
 
         // --- 6. GRASS FIELD GENERATION ---
         function generateGrassField() {
@@ -586,12 +799,25 @@
             lastClickTime = currentTime;
             scheduleNextIdleThought();
         });
+        
+        thoughtBubble.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const emoji = thoughtBubble.querySelector('span').textContent;
+            if (emoji === '☕') {
+                activateCoffeeBuff();
+            } else if (emoji === '🍕') {
+                activatePizzaBuff();
+            } else if (emoji === '🦘') {
+                activateKangarooBuff();
+            }
+        });
 
         // --- 8. START ---
         initWorldSystem();
         generateGrassField();
-        requestAnimationFrame(animate); // Start the loop correctly
+        requestAnimationFrame(animate);
         scheduleNextIdleThought();
     </script>
 </body>
 </html>
+
