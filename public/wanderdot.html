@@ -67,7 +67,13 @@
             user-select: none; /* Prevent text selection */
             z-index: 4; /* Ensure bubble is on top of everything */
             cursor: pointer; /* Show it's clickable */
-            animation: rise-up 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), hover-effect 2.5s ease-in-out 0.4s infinite;
+            /* MODIFIED: Base transform to center the bubble on its left/top coords */
+            transform: translate(-50%, -50%); 
+        }
+
+        /* MODIFIED: Rise animation only affects scale and opacity now */
+        .is-rising {
+            animation: rise-up 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
 
         #thought-bubble > span {
@@ -92,32 +98,15 @@
 
 
         /* Keyframe animations */
+        /* MODIFIED: Animation only handles scale and opacity */
         @keyframes rise-up {
             from {
                 opacity: 0;
-                transform: translate(-50%, -30%) scale(0.4);
+                transform: translate(-50%, -50%) scale(0.4);
             }
             to {
                 opacity: 1;
-                transform: translate(-50%, -120%) scale(1);
-            }
-        }
-
-        @keyframes hover-effect {
-            0%, 100% {
-                transform: translate(-50%, -120%);
-            }
-            50% {
-                transform: translate(-50%, calc(-120% - 6px));
-            }
-        }
-
-        @keyframes bounce-higher {
-            0%, 100% {
-                transform: translate(-50%, -120%);
-            }
-            50% {
-                transform: translate(-50%, calc(-120% - 15px));
+                transform: translate(-50%, -50%) scale(1);
             }
         }
 
@@ -237,6 +226,12 @@
         const BOUNCE_DISTANCE = 120;
         const BOUNCE_HEIGHT = 60;
         let jiggleEndTime = 0;
+        
+        // NEW: Thought bubble positioning state
+        let bubbleAngle = -Math.PI / 2;
+        let targetBubbleAngle = -Math.PI / 2;
+        let riseStartTime = 0;
+        let bounceEndTime = 0;
 
         // --- WORLD SYSTEM (Paths, Grass, Pebbles) ---
         let pathGrid;
@@ -425,16 +420,15 @@
             let verticalOffset = 0;
             let scaleFactor = 1;
             
-            // --- Kangaroo Bounce visual logic ---
-            if (isKangarooBuffActive && circle.targetX !== null) {
+            // MODIFIED: Removed target check so it bounces while idle
+            if (isKangarooBuffActive) {
                 const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
                 verticalOffset = Math.sin(bounceProgress) * BOUNCE_HEIGHT;
-                scaleFactor = 1 - Math.sin(bounceProgress) * 0.2; // Shrinks at peak
+                scaleFactor = 1 - Math.sin(bounceProgress) * 0.2;
             }
 
             const currentRadius = circle.radius * scaleFactor;
             
-            // Shadow
             ctx.beginPath();
             ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
             const shadowY = circle.y + circle.radius + verticalOffset;
@@ -447,7 +441,6 @@
             ctx.save();
             ctx.translate(circle.x, circle.y - verticalOffset);
             
-            // --- Jiggle Effect on Landing ---
             const jiggleDuration = 300;
             const timeSinceJiggle = Date.now() - jiggleEndTime;
             if (timeSinceJiggle < jiggleDuration) {
@@ -456,7 +449,6 @@
                 ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
             }
             
-            // Circle body
             ctx.beginPath();
             ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
             ctx.fillStyle = circle.color;
@@ -499,21 +491,18 @@
             circle.x += circle.dx * distanceMoved;
             circle.y += circle.dy * distanceMoved;
             
-            // --- Pathing Logic ---
             if (isKangarooBuffActive) {
-                if (circle.targetX !== null) {
-                    distanceTraveledOnCurrentBounce += distanceMoved;
-                    if (distanceTraveledOnCurrentBounce >= BOUNCE_DISTANCE) {
-                        applyWearToPoint(circle.x, circle.y, BOUNCE_DISTANCE, WEAR_PER_PIXEL * 1.7);
-                        jiggleEndTime = Date.now();
-                        distanceTraveledOnCurrentBounce = 0;
-                    }
+                // MODIFIED: Removed target check so it applies wear while idle
+                distanceTraveledOnCurrentBounce += distanceMoved;
+                if (distanceTraveledOnCurrentBounce >= BOUNCE_DISTANCE) {
+                    applyWearToPoint(circle.x, circle.y, BOUNCE_DISTANCE, WEAR_PER_PIXEL * 1.7);
+                    jiggleEndTime = Date.now();
+                    distanceTraveledOnCurrentBounce = 0;
                 }
             } else {
                  updatePathBasedOnMovement(circle.previousX, circle.previousY, circle.x, circle.y);
             }
 
-            // Wall collisions
             if (circle.x + circle.radius > mainCanvas.width || circle.x - circle.radius < 0) {
                 circle.dx *= -1;
                 if (circle.targetX) { scheduleNextIdleThought(); }
@@ -546,27 +535,84 @@
             drawCircle();
 
             if (thoughtBubble.style.display === 'block') {
-                thoughtBubble.style.left = `${circle.x}px`;
-                thoughtBubble.style.top = `${circle.y - circle.radius}px`;
+                const bubbleWidth = thoughtBubble.offsetWidth;
+                const bubbleHeight = thoughtBubble.offsetHeight;
+
+                const SAFE_MARGIN = 10;
+                const finalOrbitRadius = circle.radius + bubbleHeight / 2 + 5;
+                
+                let bestAngle = targetBubbleAngle;
+                const startAngle = -Math.PI / 2;
+                for (let offset = 0; offset < Math.PI; offset += 0.1) {
+                    let angle = startAngle + offset;
+                    let testX = circle.x + Math.cos(angle) * finalOrbitRadius;
+                    let testY = circle.y + Math.sin(angle) * finalOrbitRadius;
+
+                    if (testX - bubbleWidth / 2 > SAFE_MARGIN && testX + bubbleWidth / 2 < window.innerWidth - SAFE_MARGIN &&
+                        testY - bubbleHeight / 2 > SAFE_MARGIN && testY + bubbleHeight / 2 < window.innerHeight - SAFE_MARGIN) {
+                        bestAngle = angle;
+                        break;
+                    }
+
+                    angle = startAngle - offset;
+                    testX = circle.x + Math.cos(angle) * finalOrbitRadius;
+                    testY = circle.y + Math.sin(angle) * finalOrbitRadius;
+                    if (testX - bubbleWidth / 2 > SAFE_MARGIN && testX + bubbleWidth / 2 < window.innerWidth - SAFE_MARGIN &&
+                        testY - bubbleHeight / 2 > SAFE_MARGIN && testY + bubbleHeight / 2 < window.innerHeight - SAFE_MARGIN) {
+                        bestAngle = angle;
+                        break;
+                    }
+                }
+                targetBubbleAngle = bestAngle;
+
+                bubbleAngle = lerp(bubbleAngle, targetBubbleAngle, 0.1);
+
+                let currentOrbitRadius = finalOrbitRadius;
+                let verticalBob = 0;
+                const animTime = Date.now();
+
+                if (riseStartTime > 0 && animTime - riseStartTime < 400) {
+                    const riseProgress = (animTime - riseStartTime) / 400;
+                    currentOrbitRadius = lerp(circle.radius, finalOrbitRadius, riseProgress);
+                } else {
+                    riseStartTime = 0;
+                    if (bounceEndTime > 0 && animTime < bounceEndTime) {
+                        const bounceProgress = (animTime - (bounceEndTime - 300)) / 300;
+                        verticalBob = Math.sin(bounceProgress * Math.PI) * -15;
+                    } else {
+                        bounceEndTime = 0;
+                        verticalBob = Math.sin(animTime / 400) * -3;
+                    }
+                }
+
+                const bubbleCenterX = circle.x + Math.cos(bubbleAngle) * currentOrbitRadius;
+                const bubbleCenterY = circle.y + Math.sin(bubbleAngle) * currentOrbitRadius + verticalBob;
+
+                thoughtBubble.style.left = `${bubbleCenterX}px`;
+                thoughtBubble.style.top = `${bubbleCenterY}px`;
             }
         }
 
         // --- 5. THOUGHT BUBBLE & INTERACTION ---
 
         function showThought(emoji, duration = 2000) {
-            const isBubbleVisible = thoughtBubble.style.display === 'block';
             clearTimeout(thoughtTimeout);
             clearTimeout(fadeTimeout);
-            thoughtBubble.style.animation = 'none';
-            thoughtBubble.offsetHeight;
-            if (isBubbleVisible) {
-                thoughtBubble.style.animation = 'bounce-higher 0.4s ease-out, hover-effect 2.5s ease-in-out 0.4s infinite';
-            } else {
-                thoughtBubble.style.animation = '';
+            
+            thoughtBubble.classList.remove('is-rising');
+            void thoughtBubble.offsetWidth; // Trigger reflow
+            thoughtBubble.classList.add('is-rising');
+            
+            riseStartTime = Date.now();
+            
+            if (thoughtBubble.style.display === 'block') {
+                bounceEndTime = Date.now() + 300;
             }
+            
             thoughtBubble.innerHTML = `<span>${emoji}</span>`;
             thoughtBubble.style.opacity = 1;
             thoughtBubble.style.display = 'block';
+
             thoughtTimeout = setTimeout(() => {
                 thoughtBubble.style.opacity = 0;
                 fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
@@ -750,6 +796,14 @@
         mainCanvas.addEventListener('click', (event) => {
             const clickX = event.clientX;
             const clickY = event.clientY;
+
+            if (thoughtBubble.style.display === 'block') {
+                const bubbleRect = thoughtBubble.getBoundingClientRect();
+                if (clickX >= bubbleRect.left && clickX <= bubbleRect.right &&
+                    clickY >= bubbleRect.top && clickY <= bubbleRect.bottom) {
+                    return;
+                }
+            }
 
             clearTimeout(idleThoughtTimer);
             const currentTime = Date.now();
