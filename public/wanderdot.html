@@ -67,11 +67,9 @@
             user-select: none; /* Prevent text selection */
             z-index: 4; /* Ensure bubble is on top of everything */
             cursor: pointer; /* Show it's clickable */
-            /* MODIFIED: Base transform to center the bubble on its left/top coords */
             transform: translate(-50%, -50%); 
         }
 
-        /* MODIFIED: Rise animation only affects scale and opacity now */
         .is-rising {
             animation: rise-up 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
         }
@@ -86,19 +84,64 @@
             right: 20px;
             display: flex;
             flex-direction: row-reverse;
-            gap: 10px;
+            gap: 15px; /* Increased gap for timers */
         }
 
         .buff-indicator {
-             font-size: 1.5rem;
              display: none;
+             flex-direction: column;
+             align-items: center;
              z-index: 5;
              text-shadow: 0 0 5px black;
+        }
+        
+        .buff-icon {
+            font-size: 1.5rem;
+        }
+
+        .buff-timer {
+            font-size: 0.8rem;
+            color: white;
+            margin-top: 2px;
+        }
+        
+        #item-bar {
+            position: absolute;
+            bottom: -100px; /* Start off-screen */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 2px solid #ccc;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            padding: 5px;
+            display: flex;
+            gap: 5px;
+            z-index: 5;
+            transition: bottom 0.4s ease-in-out;
+        }
+        #item-bar.visible {
+            bottom: 0;
+        }
+        #watch-item-button {
+            background-color: #333;
+            border: 2px solid #888;
+            border-radius: 5px;
+            color: white;
+            font-size: 1rem;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #watch-item-button.clicked {
+            animation: use-item-anim 0.2s ease-out;
         }
 
 
         /* Keyframe animations */
-        /* MODIFIED: Animation only handles scale and opacity */
         @keyframes rise-up {
             from {
                 opacity: 0;
@@ -123,6 +166,10 @@
         .blip-out {
             animation: blip-out 0.3s forwards;
         }
+
+        @keyframes use-item-anim {
+            50% { transform: scale(0.85); }
+        }
     </style>
 </head>
 <body>
@@ -133,9 +180,21 @@
         <canvas id="mainCanvas"></canvas>
         <div id="thought-bubble"></div>
         <div id="buff-container">
-            <div id="buff-indicator-coffee" class="buff-indicator"></div>
-            <div id="buff-indicator-pizza" class="buff-indicator"></div>
-            <div id="buff-indicator-kangaroo" class="buff-indicator"></div>
+            <div id="buff-indicator-coffee" class="buff-indicator">
+                <span class="buff-icon">☕</span>
+                <div class="buff-timer"></div>
+            </div>
+            <div id="buff-indicator-pizza" class="buff-indicator">
+                <span class="buff-icon">🍕</span>
+                <div class="buff-timer"></div>
+            </div>
+            <div id="buff-indicator-kangaroo" class="buff-indicator">
+                <span class="buff-icon">🦘</span>
+                <div class="buff-timer"></div>
+            </div>
+        </div>
+        <div id="item-bar">
+            <button id="watch-item-button">⌚x1</button>
         </div>
     </div>
 
@@ -147,6 +206,8 @@
         const coffeeBuffIndicator = document.getElementById('buff-indicator-coffee');
         const pizzaBuffIndicator = document.getElementById('buff-indicator-pizza');
         const kangarooBuffIndicator = document.getElementById('buff-indicator-kangaroo');
+        const itemBar = document.getElementById('item-bar');
+        const watchItemButton = document.getElementById('watch-item-button');
 
         const pathCanvas = document.getElementById('pathCanvas');
         const pathCtx = pathCanvas.getContext('2d');
@@ -208,18 +269,18 @@
         let fadeTimeout;
         let lastFrameTime = 0;
         
-        // Buff states
-        let isCoffeeBuffActive = false;
-        let coffeeBuffTimer, coffeeBuffBlinkTimer;
+        // --- BUFF & ITEM MANAGEMENT ---
+        let watchCount = 0;
         const COFFEE_BUFF_DURATION = 20000;
-
-        let isPizzaBuffActive = false;
-        let pizzaBuffTimer, pizzaBuffBlinkTimer;
         const PIZZA_BUFF_DURATION = 30000;
-        
-        let isKangarooBuffActive = false;
-        let kangarooBuffTimer, kangarooBuffBlinkTimer;
         const KANGAROO_BUFF_DURATION = 30000;
+        const WATCH_TIME_EXTENSION = 20000;
+
+        const buffs = {
+            coffee: { endTime: 0, blinkTimer: null, indicator: coffeeBuffIndicator, duration: COFFEE_BUFF_DURATION },
+            pizza: { endTime: 0, blinkTimer: null, indicator: pizzaBuffIndicator, duration: PIZZA_BUFF_DURATION },
+            kangaroo: { endTime: 0, blinkTimer: null, indicator: kangarooBuffIndicator, duration: KANGAROO_BUFF_DURATION, isEnding: false }
+        };
 
         // Kangaroo bounce state
         let distanceTraveledOnCurrentBounce = 0;
@@ -227,11 +288,15 @@
         const BOUNCE_HEIGHT = 60;
         let jiggleEndTime = 0;
         
-        // NEW: Thought bubble positioning state
+        // --- THOUGHT BUBBLE STATE ---
         let bubbleAngle = -Math.PI / 2;
         let targetBubbleAngle = -Math.PI / 2;
         let riseStartTime = 0;
         let bounceEndTime = 0;
+        let thoughtTimeoutStartTime = 0;
+        let thoughtTimeoutDuration = 0;
+        let thoughtTimeoutRemaining = 0;
+        let isMouseOverBubble = false;
 
         // --- WORLD SYSTEM (Paths, Grass, Pebbles) ---
         let pathGrid;
@@ -283,7 +348,7 @@
         function applyWearToPoint(x, y, distanceSegment, wearMultiplier) {
              const centerX = Math.floor(x / GRID_CELL_SIZE);
              const centerY = Math.floor(y / GRID_CELL_SIZE);
-             const wearRadius = isPizzaBuffActive ? 2 : 1;
+             const wearRadius = (buffs.pizza.endTime > Date.now()) ? 2 : 1;
 
              for(let i = -wearRadius; i <= wearRadius; i++) {
                 for (let j = -wearRadius; j <= wearRadius; j++) {
@@ -302,6 +367,36 @@
                             drawPathCell(gridX, gridY);
                             
                             if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && Math.random() < 0.01) {
+                                spawnPebble(gridX, gridY);
+                            }
+                        }
+                    }
+                }
+             }
+        }
+        
+        // NEW: Specific high-impact wear for kangaroo landing
+        function applyLandingImpact(x, y) {
+            const centerX = Math.floor(x / GRID_CELL_SIZE);
+            const centerY = Math.floor(y / GRID_CELL_SIZE);
+            const KANGAROO_IMPACT_WEAR = 15;
+            const impactRadius = 2;
+
+             for(let i = -impactRadius; i <= impactRadius; i++) {
+                for (let j = -impactRadius; j <= impactRadius; j++) {
+                    if (i*i + j*j > impactRadius * impactRadius) continue;
+                    
+                    const gridX = centerX + i;
+                    const gridY = centerY + j;
+
+                    if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
+                        const cell = pathGrid[gridX][gridY];
+                        const oldWear = cell.wear;
+                        cell.wear = Math.min(MAX_WEAR, cell.wear + KANGAROO_IMPACT_WEAR);
+
+                        if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                            drawPathCell(gridX, gridY);
+                             if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && Math.random() < 0.01) {
                                 spawnPebble(gridX, gridY);
                             }
                         }
@@ -416,14 +511,11 @@
             }
         }
 
-        function drawCircle() {
-            let verticalOffset = 0;
+        function drawCircle(verticalOffset) {
             let scaleFactor = 1;
             
-            // MODIFIED: Removed target check so it bounces while idle
-            if (isKangarooBuffActive) {
+            if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
                 const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
-                verticalOffset = Math.sin(bounceProgress) * BOUNCE_HEIGHT;
                 scaleFactor = 1 - Math.sin(bounceProgress) * 0.2;
             }
 
@@ -472,7 +564,7 @@
                     circle.targetY = null;
                     circle.dx = (Math.random() - 0.5) * 2;
                     circle.dy = (Math.random() - 0.5) * 2;
-                    if(isKangarooBuffActive) distanceTraveledOnCurrentBounce = 0;
+                    if(buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) distanceTraveledOnCurrentBounce = 0;
                     scheduleNextIdleThought();
                 } else {
                     circle.dx = vecX / distanceToTarget;
@@ -491,13 +583,15 @@
             circle.x += circle.dx * distanceMoved;
             circle.y += circle.dy * distanceMoved;
             
-            if (isKangarooBuffActive) {
-                // MODIFIED: Removed target check so it applies wear while idle
+            if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
                 distanceTraveledOnCurrentBounce += distanceMoved;
                 if (distanceTraveledOnCurrentBounce >= BOUNCE_DISTANCE) {
-                    applyWearToPoint(circle.x, circle.y, BOUNCE_DISTANCE, WEAR_PER_PIXEL * 1.7);
+                    applyLandingImpact(circle.x, circle.y);
                     jiggleEndTime = Date.now();
                     distanceTraveledOnCurrentBounce = 0;
+                    if (buffs.kangaroo.isEnding) {
+                        deactivateBuff('kangaroo', true); // Force deactivation after landing
+                    }
                 }
             } else {
                  updatePathBasedOnMovement(circle.previousX, circle.previousY, circle.x, circle.y);
@@ -522,6 +616,7 @@
 
             if (lastFrameTime === 0) {
                 lastFrameTime = currentTime;
+                return;
             }
             const deltaTime = (currentTime - lastFrameTime) / 1000;
             lastFrameTime = currentTime;
@@ -531,29 +626,31 @@
             updateMood(deltaTime);
             updateCirclePosition(deltaTime);
             updateGrassVisibility();
+            updateBuffs();
             
-            drawCircle();
+            let verticalOffset = 0;
+            if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
+                const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
+                verticalOffset = Math.sin(bounceProgress) * BOUNCE_HEIGHT;
+            }
+            drawCircle(verticalOffset);
 
             if (thoughtBubble.style.display === 'block') {
                 const bubbleWidth = thoughtBubble.offsetWidth;
                 const bubbleHeight = thoughtBubble.offsetHeight;
-
                 const SAFE_MARGIN = 10;
                 const finalOrbitRadius = circle.radius + bubbleHeight / 2 + 5;
-                
                 let bestAngle = targetBubbleAngle;
                 const startAngle = -Math.PI / 2;
                 for (let offset = 0; offset < Math.PI; offset += 0.1) {
                     let angle = startAngle + offset;
                     let testX = circle.x + Math.cos(angle) * finalOrbitRadius;
                     let testY = circle.y + Math.sin(angle) * finalOrbitRadius;
-
                     if (testX - bubbleWidth / 2 > SAFE_MARGIN && testX + bubbleWidth / 2 < window.innerWidth - SAFE_MARGIN &&
                         testY - bubbleHeight / 2 > SAFE_MARGIN && testY + bubbleHeight / 2 < window.innerHeight - SAFE_MARGIN) {
                         bestAngle = angle;
                         break;
                     }
-
                     angle = startAngle - offset;
                     testX = circle.x + Math.cos(angle) * finalOrbitRadius;
                     testY = circle.y + Math.sin(angle) * finalOrbitRadius;
@@ -564,13 +661,10 @@
                     }
                 }
                 targetBubbleAngle = bestAngle;
-
                 bubbleAngle = lerp(bubbleAngle, targetBubbleAngle, 0.1);
-
                 let currentOrbitRadius = finalOrbitRadius;
                 let verticalBob = 0;
                 const animTime = Date.now();
-
                 if (riseStartTime > 0 && animTime - riseStartTime < 400) {
                     const riseProgress = (animTime - riseStartTime) / 400;
                     currentOrbitRadius = lerp(circle.radius, finalOrbitRadius, riseProgress);
@@ -584,10 +678,8 @@
                         verticalBob = Math.sin(animTime / 400) * -3;
                     }
                 }
-
                 const bubbleCenterX = circle.x + Math.cos(bubbleAngle) * currentOrbitRadius;
-                const bubbleCenterY = circle.y + Math.sin(bubbleAngle) * currentOrbitRadius + verticalBob;
-
+                const bubbleCenterY = circle.y - verticalOffset + Math.sin(bubbleAngle) * currentOrbitRadius + verticalBob;
                 thoughtBubble.style.left = `${bubbleCenterX}px`;
                 thoughtBubble.style.top = `${bubbleCenterY}px`;
             }
@@ -598,24 +690,23 @@
         function showThought(emoji, duration = 2000) {
             clearTimeout(thoughtTimeout);
             clearTimeout(fadeTimeout);
-            
             thoughtBubble.classList.remove('is-rising');
-            void thoughtBubble.offsetWidth; // Trigger reflow
+            void thoughtBubble.offsetWidth;
             thoughtBubble.classList.add('is-rising');
-            
             riseStartTime = Date.now();
-            
             if (thoughtBubble.style.display === 'block') {
                 bounceEndTime = Date.now() + 300;
             }
-            
             thoughtBubble.innerHTML = `<span>${emoji}</span>`;
             thoughtBubble.style.opacity = 1;
             thoughtBubble.style.display = 'block';
-
+            thoughtTimeoutStartTime = Date.now();
+            thoughtTimeoutDuration = duration;
             thoughtTimeout = setTimeout(() => {
-                thoughtBubble.style.opacity = 0;
-                fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
+                if (!isMouseOverBubble) {
+                    thoughtBubble.style.opacity = 0;
+                    fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
+                }
             }, duration);
         }
 
@@ -647,108 +738,89 @@
             clearInterval(madThoughtTimer);
         }
         
-        // --- BUFF FUNCTIONS ---
-        function activateCoffeeBuff() {
-            if(isCoffeeBuffActive) return;
-            isCoffeeBuffActive = true;
-            circle.speed *= 1.3;
-            currentWearPerPixel *= 2;
-
-            coffeeBuffIndicator.textContent = '☕';
-            coffeeBuffIndicator.className = 'buff-indicator';
-            coffeeBuffIndicator.style.display = 'block';
-
-            clearTimeout(thoughtTimeout);
-            clearTimeout(fadeTimeout);
-            thoughtBubble.style.display = 'none';
-
-            coffeeBuffBlinkTimer = setTimeout(() => {
-                coffeeBuffIndicator.classList.add('blinking');
-            }, COFFEE_BUFF_DURATION - 3000);
-
-            coffeeBuffTimer = setTimeout(deactivateCoffeeBuff, COFFEE_BUFF_DURATION);
+        // --- BUFF & ITEM FUNCTIONS ---
+        function updateItemBar() {
+            if (watchCount > 0) {
+                itemBar.classList.add('visible');
+                watchItemButton.textContent = `⌚x${watchCount}`;
+            } else {
+                itemBar.classList.remove('visible');
+            }
         }
 
-        function deactivateCoffeeBuff() {
-            if(!isCoffeeBuffActive) return;
-            isCoffeeBuffActive = false;
-            circle.speed /= 1.3;
-            currentWearPerPixel = WEAR_PER_PIXEL;
-            
-            coffeeBuffIndicator.className = 'buff-indicator blip-out';
-            coffeeBuffIndicator.addEventListener('animationend', () => {
-                coffeeBuffIndicator.style.display = 'none';
-                coffeeBuffIndicator.className = 'buff-indicator';
-            }, { once: true });
-
-            clearTimeout(coffeeBuffBlinkTimer);
-        }
-
-        function activatePizzaBuff() {
-            if(isPizzaBuffActive) return;
-            isPizzaBuffActive = true;
-            circle.radius *= 1.3;
-
-            pizzaBuffIndicator.textContent = '🍕';
-            pizzaBuffIndicator.className = 'buff-indicator';
-            pizzaBuffIndicator.style.display = 'block';
-
-            clearTimeout(thoughtTimeout);
-            clearTimeout(fadeTimeout);
-            thoughtBubble.style.display = 'none';
-
-            pizzaBuffBlinkTimer = setTimeout(() => {
-                pizzaBuffIndicator.classList.add('blinking');
-            }, PIZZA_BUFF_DURATION - 3000);
-
-            pizzaBuffTimer = setTimeout(deactivatePizzaBuff, PIZZA_BUFF_DURATION);
-        }
-
-        function deactivatePizzaBuff() {
-            if(!isPizzaBuffActive) return;
-            isPizzaBuffActive = false;
-            circle.radius = circle.baseRadius;
-            
-            pizzaBuffIndicator.className = 'buff-indicator blip-out';
-            pizzaBuffIndicator.addEventListener('animationend', () => {
-                pizzaBuffIndicator.style.display = 'none';
-                pizzaBuffIndicator.className = 'buff-indicator';
-            }, { once: true });
-
-            clearTimeout(pizzaBuffBlinkTimer);
+        function updateBuffs() {
+            const currentTime = Date.now();
+            Object.entries(buffs).forEach(([name, buff]) => {
+                if (buff.endTime > currentTime) {
+                    const remainingSeconds = Math.ceil((buff.endTime - currentTime) / 1000);
+                    const minutes = Math.floor(remainingSeconds / 60);
+                    const seconds = remainingSeconds % 60;
+                    buff.indicator.querySelector('.buff-timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                } else if (buff.indicator.style.display === 'flex') {
+                    deactivateBuff(name);
+                }
+            });
         }
         
-        function activateKangarooBuff() {
-            if(isKangarooBuffActive) return;
-            isKangarooBuffActive = true;
-            distanceTraveledOnCurrentBounce = 0;
+        function addBuffTime(name, duration) {
+            const buff = buffs[name];
+            const wasActive = buff.endTime > Date.now();
+            const baseTime = Math.max(Date.now(), buff.endTime);
+            buff.endTime = baseTime + duration;
 
-            kangarooBuffIndicator.textContent = '🦘';
-            kangarooBuffIndicator.className = 'buff-indicator';
-            kangarooBuffIndicator.style.display = 'block';
+            if (!wasActive) {
+                if (name === 'coffee') {
+                    circle.speed *= 1.3;
+                    currentWearPerPixel *= 2;
+                } else if (name === 'pizza') {
+                    circle.radius *= 1.3;
+                } else if (name === 'kangaroo') {
+                    distanceTraveledOnCurrentBounce = 0;
+                }
+            }
 
-            clearTimeout(thoughtTimeout);
-            clearTimeout(fadeTimeout);
-            thoughtBubble.style.display = 'none';
+            buff.indicator.style.display = 'flex';
+            buff.indicator.classList.remove('blinking', 'blip-out');
+            clearTimeout(buff.blinkTimer);
 
-            kangarooBuffBlinkTimer = setTimeout(() => {
-                kangarooBuffIndicator.classList.add('blinking');
-            }, KANGAROO_BUFF_DURATION - 3000);
-
-            kangarooBuffTimer = setTimeout(deactivateKangarooBuff, KANGAROO_BUFF_DURATION);
+            const remainingTime = buff.endTime - Date.now();
+            if (remainingTime > 3000) {
+                 buff.blinkTimer = setTimeout(() => {
+                    if(buff.endTime > Date.now()) {
+                       buff.indicator.classList.add('blinking');
+                    }
+                }, remainingTime - 3000);
+            } else {
+                 buff.indicator.classList.add('blinking');
+            }
         }
+        
+        function deactivateBuff(name, force = false) {
+            const buff = buffs[name];
+            if (buff.endTime === 0) return;
 
-        function deactivateKangarooBuff() {
-            if(!isKangarooBuffActive) return;
-            isKangarooBuffActive = false;
+            if (name === 'kangaroo' && !force) {
+                buff.isEnding = true;
+                return;
+            }
+
+            if (name === 'coffee') {
+                if (circle.speed > 120) circle.speed /= 1.3;
+                currentWearPerPixel = WEAR_PER_PIXEL;
+            } else if (name === 'pizza') {
+                circle.radius = circle.baseRadius;
+            }
             
-            kangarooBuffIndicator.className = 'buff-indicator blip-out';
-            kangarooBuffIndicator.addEventListener('animationend', () => {
-                kangarooBuffIndicator.style.display = 'none';
-                kangarooBuffIndicator.className = 'buff-indicator';
+            if(name === 'kangaroo') buff.isEnding = false;
+
+            buff.endTime = 0;
+            buff.indicator.classList.add('blip-out');
+            buff.indicator.addEventListener('animationend', () => {
+                buff.indicator.style.display = 'none';
+                buff.indicator.className = 'buff-indicator';
             }, { once: true });
 
-            clearTimeout(kangarooBuffBlinkTimer);
+            clearTimeout(buff.blinkTimer);
         }
 
 
@@ -764,7 +836,6 @@
                 const tuft = document.createElement('span');
                 const xPos = Math.random() * 100;
                 const yPos = Math.random() * 100;
-
                 tuft.classList.add('grass-tuft');
                 tuft.textContent = grassTypes[Math.floor(Math.random() * grassTypes.length)];
                 tuft.style.color = grassColors[Math.floor(Math.random() * grassColors.length)];
@@ -773,7 +844,6 @@
                 tuft.style.fontSize = `${Math.random() * 0.8 + 0.5}rem`;
                 tuft.style.opacity = Math.random() * 0.5 + 0.4;
                 field.appendChild(tuft);
-                
                 grassTufts.push({
                     element: tuft,
                     x: xPos / 100 * mainCanvas.width,
@@ -787,7 +857,6 @@
         window.addEventListener('resize', () => {
             mainCanvas.width = pathCanvas.width = pebbleCanvas.width = window.innerWidth;
             mainCanvas.height = pathCanvas.height = pebbleCanvas.height = window.innerHeight;
-            
             initWorldSystem();
             generateGrassField();
             pebbles.forEach(drawPebble);
@@ -857,12 +926,51 @@
         thoughtBubble.addEventListener('click', (event) => {
             event.stopPropagation();
             const emoji = thoughtBubble.querySelector('span').textContent;
-            if (emoji === '☕') {
-                activateCoffeeBuff();
-            } else if (emoji === '🍕') {
-                activatePizzaBuff();
-            } else if (emoji === '🦘') {
-                activateKangarooBuff();
+            
+            const buffMap = { '☕': 'coffee', '🍕': 'pizza', '🦘': 'kangaroo' };
+            
+            if (buffMap[emoji]) {
+                const buffName = buffMap[emoji];
+                addBuffTime(buffName, buffs[buffName].duration);
+            } else if (emoji === '⌚') {
+                watchCount++;
+                updateItemBar();
+            }
+            clearTimeout(thoughtTimeout);
+            clearTimeout(fadeTimeout);
+            thoughtBubble.style.display = 'none';
+            isMouseOverBubble = false;
+        });
+        
+        thoughtBubble.addEventListener('mouseenter', () => {
+            isMouseOverBubble = true;
+            thoughtTimeoutRemaining = thoughtTimeoutDuration - (Date.now() - thoughtTimeoutStartTime);
+            clearTimeout(thoughtTimeout);
+            clearTimeout(fadeTimeout);
+        });
+        
+        thoughtBubble.addEventListener('mouseleave', () => {
+            isMouseOverBubble = false;
+            thoughtTimeout = setTimeout(() => {
+                thoughtBubble.style.opacity = 0;
+                fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
+            }, Math.max(0, thoughtTimeoutRemaining));
+        });
+        
+        watchItemButton.addEventListener('click', () => {
+            if (watchCount > 0) {
+                watchCount--;
+                updateItemBar();
+                watchItemButton.classList.add('clicked');
+                watchItemButton.addEventListener('animationend', () => {
+                    watchItemButton.classList.remove('clicked');
+                }, { once: true });
+
+                Object.entries(buffs).forEach(([name, buff]) => {
+                    if (buff.endTime > Date.now()) {
+                        addBuffTime(name, WATCH_TIME_EXTENSION);
+                    }
+                });
             }
         });
 
