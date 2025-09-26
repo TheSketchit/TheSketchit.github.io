@@ -63,7 +63,7 @@
             border: 2px solid #ccc;
             border-radius: 50%;
             backdrop-filter: blur(3px);
-            transition: opacity 0.3s ease-in-out; 
+            transition: opacity 0.3s ease-in-out, left 0.2s linear, top 0.2s linear; 
             user-select: none; /* Prevent text selection */
             z-index: 4; /* Ensure bubble is on top of everything */
             cursor: pointer; /* Show it's clickable */
@@ -123,7 +123,7 @@
         #item-bar.visible {
             bottom: 0;
         }
-        #watch-item-button {
+        .item-button {
             background-color: #333;
             border: 2px solid #888;
             border-radius: 5px;
@@ -132,11 +132,14 @@
             width: 60px;
             height: 60px;
             cursor: pointer;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
         }
-        #watch-item-button.clicked {
+        .item-button.visible {
+            display: flex;
+        }
+        .item-button.clicked {
             animation: use-item-anim 0.2s ease-out;
         }
 
@@ -194,7 +197,10 @@
             </div>
         </div>
         <div id="item-bar">
-            <button id="watch-item-button">⌚x1</button>
+            <button id="watch-item-button" class="item-button"></button>
+            <button id="coffee-item-button" class="item-button"></button>
+            <button id="pizza-item-button" class="item-button"></button>
+            <button id="kangaroo-item-button" class="item-button"></button>
         </div>
     </div>
 
@@ -208,6 +214,9 @@
         const kangarooBuffIndicator = document.getElementById('buff-indicator-kangaroo');
         const itemBar = document.getElementById('item-bar');
         const watchItemButton = document.getElementById('watch-item-button');
+        const coffeeItemButton = document.getElementById('coffee-item-button');
+        const pizzaItemButton = document.getElementById('pizza-item-button');
+        const kangarooItemButton = document.getElementById('kangaroo-item-button');
 
         const pathCanvas = document.getElementById('pathCanvas');
         const pathCtx = pathCanvas.getContext('2d');
@@ -219,8 +228,8 @@
 
         // --- 2. EMOJI MOODS ---
         const idleEmojis = ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'];
-        const normalEmojis = ['😊', '👍', '👌', '😁'];
-        const warningAnnoyedEmojis = ['😐', '😑', '🤔'];
+        const commandReceivedEmojis = ['🤔','👀'];
+        const warningAnnoyedEmojis = ['😐', '😑'];
         const annoyedEmojis = ['😒', '🙄', '😑', '🤨'];
         const warningMadEmojis = ['😠'];
         const madEmojis = ['😫', '🤡', '👺', '😡'];
@@ -268,13 +277,20 @@
         let thoughtTimeout;
         let fadeTimeout;
         let lastFrameTime = 0;
+        let mousePos = { x: 0, y: 0 };
         
         // --- BUFF & ITEM MANAGEMENT ---
-        let watchCount = 0;
         const COFFEE_BUFF_DURATION = 20000;
         const PIZZA_BUFF_DURATION = 30000;
         const KANGAROO_BUFF_DURATION = 30000;
         const WATCH_TIME_EXTENSION = 20000;
+
+        const items = {
+            watch: { count: 0, button: watchItemButton, emoji: '⌚' },
+            coffee: { count: 0, button: coffeeItemButton, emoji: '☕' },
+            pizza: { count: 0, button: pizzaItemButton, emoji: '🍕' },
+            kangaroo: { count: 0, button: kangarooItemButton, emoji: '🦘' },
+        };
 
         const buffs = {
             coffee: { endTime: 0, blinkTimer: null, indicator: coffeeBuffIndicator, duration: COFFEE_BUFF_DURATION },
@@ -375,7 +391,6 @@
              }
         }
         
-        // NEW: Specific high-impact wear for kangaroo landing
         function applyLandingImpact(x, y) {
             const centerX = Math.floor(x / GRID_CELL_SIZE);
             const centerY = Math.floor(y / GRID_CELL_SIZE);
@@ -678,10 +693,17 @@
                         verticalBob = Math.sin(animTime / 400) * -3;
                     }
                 }
-                const bubbleCenterX = circle.x + Math.cos(bubbleAngle) * currentOrbitRadius;
-                const bubbleCenterY = circle.y - verticalOffset + Math.sin(bubbleAngle) * currentOrbitRadius + verticalBob;
-                thoughtBubble.style.left = `${bubbleCenterX}px`;
-                thoughtBubble.style.top = `${bubbleCenterY}px`;
+                
+                let bubbleTargetX = circle.x + Math.cos(bubbleAngle) * currentOrbitRadius;
+                let bubbleTargetY = circle.y - verticalOffset + Math.sin(bubbleAngle) * currentOrbitRadius + verticalBob;
+                
+                if(isMouseOverBubble) {
+                    bubbleTargetX = lerp(parseFloat(thoughtBubble.style.left) || bubbleTargetX, mousePos.x, 0.2);
+                    bubbleTargetY = lerp(parseFloat(thoughtBubble.style.top) || bubbleTargetY, mousePos.y, 0.2);
+                }
+
+                thoughtBubble.style.left = `${bubbleTargetX}px`;
+                thoughtBubble.style.top = `${bubbleTargetY}px`;
             }
         }
 
@@ -690,6 +712,14 @@
         function showThought(emoji, duration = 2000) {
             clearTimeout(thoughtTimeout);
             clearTimeout(fadeTimeout);
+
+            // Set initial position to prevent flying in
+            const initialOrbitRadius = circle.radius;
+            const initialX = circle.x + Math.cos(bubbleAngle) * initialOrbitRadius;
+            const initialY = circle.y + Math.sin(bubbleAngle) * initialOrbitRadius;
+            thoughtBubble.style.left = `${initialX}px`;
+            thoughtBubble.style.top = `${initialY}px`;
+
             thoughtBubble.classList.remove('is-rising');
             void thoughtBubble.offsetWidth;
             thoughtBubble.classList.add('is-rising');
@@ -740,9 +770,18 @@
         
         // --- BUFF & ITEM FUNCTIONS ---
         function updateItemBar() {
-            if (watchCount > 0) {
+            let totalItems = 0;
+            Object.entries(items).forEach(([name, item]) => {
+                if (item.count > 0) {
+                    item.button.classList.add('visible');
+                    item.button.textContent = `${item.emoji}x${item.count}`;
+                    totalItems++;
+                } else {
+                    item.button.classList.remove('visible');
+                }
+            });
+            if (totalItems > 0) {
                 itemBar.classList.add('visible');
-                watchItemButton.textContent = `⌚x${watchCount}`;
             } else {
                 itemBar.classList.remove('visible');
             }
@@ -854,6 +893,11 @@
         }
 
         // --- 7. EVENT LISTENERS & INITIALIZATION ---
+        window.addEventListener('mousemove', (event) => {
+            mousePos.x = event.clientX;
+            mousePos.y = event.clientY;
+        });
+
         window.addEventListener('resize', () => {
             mainCanvas.width = pathCanvas.width = pebbleCanvas.width = window.innerWidth;
             mainCanvas.height = pathCanvas.height = pebbleCanvas.height = window.innerHeight;
@@ -913,7 +957,7 @@
                 } else if (annoyance > WARNING_ANNOYANCE_THRESHOLD) {
                     reactionEmoji = warningAnnoyedEmojis[Math.floor(Math.random() * warningAnnoyedEmojis.length)];
                 } else {
-                    reactionEmoji = normalEmojis[Math.floor(Math.random() * normalEmojis.length)];
+                    reactionEmoji = commandReceivedEmojis[Math.floor(Math.random() * commandReceivedEmojis.length)];
                 }
             }
             showThought(reactionEmoji);
@@ -927,13 +971,11 @@
             event.stopPropagation();
             const emoji = thoughtBubble.querySelector('span').textContent;
             
-            const buffMap = { '☕': 'coffee', '🍕': 'pizza', '🦘': 'kangaroo' };
+            const itemMap = { '☕': 'coffee', '🍕': 'pizza', '🦘': 'kangaroo', '⌚': 'watch' };
             
-            if (buffMap[emoji]) {
-                const buffName = buffMap[emoji];
-                addBuffTime(buffName, buffs[buffName].duration);
-            } else if (emoji === '⌚') {
-                watchCount++;
+            if (itemMap[emoji]) {
+                const itemName = itemMap[emoji];
+                items[itemName].count++;
                 updateItemBar();
             }
             clearTimeout(thoughtTimeout);
@@ -957,9 +999,22 @@
             }, Math.max(0, thoughtTimeoutRemaining));
         });
         
+        Object.entries(items).forEach(([name, item]) => {
+            if (name === 'watch') return;
+            item.button.addEventListener('click', () => {
+                if(item.count > 0) {
+                    item.count--;
+                    updateItemBar();
+                    item.button.classList.add('clicked');
+                    item.button.addEventListener('animationend', () => item.button.classList.remove('clicked'), { once: true });
+                    addBuffTime(name, buffs[name].duration);
+                }
+            });
+        });
+
         watchItemButton.addEventListener('click', () => {
-            if (watchCount > 0) {
-                watchCount--;
+            if (items.watch.count > 0) {
+                items.watch.count--;
                 updateItemBar();
                 watchItemButton.classList.add('clicked');
                 watchItemButton.addEventListener('animationend', () => {
