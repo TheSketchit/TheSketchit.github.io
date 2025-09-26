@@ -3,70 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wander Dot</title>
+    <title>WanderDot's World</title>
     <style>
-        /* Basic styles for the page */
-        body {
-            margin: 0;
-            overflow: hidden; /* Prevents scrollbars from appearing */
-            background-color: #013220; /* Dark green for the field */
-            font-family: monospace; /* A font that suits ASCII art */
-            cursor: default; /* Use a standard cursor */
+        /* --- 1. CSS VARIABLES & SETUP --- */
+        :root {
+            --color-field-bg: #013220;
+            --color-ui-bg: rgba(0, 0, 0, 0.4);
+            --color-ui-border: #ccc;
+            --color-text: white;
+            --color-eureka-glow: gold;
+            --color-thought-bg: rgba(25, 25, 112, 0.5);
+            --font-main: monospace;
         }
 
-        /* Container for all canvas and grass elements */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--color-field-bg);
+            font-family: var(--font-main);
+            cursor: default;
+            user-select: none; /* Prevent selection globally */
+        }
+
+        /* --- 2. WORLD CONTAINERS & LAYERS --- */
         #world-container {
             position: relative;
             width: 100vw;
             height: 100vh;
         }
 
-        /* Container for the grass elements */
         #grass-field {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             overflow: hidden;
-            pointer-events: none; /* Allows clicks to pass through to the canvas */
+            pointer-events: none;
             z-index: 0;
         }
 
-        /* Individual grass tufts */
         .grass-tuft {
             position: absolute;
-            user-select: none;
             font-weight: bold;
         }
 
-        /* The canvas elements will be stacked */
         canvas {
             display: block;
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
         }
 
-        #mainCanvas { z-index: 3; } /* Circle and UI elements */
-        #pebbleCanvas { z-index: 2; } /* Pebbles, Mushrooms */
-        #pathCanvas { z-index: 1; } /* Dirt Path */
+        #pathCanvas { z-index: 1; }
+        #pebbleCanvas { z-index: 2; }
+        #mainCanvas { z-index: 3; }
 
+        /* --- 3. UI ELEMENTS --- */
 
-        /* Styling for the thought bubble */
+        /* Thought Bubble */
         #thought-bubble {
             position: absolute;
-            display: none; /* Hidden by default */
-            font-size: 2.5rem; /* Size of the emoji */
-            padding: 0.6rem; /* Reduced padding */
-            background-color: rgba(25, 25, 112, 0.5);
-            border: 2px solid #ccc;
+            display: none;
+            font-size: 2.5rem;
+            padding: 0.6rem;
+            background-color: var(--color-thought-bg);
+            border: 2px solid var(--color-ui-border);
             border-radius: 50%;
             backdrop-filter: blur(3px);
-            transition: opacity 0.3s ease-in-out, left 0.2s linear, top 0.2s linear; 
-            user-select: none; /* Prevent text selection */
-            z-index: 4; /* Ensure bubble is on top of everything */
-            cursor: pointer; /* Show it's clickable */
+            /* Faster tracking transition for smoother movement */
+            transition: opacity 0.3s ease-in-out, left 0.1s linear, top 0.1s linear; 
+            z-index: 4;
+            cursor: pointer;
             transform: translate(-50%, -50%); 
         }
 
@@ -78,21 +83,21 @@
             pointer-events: none;
         }
 
+        /* Buff Container (Top Right) */
         #buff-container {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: 20px; right: 20px;
             display: flex;
             flex-direction: row-reverse;
-            gap: 15px; /* Increased gap for timers */
+            gap: 15px;
+            z-index: 5;
         }
 
         .buff-indicator {
-             display: none;
-             flex-direction: column;
-             align-items: center;
-             z-index: 5;
-             text-shadow: 0 0 5px black;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-shadow: 0 0 5px black;
         }
         
         .buff-icon {
@@ -102,22 +107,23 @@
 
         .eureka-state .buff-icon {
             border-radius: 5px;
-            box-shadow: 0 0 8px 3px gold;
+            box-shadow: 0 0 8px 3px var(--color-eureka-glow);
         }
 
         .buff-timer {
             font-size: 0.8rem;
-            color: white;
+            color: var(--color-text);
             margin-top: 2px;
         }
         
+        /* Item Bar (Bottom Center) */
         #item-bar {
             position: absolute;
             bottom: -100px; /* Start off-screen */
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.4);
-            border: 2px solid #ccc;
+            background-color: var(--color-ui-bg);
+            border: 2px solid var(--color-ui-border);
             border-bottom: none;
             border-radius: 10px 10px 0 0;
             padding: 5px;
@@ -126,41 +132,44 @@
             z-index: 5;
             transition: bottom 0.4s ease-in-out;
         }
+
         #item-bar.visible {
             bottom: 0;
         }
+
         .item-button {
             background-color: #333;
             border: 2px solid #888;
             border-radius: 5px;
-            color: white;
+            color: var(--color-text);
             font-size: 1rem;
-            width: 60px;
-            height: 60px;
+            width: 60px; height: 60px;
             cursor: pointer;
             display: none;
             align-items: center;
             justify-content: center;
         }
+
         .item-button.visible {
             display: flex;
         }
+
         .item-button.clicked {
             animation: use-item-anim 0.2s ease-out;
         }
         
+        /* World Timer (Top Left) */
         #timer-container {
             position: absolute;
-            top: 10px;
-            left: 10px;
+            top: 10px; left: 10px;
             z-index: 5;
             display: flex;
             align-items: center;
-            flex-direction: row;
         }
+
         #timer-icon {
             font-size: 1.2rem;
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: var(--color-ui-bg);
             border: 2px solid rgba(204, 204, 204, 0.5);
             padding: 5px;
             border-radius: 4px;
@@ -168,13 +177,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 1.8rem;
-            height: 1.8rem;
+            width: 1.8rem; height: 1.8rem;
         }
+
         #world-timer {
             margin-left: 10px;
             font-size: 0.9rem;
-            color: white;
+            color: var(--color-text);
             text-shadow: 0 0 5px black;
             background-color: rgba(128, 128, 128, 0.3);
             padding: 8px 12px;
@@ -183,24 +192,18 @@
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+            transition: opacity 0.3s ease-in-out;
         }
+
         #timer-container:hover #world-timer {
             opacity: 1;
             visibility: visible;
         }
 
-
-        /* Keyframe animations */
+        /* --- 4. KEYFRAME ANIMATIONS --- */
         @keyframes rise-up {
-            from {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.4);
-            }
-            to {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
 
         @keyframes blink {
@@ -234,1131 +237,1806 @@
         <canvas id="pathCanvas"></canvas>
         <canvas id="pebbleCanvas"></canvas>
         <canvas id="mainCanvas"></canvas>
+        
         <div id="thought-bubble"></div>
         <div id="timer-container">
             <div id="timer-icon">🕰️</div>
             <div id="world-timer"></div>
         </div>
-        <div id="buff-container">
-            <div id="buff-indicator-eureka" class="buff-indicator">
-                <span class="buff-icon">💡</span>
-                <div class="buff-timer"></div>
-            </div>
-            <div id="buff-indicator-coffee" class="buff-indicator">
-                <span class="buff-icon">☕</span>
-                <div class="buff-timer"></div>
-            </div>
-            <div id="buff-indicator-pizza" class="buff-indicator">
-                <span class="buff-icon">🍕</span>
-                <div class="buff-timer"></div>
-            </div>
-            <div id="buff-indicator-kangaroo" class="buff-indicator">
-                <span class="buff-icon">🦘</span>
-                <div class="buff-timer"></div>
-            </div>
-        </div>
-        <div id="item-bar">
-            <button id="watch-item-button" class="item-button"></button>
-            <button id="coffee-item-button" class="item-button"></button>
-            <button id="pizza-item-button" class="item-button"></button>
-            <button id="kangaroo-item-button" class="item-button"></button>
-            <button id="lightbulb-item-button" class="item-button"></button>
-        </div>
+        <div id="buff-container"></div>
+        <div id="item-bar"></div>
     </div>
 
     <script>
-        // --- 1. SETUP ---
-        const mainCanvas = document.getElementById('mainCanvas');
-        const ctx = mainCanvas.getContext('2d');
-        const thoughtBubble = document.getElementById('thought-bubble');
-        const coffeeBuffIndicator = document.getElementById('buff-indicator-coffee');
-        const pizzaBuffIndicator = document.getElementById('buff-indicator-pizza');
-        const kangarooBuffIndicator = document.getElementById('buff-indicator-kangaroo');
-        const itemBar = document.getElementById('item-bar');
-        const watchItemButton = document.getElementById('watch-item-button');
-        const coffeeItemButton = document.getElementById('coffee-item-button');
-        const pizzaItemButton = document.getElementById('pizza-item-button');
-        const kangarooItemButton = document.getElementById('kangaroo-item-button');
-        const lightbulbItemButton = document.getElementById('lightbulb-item-button');
-        const worldTimerElement = document.getElementById('world-timer');
+        // ====================================================================
+        // 0. CONFIGURATION & UTILITIES
+        // ====================================================================
 
-        const pathCanvas = document.getElementById('pathCanvas');
-        const pathCtx = pathCanvas.getContext('2d');
-        const pebbleCanvas = document.getElementById('pebbleCanvas');
-        const pebbleCtx = pebbleCanvas.getContext('2d');
-        
-        mainCanvas.width = pathCanvas.width = pebbleCanvas.width = window.innerWidth;
-        mainCanvas.height = pathCanvas.height = pebbleCanvas.height = window.innerHeight;
+        const Config = {
+            SAVE_KEY: 'WanderDot_Refactored_Save',
+            SAVE_INTERVAL: 10000, // ms
 
-        // --- 2. EMOJI MOODS ---
-        const idleEmojis = ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'];
-        let idleEmojiHistory = [];
-        const commandReceivedEmojis = ['🤔','👀'];
-        const warningAnnoyedEmojis = ['😐', '😑'];
-        const annoyedEmojis = ['😒', '🙄', '😑', '🤨'];
-        const warningMadEmojis = ['😠'];
-        const madEmojis = ['😫', '🤡', '👺', '😡'];
-        const madZoneEmojis = ['👿', '☠️', '👎', '🤬'];
-        const cooldownToAnnoyedEmoji = ['😤'];
-        const cooldownToNormalEmoji = ['🥰'];
-        const directClickEmojis = ['😘', '🤭', '😛', '😳', '🥵', '🍆', '💦'];
-
-
-        // --- 3. THE CIRCLE & STATE MANAGEMENT ---
-        let circle = {
-            x: mainCanvas.width / 2,
-            y: mainCanvas.height / 2,
-            radius: 20,
-            baseRadius: 20,
-            color: '#FFFFE0',
-            dx: (Math.random() - 0.5) * 2,
-            dy: (Math.random() - 0.5) * 2,
-            speed: 120,
-            baseSpeed: 120,
-            targetX: null,
-            targetY: null,
-            previousX: mainCanvas.width / 2,
-            previousY: mainCanvas.height / 2,
-        };
-
-        // Mood state
-        let annoyance = 0;
-        const WARNING_ANNOYANCE_THRESHOLD = 25;
-        const ANNOYANCE_THRESHOLD = 40;
-        const WARNING_MAD_THRESHOLD = 68;
-        const MAD_THRESHOLD = 75;
-        let previousMoodState = 'normal';
-        let currentMoodState = 'normal';
-        let isCalm = false;
-        let isCoolingDownFromAnnoyed = false; 
-
-        // Color definitions
-        const COLOR_NORMAL = { r: 255, g: 255, b: 224 };
-        const COLOR_ANNOYED = { r: 255, g: 165, b: 0 };
-        const COLOR_MAD = { r: 152, g: 14, b: 11 };
-
-        let lastClickTime = 0;
-        let idleThoughtTimer;
-        let madThoughtTimer;
-        let thoughtTimeout;
-        let fadeTimeout;
-        let lastFrameTime = 0;
-        let mousePos = { x: 0, y: 0 };
-        const worldCreationTime = Date.now();
-        
-        // --- BUFF & ITEM MANAGEMENT ---
-        const COFFEE_BUFF_DURATION = 20000;
-        const PIZZA_BUFF_DURATION = 30000;
-        const KANGAROO_BUFF_DURATION = 30000;
-        const EUREKA_BUFF_DURATION = 30000;
-        const WATCH_TIME_EXTENSION = 20000;
-
-        const items = {
-            watch: { count: 0, button: watchItemButton, emoji: '⌚' },
-            coffee: { count: 0, button: coffeeItemButton, emoji: '☕' },
-            pizza: { count: 0, button: pizzaItemButton, emoji: '🍕' },
-            kangaroo: { count: 0, button: kangarooItemButton, emoji: '🦘' },
-            lightbulb: { count: 0, button: lightbulbItemButton, emoji: '💡'}
-        };
-
-        const buffs = {
-            coffee: { endTime: 0, blinkTimer: null, indicator: coffeeBuffIndicator, duration: COFFEE_BUFF_DURATION, isEureka: false },
-            pizza: { endTime: 0, blinkTimer: null, indicator: pizzaBuffIndicator, duration: PIZZA_BUFF_DURATION, isEureka: false },
-            kangaroo: { endTime: 0, blinkTimer: null, indicator: kangarooBuffIndicator, duration: KANGAROO_BUFF_DURATION, isEnding: false, isEureka: false }
-        };
-        
-        // --- UFO & MUSHROOM STATE ---
-        let ufo = { active: false, x: 0, y: 0, speed: 300, direction: 1 };
-        let mushrooms = [];
-
-        // Kangaroo bounce state
-        let distanceTraveledOnCurrentBounce = 0;
-        const BOUNCE_DISTANCE = 120;
-        const BOUNCE_HEIGHT = 60;
-        let jiggleEndTime = 0;
-        
-        // --- THOUGHT BUBBLE STATE ---
-        let bubbleAngle = -Math.PI / 2;
-        let targetBubbleAngle = -Math.PI / 2;
-        let riseStartTime = 0;
-        let bounceEndTime = 0;
-        let thoughtTimeoutStartTime = 0;
-        let thoughtTimeoutDuration = 0;
-        let thoughtTimeoutRemaining = 0;
-        let isMouseOverBubble = false;
-
-        // --- PARTICLE SYSTEM ---
-        let particles = [];
-        
-        // --- WORLD SYSTEM (Paths, Grass, Pebbles) ---
-        let pathGrid;
-        const GRID_CELL_SIZE = 10;
-        const MAX_WEAR = 100;
-        const WEAR_PER_PIXEL = 0.05; 
-        let currentWearPerPixel = WEAR_PER_PIXEL; 
-        const GRASS_REMOVAL_THRESHOLD = MAX_WEAR * 0.5;
-        const PEBBLE_SPAWN_THRESHOLD = MAX_WEAR * 0.7;
-
-        const COLOR_FIELD = { r: 1, g: 50, b: 32 };
-        const COLOR_DIRT = { r: 101, g: 67, b: 33 };
-        const COLOR_ALIEN_GRASS = { r: 123, g: 104, b: 238 };
-        const COLOR_ALIEN_DIRT = { r: 199, g: 21, b: 133 };
-
-        let grassTufts = [];
-        let pebbles = [];
-        const pebbleChars = ['..', '.-.', ".;'", '-_,`', ':'];
-        const pebbleColors = ['#000000', '#1C1C1C', '#2A1A10', '#3D2B1F'];
-
-        function initWorldSystem() {
-            const gridWidth = Math.ceil(mainCanvas.width / GRID_CELL_SIZE);
-            const gridHeight = Math.ceil(mainCanvas.height / GRID_CELL_SIZE);
-
-            pathGrid = new Array(gridWidth);
-            for (let i = 0; i < gridWidth; i++) {
-                pathGrid[i] = new Array(gridHeight).fill(0).map(() => ({ wear: 0, hasPebble: false, terrainType: 'normal' }));
-            }
+            // Mood Thresholds
+            WARNING_ANNOYANCE_THRESHOLD: 25,
+            ANNOYANCE_THRESHOLD: 40,
+            MAD_THRESHOLD: 75,
             
-            pathCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
-            pebbleCtx.clearRect(0, 0, pebbleCanvas.width, pebbleCanvas.height);
+            // Colors
+            COLOR_NORMAL: { r: 255, g: 255, b: 224 },
+            COLOR_ANNOYED: { r: 255, g: 165, b: 0 },
+            COLOR_MAD: { r: 152, g: 14, b: 11 },
+            COLOR_FIELD: { r: 1, g: 50, b: 32 },
+            COLOR_DIRT: { r: 101, g: 67, b: 33 },
+            COLOR_ALIEN_GRASS: { r: 123, g: 104, b: 238 },
+            COLOR_ALIEN_DIRT: { r: 199, g: 21, b: 133 },
 
-            grassTufts = [];
-            pebbles = [];
-            mushrooms = [];
-        }
-        
-        function updatePathBasedOnMovement(startX, startY, endX, endY) {
-            const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
-            const steps = Math.ceil(distance / (GRID_CELL_SIZE / 2));
-            if (steps === 0) return;
+            // World Grid
+            GRID_CELL_SIZE: 10,
+            MAX_WEAR: 100,
+            WEAR_PER_PIXEL: 0.05,
+            GRASS_REMOVAL_THRESHOLD: 50,
+            PEBBLE_SPAWN_THRESHOLD: 70,
+            GRASS_TUFT_COUNT: 300,
 
-            for (let i = 0; i <= steps; i++) {
-                const t = i / steps;
-                const currentX = lerp(startX, endX, t);
-                const currentY = lerp(startY, endY, t);
-                
-                applyWearToPoint(currentX, currentY, distance/steps, currentWearPerPixel);
+            // WanderDot Base Stats
+            BASE_SPEED: 120,
+            BASE_RADIUS: 20,
+
+            // Kangaroo Mechanics
+            BOUNCE_DISTANCE: 120,
+            BOUNCE_HEIGHT: 60,
+            BASE_IMPACT_WEAR: 15,
+
+            // Buffs & Items Configuration
+            WATCH_TIME_EXTENSION: 20000,
+            Items: {
+                watch: { emoji: '⌚', type: 'utility' },
+                coffee: { emoji: '☕', type: 'buff', duration: 20000 },
+                pizza: { emoji: '🍕', type: 'buff', duration: 30000 },
+                kangaroo: { emoji: '🦘', type: 'buff', duration: 30000 },
+                lightbulb: { emoji: '💡', type: 'utility' },
+            },
+
+            // Emojis
+            Emojis: {
+                idle: ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'],
+                commandReceived: ['🤔','👀'],
+                annoyed: ['😒', '🙄', '😑', '🤨'],
+                mad: ['😫', '🤡', '👺', '😡'],
+                madZone: ['👿', '☠️', '👎', '🤬'],
+                cooldownToAnnoyed: ['😤'],
+                cooldownToNormal: ['🥰'],
+                // Flustered progression on direct click
+                directClick: ['😘', '🤭', '😛', '😳', '🥵', '🍆', '💦'],
             }
-        }
-        
-        function applyWearToPoint(x, y, distanceSegment, wearMultiplier) {
-             const centerX = Math.floor(x / GRID_CELL_SIZE);
-             const centerY = Math.floor(y / GRID_CELL_SIZE);
-             const wearRadius = (buffs.pizza.endTime > Date.now()) ? 2 : 1;
+        };
 
-             for(let i = -wearRadius; i <= wearRadius; i++) {
-                for (let j = -wearRadius; j <= wearRadius; j++) {
-                    if (i*i + j*j > wearRadius * wearRadius) continue;
+        const Utils = {
+            lerp(start, end, amount) {
+                return start * (1 - amount) + end * amount;
+            },
+            lerpColor(colorA, colorB, amount) {
+                const r = Math.round(Utils.lerp(colorA.r, colorB.r, amount));
+                const g = Math.round(Utils.lerp(colorA.g, colorB.g, amount));
+                const b = Math.round(Utils.lerp(colorA.b, colorB.b, amount));
+                return `rgb(${r}, ${g}, ${b})`;
+            },
+            randomChoice(arr) {
+                return arr[Math.floor(Math.random() * arr.length)];
+            },
+            distance(x1, y1, x2, y2) {
+                return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            },
+            clamp(num, min, max) {
+                return Math.max(min, Math.min(max, num));
+            }
+        };
+
+        // ====================================================================
+        // 1. WORLD MANAGER (Environment, Paths, Grass, Persistence)
+        // ====================================================================
+
+        class WorldManager {
+            constructor(width, height, pathCtx, pebbleCtx) {
+                this.width = width;
+                this.height = height;
+                this.pathCtx = pathCtx;
+                this.pebbleCtx = pebbleCtx;
+
+                this.pathGrid = [];
+                this.grassGrid = []; // Optimization: Spatial partitioning for grass
+                this.grassTufts = [];
+                this.pebbles = [];
+                this.mushrooms = [];
+                this.needsPebbleRedraw = true;
+
+                this.initializeGrid();
+            }
+
+            // Initialize grid dimensions based on current screen size
+            initializeGrid() {
+                const gridWidth = Math.ceil(this.width / Config.GRID_CELL_SIZE);
+                const gridHeight = Math.ceil(this.height / Config.GRID_CELL_SIZE);
+
+                const newPathGrid = [];
+                const newGrassGrid = [];
+
+                for (let i = 0; i < gridWidth; i++) {
+                    newPathGrid[i] = [];
+                    newGrassGrid[i] = [];
+                    for (let j = 0; j < gridHeight; j++) {
+                        // Preserve existing data if resizing (Fixes the resize bug)
+                        if (this.pathGrid[i] && this.pathGrid[i][j]) {
+                            newPathGrid[i][j] = this.pathGrid[i][j];
+                        } else {
+                            newPathGrid[i][j] = { wear: 0, hasPebble: false, terrainType: 'normal' };
+                        }
+                        newGrassGrid[i][j] = []; // Grass grid is rebuilt during generation
+                    }
+                }
+                this.pathGrid = newPathGrid;
+                this.grassGrid = newGrassGrid;
+            }
+
+            // Load data from persistence
+            loadState(saveData) {
+                this.pebbles = saveData.pebbles ?? [];
+                this.mushrooms = saveData.mushrooms ?? [];
+                this.needsPebbleRedraw = true;
+
+                const loadedGrid = saveData.pathGrid;
+                if (!loadedGrid || loadedGrid.length === 0) return;
+
+                // Merge loaded grid data onto the current grid dimensions
+                const gridWidth = this.pathGrid.length;
+                const gridHeight = this.pathGrid[0].length;
+                const loadedWidth = loadedGrid.length;
+                const loadedHeight = loadedGrid[0]?.length || 0;
+
+                for (let i = 0; i < Math.min(gridWidth, loadedWidth); i++) {
+                    for (let j = 0; j < Math.min(gridHeight, loadedHeight); j++) {
+                        if (loadedGrid[i][j]) {
+                            this.pathGrid[i][j] = loadedGrid[i][j];
+                        }
+                    }
+                }
+            }
+
+            // Save data for persistence
+            saveState() {
+                // Cloning ensures data integrity if the game continues running during the save process
+                const clonedPathGrid = this.pathGrid.map(row => row.map(cell => ({...cell})));
+                return {
+                    pathGrid: clonedPathGrid,
+                    pebbles: this.pebbles,
+                    mushrooms: this.mushrooms,
+                };
+            }
+
+            handleResize(width, height) {
+                this.width = width;
+                this.height = height;
+                this.initializeGrid();
+                this.generateGrassField();
+                this.redrawWorld();
+            }
+
+            redrawWorld() {
+                this.pathCtx.clearRect(0, 0, this.width, this.height);
+                for (let i = 0; i < this.pathGrid.length; i++) {
+                    for (let j = 0; j < this.pathGrid[i].length; j++) {
+                        const cell = this.pathGrid[i][j];
+                        if (cell.wear > 0 || cell.terrainType !== 'normal') {
+                            this.drawPathCell(i, j);
+                        }
+                    }
+                }
+                this.needsPebbleRedraw = true;
+                this.drawPebblesAndMushrooms();
+            }
+
+            // --- GRASS MANAGEMENT (Optimized) ---
+            generateGrassField() {
+                const field = document.getElementById('grass-field');
+                field.innerHTML = '';
+                this.grassTufts = [];
+                const grassTypes = ['^^', '^^^', '/\\/\\', '-^-', 'vV'];
+                const grassColors = ['#228B22', '#3CB371', '#6B8E23', '#556B2F'];
+
+                for (let i = 0; i < Config.GRASS_TUFT_COUNT; i++) {
+                    const tuftEl = document.createElement('span');
+                    // Use VW/VH for relative positioning, calculate pixels for logic
+                    const xVw = Math.random() * 100;
+                    const yVh = Math.random() * 100;
+                    const xPx = xVw / 100 * this.width;
+                    const yPx = yVh / 100 * this.height;
+
+                    // Setup DOM element
+                    tuftEl.classList.add('grass-tuft');
+                    tuftEl.textContent = Utils.randomChoice(grassTypes);
+                    tuftEl.style.color = Utils.randomChoice(grassColors);
+                    tuftEl.style.left = `${xVw}vw`;
+                    tuftEl.style.top = `${yVh}vh`;
+                    tuftEl.style.fontSize = `${Math.random() * 0.8 + 0.5}rem`;
+                    tuftEl.style.opacity = Math.random() * 0.5 + 0.4;
+                    field.appendChild(tuftEl);
                     
-                    const gridX = centerX + i;
-                    const gridY = centerY + j;
+                    const tuftData = { element: tuftEl, x: xPx, y: yPx, visible: true };
+                    this.grassTufts.push(tuftData);
 
-                    if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
-                        const cell = pathGrid[gridX][gridY];
-                        const oldWear = cell.wear;
+                    // Assign to Grass Grid (Spatial Partitioning)
+                    const gridX = Math.floor(xPx / Config.GRID_CELL_SIZE);
+                    const gridY = Math.floor(yPx / Config.GRID_CELL_SIZE);
+
+                    if (this.isValidCell(gridX, gridY)) {
+                        this.grassGrid[gridX][gridY].push(tuftData);
                         
-                        cell.wear = Math.min(MAX_WEAR, cell.wear + (wearMultiplier * distanceSegment));
-
-                        if (Math.floor(cell.wear) > Math.floor(oldWear)) {
-                            drawPathCell(gridX, gridY);
-                            
-                            if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && cell.terrainType === 'normal' && Math.random() < 0.01) {
-                                spawnPebble(gridX, gridY);
-                            }
+                        // Check visibility immediately based on existing path data (Handles loading/resizing)
+                        if (this.pathGrid[gridX][gridY].wear > Config.GRASS_REMOVAL_THRESHOLD) {
+                            this.hideTuft(tuftData);
                         }
                     }
                 }
-             }
-        }
-        
-        function applyLandingImpact(x, y) {
-            const centerX = Math.floor(x / GRID_CELL_SIZE);
-            const centerY = Math.floor(y / GRID_CELL_SIZE);
-            let baseImpactWear = 15;
-
-            // Correctly apply synergistic effects
-            const coffeePotency = buffs.coffee.isEureka ? 2.0 : 1.0;
-            const kangarooPotency = buffs.kangaroo.isEureka ? 2.0 : 1.0;
-            
-            if (buffs.coffee.endTime > Date.now()) {
-                baseImpactWear *= (1 + 1.0 * coffeePotency); // Coffee doubles wear (+100%), Eureka doubles that bonus (+200% -> 3x total)
-            }
-            if(buffs.kangaroo.endTime > Date.now()) {
-                 baseImpactWear *= (1 + 0.3 * kangarooPotency); // Kangaroo Eureka doubles the 30% bonus to 60%
             }
 
-            if (currentMoodState === 'mad') {
-                baseImpactWear *= 1.7;
-                spawnLandingParticles(x, y);
-                wiggleNearbyGrass(x,y);
-            }
+            // Optimized: Update grass only when wear threshold is crossed
+            updateGrassInCell(gridX, gridY) {
+                const tufts = this.grassGrid[gridX]?.[gridY];
+                if (!tufts) return;
 
-            const impactRadius = 2.5;
-
-             for(let i = -Math.ceil(impactRadius); i <= Math.ceil(impactRadius); i++) {
-                for (let j = -Math.ceil(impactRadius); j <= Math.ceil(impactRadius); j++) {
-                    const distance = Math.sqrt(i * i + j * j);
-                    if (distance > impactRadius) continue;
-
-                    const gridX = centerX + i;
-                    const gridY = centerY + j;
-
-                    if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
-                        const falloff = 1 - (distance / impactRadius);
-                        const wearAmount = baseImpactWear * falloff;
-                        const cell = pathGrid[gridX][gridY];
-                        const oldWear = cell.wear;
-                        cell.wear = Math.min(MAX_WEAR, cell.wear + wearAmount);
-
-                        if (Math.floor(cell.wear) > Math.floor(oldWear)) {
-                            drawPathCell(gridX, gridY);
-                             if (!cell.hasPebble && cell.wear > PEBBLE_SPAWN_THRESHOLD && cell.terrainType === 'normal' && Math.random() < 0.01) {
-                                spawnPebble(gridX, gridY);
-                            }
-                        }
+                tufts.forEach(tuft => {
+                    if (tuft.visible) {
+                        this.hideTuft(tuft);
                     }
-                }
-             }
-             
-             // Destroy mushrooms
-             for(let i = mushrooms.length - 1; i >= 0; i--) {
-                const m = mushrooms[i];
-                const distToMushroom = Math.sqrt(Math.pow(m.x - x, 2) + Math.pow(m.y - y, 2));
-                if (distToMushroom < circle.radius * 2) {
-                    mushrooms.splice(i, 1);
-                }
-             }
-        }
-
-
-        function drawPathCell(gridX, gridY) {
-            const cell = pathGrid[gridX][gridY];
-            const wearRatio = cell.wear / MAX_WEAR;
-            let baseColor, targetColor;
-
-            if (cell.terrainType === 'alien') {
-                baseColor = COLOR_ALIEN_GRASS;
-                targetColor = COLOR_ALIEN_DIRT;
-            } else {
-                baseColor = COLOR_FIELD;
-                targetColor = COLOR_DIRT;
+                });
             }
 
-            const pathColor = lerpColor(baseColor, targetColor, wearRatio);
-            const pathOpacity = Math.max(wearRatio * 0.8, cell.terrainType === 'alien' ? 0.2 : 0);
-
-            pathCtx.fillStyle = pathColor;
-            pathCtx.globalAlpha = pathOpacity;
-            pathCtx.clearRect(gridX * GRID_CELL_SIZE, gridY * GRID_CELL_SIZE, GRID_CELL_SIZE, GRID_CELL_SIZE);
-            pathCtx.fillRect(gridX * GRID_CELL_SIZE, gridY * GRID_CELL_SIZE, GRID_CELL_SIZE, GRID_CELL_SIZE);
-            pathCtx.globalAlpha = 1.0;
-        }
-
-        function spawnPebble(gridX, gridY) {
-            pathGrid[gridX][gridY].hasPebble = true;
-            const pebble = {
-                x: gridX * GRID_CELL_SIZE + Math.random() * GRID_CELL_SIZE,
-                y: gridY * GRID_CELL_SIZE + Math.random() * GRID_CELL_SIZE,
-                char: pebbleChars[Math.floor(Math.random() * pebbleChars.length)],
-                color: pebbleColors[Math.floor(Math.random() * pebbleColors.length)]
-            };
-            pebbles.push(pebble);
-        }
-
-        function spawnMushroom(gridX, gridY) {
-            const mushroom = {
-                x: gridX * GRID_CELL_SIZE + (GRID_CELL_SIZE / 2),
-                y: gridY * GRID_CELL_SIZE + (GRID_CELL_SIZE / 2),
-                gridX, gridY
-            };
-            // Prevent duplicates
-            if(!mushrooms.some(m => m.gridX === gridX && m.gridY === gridY)) {
-                mushrooms.push(mushroom);
+            hideTuft(tuftData) {
+                tuftData.element.style.display = 'none';
+                tuftData.visible = false;
             }
-        }
-        
-        function drawPebblesAndMushrooms() {
-            pebbleCtx.clearRect(0, 0, pebbleCanvas.width, pebbleCanvas.height);
-            pebbleCtx.font = 'bold 0.7rem monospace';
-            pebbles.forEach(p => {
-                pebbleCtx.fillStyle = p.color;
-                pebbleCtx.globalAlpha = 0.8;
-                pebbleCtx.fillText(p.char, p.x, p.y);
-            });
 
-            pebbleCtx.font = '1rem monospace';
-            mushrooms.forEach(m => {
-                 pebbleCtx.globalAlpha = 1.0;
-                 pebbleCtx.fillText('🍄', m.x, m.y);
-            });
-            pebbleCtx.globalAlpha = 1.0;
-        }
-        
-        function alterGround(x, y) {
-            const centerX = Math.floor(x / GRID_CELL_SIZE);
-            const centerY = Math.floor(y / GRID_CELL_SIZE);
-            const alterRadius = 3;
-
-             for(let i = -alterRadius; i <= alterRadius; i++) {
-                for (let j = -alterRadius; j <= alterRadius; j++) {
-                     if (i*i + j*j > alterRadius * alterRadius) continue;
-                     const gridX = centerX + i;
-                     const gridY = centerY + j;
-
-                     if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
-                        const cell = pathGrid[gridX][gridY];
-                        if(cell.terrainType !== 'alien') {
-                           cell.terrainType = 'alien';
-                           drawPathCell(gridX, gridY);
-                        }
-                        if(Math.random() < 0.05) { // Increased mushroom chance
-                            spawnMushroom(gridX, gridY);
-                        }
-                     }
-                }
-             }
-        }
-
-        function updateGrassVisibility() {
-            grassTufts.forEach(tuft => {
-                if (tuft.visible) {
-                    const gridX = Math.floor(tuft.x / GRID_CELL_SIZE);
-                    const gridY = Math.floor(tuft.y / GRID_CELL_SIZE);
-                    if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
-                        if (pathGrid[gridX][gridY].wear > GRASS_REMOVAL_THRESHOLD) {
-                            tuft.element.style.display = 'none';
-                            tuft.visible = false;
-                        }
-                    }
-                }
-            });
-        }
-        
-        function wiggleNearbyGrass(x, y) {
-            const WIGGLE_RADIUS = 70;
-            grassTufts.forEach(tuft => {
-                if(tuft.visible) {
-                    const dist = Math.sqrt(Math.pow(tuft.x - x, 2) + Math.pow(tuft.y - y, 2));
-                    if(dist < WIGGLE_RADIUS) {
+            wiggleNearbyGrass(x, y) {
+                const WIGGLE_RADIUS = 70;
+                // Iterating all tufts here is okay as it's an infrequent event (mad landing)
+                this.grassTufts.forEach(tuft => {
+                    if (tuft.visible && Utils.distance(tuft.x, tuft.y, x, y) < WIGGLE_RADIUS) {
                         tuft.element.style.animation = 'wiggle 0.5s ease-out';
                         tuft.element.addEventListener('animationend', () => {
                             tuft.element.style.animation = '';
                         }, { once: true });
                     }
+                });
+            }
+
+            // --- WEAR AND TEAR ---
+
+            isValidCell(gridX, gridY) {
+                return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && gridY < this.pathGrid[0].length;
+            }
+
+            applyMovementWear(startX, startY, endX, endY, buffManager) {
+                const distance = Utils.distance(startX, startY, endX, endY);
+                // Interpolate movement for contiguous paths
+                const steps = Math.ceil(distance / (Config.GRID_CELL_SIZE / 2));
+                if (steps === 0) return;
+
+                const buffs = buffManager.getActiveBuffs();
+                let wearMultiplier = Config.WEAR_PER_PIXEL;
+                
+                // Coffee increases wear rate
+                if (buffs.coffee) {
+                    wearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
                 }
-            });
-        }
+                // Pizza increases wear radius
+                const wearRadius = buffs.pizza ? 2 : 1;
 
-        // --- 4. ANIMATION & MOOD LOGIC ---
-
-        function lerp(start, end, amount) {
-            return start * (1 - amount) + end * amount;
-        }
-
-        function lerpColor(colorA, colorB, amount) {
-            const r = Math.round(lerp(colorA.r, colorB.r, amount));
-            const g = Math.round(lerp(colorA.g, colorB.g, amount));
-            const b = Math.round(lerp(colorA.b, colorB.b, amount));
-            return `rgb(${r}, ${g}, ${b})`;
-        }
-
-        function getMoodState(annoyanceValue) {
-            if (annoyanceValue > MAD_THRESHOLD) return 'mad';
-            if (annoyanceValue > ANNOYANCE_THRESHOLD) return 'annoyed';
-            return 'normal';
-        }
-
-        function updateMood(deltaTime) {
-            if (annoyance > 0) {
-                const cooldownPerSecond = (annoyance > MAD_THRESHOLD) ? 1.8 : 3.0;
-                annoyance = Math.max(0, annoyance - (cooldownPerSecond * deltaTime));
-            }
-
-            currentMoodState = getMoodState(annoyance);
-
-            if (currentMoodState !== previousMoodState) {
-                if (previousMoodState === 'mad' && currentMoodState === 'annoyed') {
-                    showThought(cooldownToAnnoyedEmoji[0]);
-                    stopMadTimer();
-                } else if (previousMoodState === 'annoyed' && currentMoodState === 'normal') {
-                    isCoolingDownFromAnnoyed = true;
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const currentX = Utils.lerp(startX, endX, t);
+                    const currentY = Utils.lerp(startY, endY, t);
+                    
+                    this.applyWearToArea(currentX, currentY, wearRadius, (distance/steps) * wearMultiplier);
                 }
-                previousMoodState = currentMoodState;
-            }
-            
-            if (isCoolingDownFromAnnoyed && annoyance < 1) {
-                showThought(cooldownToNormalEmoji[0]);
-                isCalm = true;
-                isCoolingDownFromAnnoyed = false;
             }
 
-            if (annoyance > MAD_THRESHOLD) {
-                circle.color = `rgb(${COLOR_MAD.r}, ${COLOR_MAD.g}, ${COLOR_MAD.b})`;
-                circle.currentSpeedMultiplier = 0.3;
-            } else if (annoyance > ANNOYANCE_THRESHOLD) {
-                const transitionAmount = (annoyance - ANNOYANCE_THRESHOLD) / (MAD_THRESHOLD - ANNOYANCE_THRESHOLD);
-                circle.color = lerpColor(COLOR_ANNOYED, COLOR_MAD, transitionAmount);
-                circle.currentSpeedMultiplier = lerp(0.5, 0.3, transitionAmount);
-            } else {
-                const transitionAmount = annoyance / ANNOYANCE_THRESHOLD;
-                circle.color = lerpColor(COLOR_NORMAL, COLOR_ANNOYED, transitionAmount);
-                circle.currentSpeedMultiplier = lerp(1.0, 0.5, transitionAmount);
+            applyLandingImpact(x, y, moodState, buffManager) {
+                let impactWear = Config.BASE_IMPACT_WEAR;
+                const buffs = buffManager.getActiveBuffs();
+
+                // Synergistic effects
+                if (buffs.coffee) {
+                    // Coffee: +100% wear. Eureka doubles bonus to +200% (3x total).
+                    impactWear *= (1 + 1.0 * buffs.coffee.potency);
+                }
+                if (buffs.kangaroo) {
+                    // Kangaroo: +30% wear. Eureka doubles bonus to +60%.
+                    impactWear *= (1 + 0.3 * buffs.kangaroo.potency);
+                }
+
+                // Mood effects
+                if (moodState === 'mad') {
+                    impactWear *= 1.7;
+                    this.wiggleNearbyGrass(x, y);
+                    // Access ParticleSystem via the Game singleton
+                    Game.instance.particleManager.spawnLandingParticles(x, y);
+                }
+
+                const impactRadius = 2.5;
+                this.applyWearToArea(x, y, impactRadius, impactWear, true);
+                // Destroy mushrooms near impact, using base radius for consistency
+                this.destroyMushrooms(x, y, Config.BASE_RADIUS * 2); 
+            }
+
+            applyWearToArea(x, y, radius, wearAmount, useFalloff = false) {
+                const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
+                const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
+                const radiusSq = radius * radius;
+
+                // Iterate over bounding box defined by radius
+                for (let i = -Math.ceil(radius); i <= Math.ceil(radius); i++) {
+                    for (let j = -Math.ceil(radius); j <= Math.ceil(radius); j++) {
+                        const distSq = i * i + j * j;
+                        
+                        // Handle circular radius checks
+                        if (!useFalloff && distSq > radiusSq) continue; 
+                        
+                        const distance = Math.sqrt(distSq);
+                        if (useFalloff && distance > radius) continue;
+
+                        const gridX = centerX + i;
+                        const gridY = centerY + j;
+
+                        if (this.isValidCell(gridX, gridY)) {
+                            const cell = this.pathGrid[gridX][gridY];
+                            const oldWear = cell.wear;
+                            
+                            let effectiveWear = wearAmount;
+                            if (useFalloff) {
+                                const falloff = 1 - (distance / radius);
+                                effectiveWear *= falloff;
+                            }
+
+                            cell.wear = Math.min(Config.MAX_WEAR, cell.wear + effectiveWear);
+
+                            // Check if wear increased enough to warrant an update
+                            if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                                this.drawPathCell(gridX, gridY);
+                                this.trySpawnPebble(gridX, gridY, cell);
+
+                                // Optimization: Check if grass threshold was crossed
+                                if (cell.wear > Config.GRASS_REMOVAL_THRESHOLD && oldWear <= Config.GRASS_REMOVAL_THRESHOLD) {
+                                    this.updateGrassInCell(gridX, gridY);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- RENDERING & SPAWNING ---
+            drawPathCell(gridX, gridY) {
+                const cell = this.pathGrid[gridX][gridY];
+                const wearRatio = cell.wear / Config.MAX_WEAR;
+                let baseColor, targetColor;
+
+                if (cell.terrainType === 'alien') {
+                    baseColor = Config.COLOR_ALIEN_GRASS;
+                    targetColor = Config.COLOR_ALIEN_DIRT;
+                } else {
+                    baseColor = Config.COLOR_FIELD;
+                    targetColor = Config.COLOR_DIRT;
+                }
+
+                const pathColor = Utils.lerpColor(baseColor, targetColor, wearRatio);
+                // Alien terrain starts slightly visible even with no wear
+                const pathOpacity = Math.max(wearRatio * 0.8, cell.terrainType === 'alien' ? 0.2 : 0);
+
+                this.pathCtx.fillStyle = pathColor;
+                this.pathCtx.globalAlpha = pathOpacity;
+                // ClearRect is necessary when using globalAlpha to prevent color stacking artifacts if redrawn
+                this.pathCtx.clearRect(gridX * Config.GRID_CELL_SIZE, gridY * Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE);
+                this.pathCtx.fillRect(gridX * Config.GRID_CELL_SIZE, gridY * Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE);
+                this.pathCtx.globalAlpha = 1.0;
+            }
+
+            trySpawnPebble(gridX, gridY, cell) {
+                if (!cell.hasPebble && cell.wear > Config.PEBBLE_SPAWN_THRESHOLD && cell.terrainType === 'normal' && Math.random() < 0.01) {
+                    cell.hasPebble = true;
+                    const pebbleColors = ['#000000', '#1C1C1C', '#2A1A10', '#3D2B1F'];
+                    const pebbleChars = ['..', '.-.', ".;'", '-_,`', ':'];
+                    const pebble = {
+                        x: gridX * Config.GRID_CELL_SIZE + Math.random() * Config.GRID_CELL_SIZE,
+                        y: gridY * Config.GRID_CELL_SIZE + Math.random() * Config.GRID_CELL_SIZE,
+                        char: Utils.randomChoice(pebbleChars),
+                        color: Utils.randomChoice(pebbleColors)
+                    };
+                    this.pebbles.push(pebble);
+                    this.needsPebbleRedraw = true;
+                }
+            }
+
+            spawnMushroom(gridX, gridY) {
+                 if(!this.mushrooms.some(m => m.gridX === gridX && m.gridY === gridY)) {
+                    const mushroom = {
+                        x: gridX * Config.GRID_CELL_SIZE + (Config.GRID_CELL_SIZE / 2),
+                        y: gridY * Config.GRID_CELL_SIZE + (Config.GRID_CELL_SIZE / 2),
+                        gridX, gridY
+                    };
+                    this.mushrooms.push(mushroom);
+                    this.needsPebbleRedraw = true;
+                }
+            }
+
+            destroyMushrooms(x, y, radius) {
+                let destroyed = false;
+                for(let i = this.mushrooms.length - 1; i >= 0; i--) {
+                    const m = this.mushrooms[i];
+                    if (Utils.distance(m.x, m.y, x, y) < radius) {
+                        this.mushrooms.splice(i, 1);
+                        destroyed = true;
+                    }
+                }
+                if (destroyed) this.needsPebbleRedraw = true;
+            }
+
+            // Optimized: Only draw if needed
+            drawPebblesAndMushrooms() {
+                if (!this.needsPebbleRedraw) return;
+
+                this.pebbleCtx.clearRect(0, 0, this.width, this.height);
+                
+                // Draw Pebbles
+                this.pebbleCtx.font = 'bold 0.7rem monospace';
+                this.pebbles.forEach(p => {
+                    this.pebbleCtx.fillStyle = p.color;
+                    this.pebbleCtx.globalAlpha = 0.8;
+                    this.pebbleCtx.fillText(p.char, p.x, p.y);
+                });
+
+                // Draw Mushrooms
+                this.pebbleCtx.font = '1rem monospace';
+                this.pebbleCtx.globalAlpha = 1.0;
+                this.mushrooms.forEach(m => {
+                    this.pebbleCtx.fillText('🍄', m.x, m.y);
+                });
+                
+                this.needsPebbleRedraw = false;
+            }
+
+            // --- UFO/ALIEN TERRAFORMING ---
+            alterGround(x, y) {
+                const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
+                const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
+                const alterRadius = 3;
+
+                for(let i = -alterRadius; i <= alterRadius; i++) {
+                    for (let j = -alterRadius; j <= alterRadius; j++) {
+                        if (i*i + j*j > alterRadius * alterRadius) continue;
+                        
+                        const gridX = centerX + i;
+                        const gridY = centerY + j;
+
+                        if (this.isValidCell(gridX, gridY)) {
+                            const cell = this.pathGrid[gridX][gridY];
+                            if(cell.terrainType !== 'alien') {
+                                cell.terrainType = 'alien';
+                                this.drawPathCell(gridX, gridY);
+                            }
+                            if(Math.random() < 0.05) {
+                                this.spawnMushroom(gridX, gridY);
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        function drawCircle(verticalOffset) {
-            let scaleFactor = 1;
-            
-            if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
-                const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
-                scaleFactor = 1 - Math.sin(bounceProgress) * 0.2;
+        // ====================================================================
+        // 2. WANDERDOT (The Circle and its Mood)
+        // ====================================================================
+
+        class WanderDot {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.previousX = x;
+                this.previousY = y;
+                
+                this.radius = Config.BASE_RADIUS;
+                this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_NORMAL, 0);
+
+                this.speed = Config.BASE_SPEED;
+                this.currentSpeedMultiplier = 1.0;
+
+                this.dx = (Math.random() - 0.5) * 2;
+                this.dy = (Math.random() - 0.5) * 2;
+                this.targetX = null;
+                this.targetY = null;
+
+                // Mood state
+                this.annoyance = 0;
+                this.previousMoodState = 'normal';
+                this.currentMoodState = 'normal';
+                this.isCalm = false;
+                this.isCoolingDownFromAnnoyed = false;
+                
+                // Bounce state
+                this.distanceTraveledOnCurrentBounce = 0;
+                this.jiggleEndTime = 0;
+                this.verticalOffset = 0;
             }
 
-            const currentRadius = circle.radius * scaleFactor;
-            
-            ctx.beginPath();
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-            const shadowY = circle.y + circle.radius + verticalOffset;
-            const shadowRadiusX = currentRadius;
-            const shadowRadiusY = currentRadius / 3;
-            ctx.ellipse(circle.x, shadowY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.closePath();
-            
-            ctx.save();
-            ctx.translate(circle.x, circle.y - verticalOffset);
-            
-            const jiggleDuration = 300;
-            const timeSinceJiggle = Date.now() - jiggleEndTime;
-            if (timeSinceJiggle < jiggleDuration) {
-                const jiggleProgress = timeSinceJiggle / jiggleDuration;
-                let jiggleAmountMultiplier = 0.2;
-                if(currentMoodState === 'mad') jiggleAmountMultiplier = 0.4;
-                const jiggleAmount = Math.sin(jiggleProgress * Math.PI * 2) * (1 - jiggleProgress) * jiggleAmountMultiplier;
-                ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
+            loadState(saveData) {
+                this.annoyance = saveData.annoyance ?? 0;
+                // Position is handled during Game initialization
             }
-            
-            ctx.beginPath();
-            ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
-            ctx.fillStyle = circle.color;
-            ctx.fill();
-            ctx.closePath();
-            
-            ctx.restore();
-        }
 
-        function updateCirclePosition(deltaTime) {
-            circle.previousX = circle.x;
-            circle.previousY = circle.y;
+            saveState() {
+                return {
+                    annoyance: this.annoyance,
+                    x: this.x,
+                    y: this.y
+                };
+            }
 
-            if (circle.targetX !== null && circle.targetY !== null) {
-                const vecX = circle.targetX - circle.x;
-                const vecY = circle.targetY - circle.y;
+            setTarget(x, y) {
+                this.targetX = x;
+                this.targetY = y;
+            }
+
+            clearTarget() {
+                this.targetX = null;
+                this.targetY = null;
+                this.distanceTraveledOnCurrentBounce = 0;
+            }
+
+            update(deltaTime, bounds, buffManager, worldManager) {
+                this.updateMood(deltaTime, buffManager);
+                this.updatePosition(deltaTime, bounds, buffManager, worldManager);
+            }
+
+            // --- MOOD LOGIC ---
+            getMoodState(annoyanceValue) {
+                if (annoyanceValue > Config.MAD_THRESHOLD) return 'mad';
+                if (annoyanceValue > Config.ANNOYANCE_THRESHOLD) return 'annoyed';
+                return 'normal';
+            }
+
+            addAnnoyance(amount, isDirectClick) {
+                let annoyanceToAdd = amount;
+
+                if (this.isCalm) {
+                    annoyanceToAdd = 5; // Reduced annoyance if recently calmed
+                    this.isCalm = false;
+                }
+
+                if (isDirectClick) {
+                    annoyanceToAdd *= 1.5;
+                }
+
+                this.annoyance = Math.min(100, this.annoyance + annoyanceToAdd);
+                return this.getReactionEmoji(isDirectClick);
+            }
+
+            getReactionEmoji(isDirectClick) {
+                if (isDirectClick) {
+                    // Flustered/Aroused progression based on annoyance level
+                    const levels = [20, 30, 45, 60, 75, 90];
+                    let level = Config.Emojis.directClick.length - 1;
+                    for (let i = 0; i < levels.length; i++) {
+                        if (this.annoyance < levels[i]) {
+                            level = i;
+                            break;
+                        }
+                    }
+                    return Config.Emojis.directClick[level];
+                } else {
+                    // Standard command reactions
+                    if (this.annoyance > Config.MAD_THRESHOLD) {
+                        return Utils.randomChoice(Config.Emojis.mad);
+                    } else if (this.annoyance > Config.ANNOYANCE_THRESHOLD) {
+                        return Utils.randomChoice(Config.Emojis.annoyed);
+                    } else {
+                        return Utils.randomChoice(Config.Emojis.commandReceived);
+                    }
+                }
+            }
+
+            updateMood(deltaTime, buffManager) {
+                // 1. Cooldown
+                if (this.annoyance > 0) {
+                    const cooldownPerSecond = (this.annoyance > Config.MAD_THRESHOLD) ? 1.8 : 3.0;
+                    this.annoyance = Math.max(0, this.annoyance - (cooldownPerSecond * deltaTime));
+                }
+
+                // 2. State Change Detection
+                this.currentMoodState = this.getMoodState(this.annoyance);
+
+                let transitionEmoji = null;
+                if (this.currentMoodState !== this.previousMoodState) {
+                    if (this.previousMoodState === 'mad' && this.currentMoodState === 'annoyed') {
+                        transitionEmoji = Config.Emojis.cooldownToAnnoyed[0];
+                    } else if (this.previousMoodState === 'annoyed' && this.currentMoodState === 'normal') {
+                        this.isCoolingDownFromAnnoyed = true;
+                    }
+                    this.previousMoodState = this.currentMoodState;
+                }
+
+                // 3. Cooldown completion
+                if (this.isCoolingDownFromAnnoyed && this.annoyance < 1) {
+                    transitionEmoji = Config.Emojis.cooldownToNormal[0];
+                    this.isCalm = true;
+                    this.isCoolingDownFromAnnoyed = false;
+                }
+
+                // 4. Appearance and Speed Update
+                this.updateAppearance(buffManager);
+
+                return transitionEmoji;
+            }
+
+            updateAppearance(buffManager) {
+                const buffs = buffManager.getActiveBuffs();
+                
+                // Apply Buff Effects
+                let speed = Config.BASE_SPEED;
+                let radius = Config.BASE_RADIUS;
+
+                if (buffs.coffee) {
+                    // +30% speed. Eureka doubles bonus to +60%.
+                    speed *= (1 + 0.3 * buffs.coffee.potency);
+                }
+                if (buffs.pizza) {
+                    // +30% radius. Eureka doubles bonus to +60%.
+                    radius *= (1 + 0.3 * buffs.pizza.potency);
+                }
+
+                this.speed = speed;
+                this.radius = radius;
+
+                // Apply Mood Effects (Color and Speed Multiplier)
+                if (this.annoyance > Config.MAD_THRESHOLD) {
+                    this.color = Utils.lerpColor(Config.COLOR_MAD, Config.COLOR_MAD, 0);
+                    this.currentSpeedMultiplier = 0.3;
+                } else if (this.annoyance > Config.ANNOYANCE_THRESHOLD) {
+                    const t = (this.annoyance - Config.ANNOYANCE_THRESHOLD) / (Config.MAD_THRESHOLD - Config.ANNOYANCE_THRESHOLD);
+                    this.color = Utils.lerpColor(Config.COLOR_ANNOYED, Config.COLOR_MAD, t);
+                    this.currentSpeedMultiplier = Utils.lerp(0.5, 0.3, t);
+                } else {
+                    const t = this.annoyance / Config.ANNOYANCE_THRESHOLD;
+                    this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_ANNOYED, t);
+                    this.currentSpeedMultiplier = Utils.lerp(1.0, 0.5, t);
+                }
+            }
+
+            // --- MOVEMENT LOGIC ---
+            updatePosition(deltaTime, bounds, buffManager, worldManager) {
+                this.previousX = this.x;
+                this.previousY = this.y;
+
+                // 1. Determine direction
+                if (this.targetX !== null) {
+                    this.moveToTarget();
+                } else {
+                    this.wander();
+                }
+
+                // 2. Calculate movement distance
+                const buffs = buffManager.getActiveBuffs();
+                let effectiveSpeed = this.speed * this.currentSpeedMultiplier;
+                
+                if (buffs.kangaroo) {
+                    // Kangaroo speed override (Fixed speed, potential Eureka boost)
+                    effectiveSpeed = Config.BASE_SPEED * (buffs.kangaroo.isEureka ? 1.3 : 1.0);
+                }
+                
+                const distanceMoved = effectiveSpeed * deltaTime;
+
+                // 3. Apply movement
+                this.x += this.dx * distanceMoved;
+                this.y += this.dy * distanceMoved;
+
+                // 4. Handle World Interaction
+                if (buffs.kangaroo) {
+                    this.handleBounce(distanceMoved, buffManager, worldManager);
+                } else {
+                    // Reset vertical offset if Kangaroo buff just ended
+                    this.verticalOffset = 0; 
+                    worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
+                }
+
+                // 5. Boundary Collision
+                this.handleBoundaries(bounds);
+            }
+
+            moveToTarget() {
+                const vecX = this.targetX - this.x;
+                const vecY = this.targetY - this.y;
                 const distanceToTarget = Math.sqrt(vecX * vecX + vecY * vecY);
 
-                if (distanceToTarget < circle.radius) {
-                    circle.targetX = null;
-                    circle.targetY = null;
-                    circle.dx = (Math.random() - 0.5) * 2;
-                    circle.dy = (Math.random() - 0.5) * 2;
-                    if(buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) distanceTraveledOnCurrentBounce = 0;
-                    scheduleNextIdleThought();
+                if (distanceToTarget < this.radius) {
+                    this.clearTarget();
+                    // Randomize direction after reaching target
+                    this.dx = (Math.random() - 0.5) * 2;
+                    this.dy = (Math.random() - 0.5) * 2;
                 } else {
-                    circle.dx = vecX / distanceToTarget;
-                    circle.dy = vecY / distanceToTarget;
+                    this.dx = vecX / distanceToTarget;
+                    this.dy = vecY / distanceToTarget;
                 }
-            } else {
+            }
+
+            wander() {
                 if (Math.random() < 0.015) {
-                    circle.dx = (Math.random() - 0.5) * 2;
-                    circle.dy = (Math.random() - 0.5) * 2;
+                    this.dx = (Math.random() - 0.5) * 2;
+                    this.dy = (Math.random() - 0.5) * 2;
                 }
             }
-            
-            let effectiveSpeed = circle.speed * circle.currentSpeedMultiplier;
-            if(buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
-                effectiveSpeed = circle.baseSpeed * (buffs.kangaroo.isEureka ? 1.3 : 1.0);
-            }
-            const distanceMoved = effectiveSpeed * deltaTime;
-            
-            circle.x += circle.dx * distanceMoved;
-            circle.y += circle.dy * distanceMoved;
-            
-            if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
-                distanceTraveledOnCurrentBounce += distanceMoved;
-                if (distanceTraveledOnCurrentBounce >= BOUNCE_DISTANCE) {
-                    applyLandingImpact(circle.x, circle.y);
-                    jiggleEndTime = Date.now();
-                    distanceTraveledOnCurrentBounce = 0;
-                    if (buffs.kangaroo.isEnding) {
-                        deactivateBuff('kangaroo', true); // Force deactivation after landing
-                    }
+
+            handleBounce(distanceMoved, buffManager, worldManager) {
+                this.distanceTraveledOnCurrentBounce += distanceMoved;
+
+                // Calculate vertical offset
+                let currentBounceHeight = Config.BOUNCE_HEIGHT;
+                if (this.currentMoodState === 'mad') {
+                    currentBounceHeight /= 2; // Mad bounces are lower
                 }
-            } else {
-                 updatePathBasedOnMovement(circle.previousX, circle.previousY, circle.x, circle.y);
-            }
+                const bounceProgress = (this.distanceTraveledOnCurrentBounce / Config.BOUNCE_DISTANCE) * Math.PI;
+                this.verticalOffset = Math.sin(bounceProgress) * currentBounceHeight;
 
-            if (circle.x + circle.radius > mainCanvas.width || circle.x - circle.radius < 0) {
-                circle.dx *= -1;
-                if (circle.targetX) { scheduleNextIdleThought(); }
-                circle.targetX = null;
-                circle.x = Math.max(circle.radius, Math.min(mainCanvas.width - circle.radius, circle.x));
-            }
-            if (circle.y + circle.radius > mainCanvas.height || circle.y - circle.radius < 0) {
-                circle.dy *= -1;
-                if (circle.targetY) { scheduleNextIdleThought(); }
-                circle.targetY = null;
-                circle.y = Math.max(circle.radius, Math.min(mainCanvas.height - circle.radius, circle.y));
-            }
-        }
-        
-        function updateUFO(deltaTime) {
-            if(!ufo.active) return;
-            ufo.x += ufo.speed * ufo.direction * deltaTime;
-            spawnUFOMist(ufo.x, ufo.y);
-            if(Math.random() < 0.1) {
-                alterGround(ufo.x + (Math.random() - 0.5) * 50, ufo.y + (Math.random() - 0.5) * 50);
-            }
-            if(ufo.x < -50 || ufo.x > mainCanvas.width + 50) {
-                ufo.active = false;
-            }
-        }
-        
-        function drawUFO() {
-            if(!ufo.active) return;
-            ctx.font = '4rem monospace';
-            ctx.fillText('🛸', ufo.x, ufo.y);
-        }
-
-        function animate(currentTime) {
-            requestAnimationFrame(animate);
-
-            if (lastFrameTime === 0) {
-                lastFrameTime = currentTime;
-                return;
-            }
-            const deltaTime = (currentTime - lastFrameTime) / 1000;
-            lastFrameTime = currentTime;
-
-            ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-            
-            applyBuffEffects();
-            updateMood(deltaTime);
-            updateCirclePosition(deltaTime);
-            updateGrassVisibility();
-            updateBuffs();
-            updateAndDrawParticles(deltaTime);
-            updateUFO(deltaTime);
-            drawPebblesAndMushrooms();
-            
-            const elapsedTime = Date.now() - worldCreationTime;
-            const elapsedSeconds = Math.floor(elapsedTime / 1000);
-            const minutes = Math.floor(elapsedSeconds / 60);
-            const seconds = elapsedSeconds % 60;
-            let timerText = `Your WanderDot's world has existed for `;
-            if (minutes > 0) {
-                timerText += `${minutes} minute${minutes !== 1 ? 's' : ''} and `;
-            }
-            timerText += `${seconds} second${seconds !== 1 ? 's' : ''}.`;
-            worldTimerElement.textContent = timerText;
-            
-            let verticalOffset = 0;
-            if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
-                let currentBounceHeight = BOUNCE_HEIGHT;
-                if(currentMoodState === 'mad') currentBounceHeight /= 2;
-                const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
-                verticalOffset = Math.sin(bounceProgress) * currentBounceHeight;
-            }
-            drawCircle(verticalOffset);
-            drawUFO();
-
-            if (thoughtBubble.style.display === 'block') {
-                const bubbleWidth = thoughtBubble.offsetWidth;
-                const bubbleHeight = thoughtBubble.offsetHeight;
-                const SAFE_MARGIN = 10;
-                const finalOrbitRadius = circle.radius + bubbleHeight / 2 + 5;
-                let bestAngle = targetBubbleAngle;
-                const startAngle = -Math.PI / 2;
-                for (let offset = 0; offset < Math.PI; offset += 0.1) {
-                    let angle = startAngle + offset;
-                    let testX = circle.x + Math.cos(angle) * finalOrbitRadius;
-                    let testY = circle.y + Math.sin(angle) * finalOrbitRadius;
-                    if (testX - bubbleWidth / 2 > SAFE_MARGIN && testX + bubbleWidth / 2 < window.innerWidth - SAFE_MARGIN &&
-                        testY - bubbleHeight / 2 > SAFE_MARGIN && testY + bubbleHeight / 2 < window.innerHeight - SAFE_MARGIN) {
-                        bestAngle = angle;
-                        break;
-                    }
-                    angle = startAngle - offset;
-                    testX = circle.x + Math.cos(angle) * finalOrbitRadius;
-                    testY = circle.y + Math.sin(angle) * finalOrbitRadius;
-                    if (testX - bubbleWidth / 2 > SAFE_MARGIN && testX + bubbleWidth / 2 < window.innerWidth - SAFE_MARGIN &&
-                        testY - bubbleHeight / 2 > SAFE_MARGIN && testY + bubbleHeight / 2 < window.innerHeight - SAFE_MARGIN) {
-                        bestAngle = angle;
-                        break;
-                    }
+                // Check for landing
+                if (this.distanceTraveledOnCurrentBounce >= Config.BOUNCE_DISTANCE) {
+                    this.land(buffManager, worldManager);
                 }
-                targetBubbleAngle = bestAngle;
-                bubbleAngle = lerp(bubbleAngle, targetBubbleAngle, 0.1);
-                let currentOrbitRadius = finalOrbitRadius;
-                let verticalBob = 0;
-                const animTime = Date.now();
-                if (riseStartTime > 0 && animTime - riseStartTime < 400) {
-                    const riseProgress = (animTime - riseStartTime) / 400;
-                    currentOrbitRadius = lerp(circle.radius, finalOrbitRadius, riseProgress);
-                } else {
-                    riseStartTime = 0;
-                    if (bounceEndTime > 0 && animTime < bounceEndTime) {
-                        const bounceProgress = (animTime - (bounceEndTime - 300)) / 300;
-                        verticalBob = Math.sin(bounceProgress * Math.PI) * -15;
-                    } else {
-                        bounceEndTime = 0;
-                        verticalBob = Math.sin(animTime / 400) * -3;
-                    }
-                }
+            }
+
+            land(buffManager, worldManager) {
+                worldManager.applyLandingImpact(this.x, this.y, this.currentMoodState, buffManager);
                 
-                let bubbleTargetX = circle.x + Math.cos(bubbleAngle) * currentOrbitRadius;
-                let bubbleTargetY = circle.y - verticalOffset + Math.sin(bubbleAngle) * currentOrbitRadius + verticalBob;
-                
-                if(isMouseOverBubble) {
-                    bubbleTargetX = lerp(parseFloat(thoughtBubble.style.left) || bubbleTargetX, mousePos.x, 0.2);
-                    bubbleTargetY = lerp(parseFloat(thoughtBubble.style.top) || bubbleTargetY, mousePos.y, 0.2);
+                this.jiggleEndTime = Date.now();
+                this.verticalOffset = 0;
+                this.distanceTraveledOnCurrentBounce = 0;
+
+                // Check if the buff ended mid-air (isEnding flag)
+                if (buffManager.isKangarooEnding()) {
+                    buffManager.deactivateBuff('kangaroo', true);
+                }
+            }
+
+            handleBoundaries(bounds) {
+                let hitBoundary = false;
+                if (this.x + this.radius > bounds.width || this.x - this.radius < 0) {
+                    this.dx *= -1;
+                    this.x = Utils.clamp(this.x, this.radius, bounds.width - this.radius);
+                    hitBoundary = true;
+                }
+                if (this.y + this.radius > bounds.height || this.y - this.radius < 0) {
+                    this.dy *= -1;
+                    this.y = Utils.clamp(this.y, this.radius, bounds.height - this.radius);
+                    hitBoundary = true;
                 }
 
-                thoughtBubble.style.left = `${bubbleTargetX}px`;
-                thoughtBubble.style.top = `${bubbleTargetY}px`;
+                if (hitBoundary && this.targetX !== null) {
+                    this.clearTarget();
+                }
+            }
+
+            // --- RENDERING ---
+            draw(ctx) {
+                let scaleFactor = 1;
+                // Accessing BuffManager via Game singleton
+                const buffs = Game.instance.buffManager.getActiveBuffs();
+
+                // Squish/Stretch during bounce
+                if (buffs.kangaroo) {
+                    const bounceProgress = (this.distanceTraveledOnCurrentBounce / Config.BOUNCE_DISTANCE) * Math.PI;
+                    scaleFactor = 1 - Math.sin(bounceProgress) * 0.2;
+                }
+
+                const currentRadius = this.radius * scaleFactor;
+
+                // Draw Shadow
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+                // Shadow position relative to the ground (this.y)
+                const shadowY = this.y + this.radius; 
+                // Shadow size slightly affected by height for better perspective
+                const shadowScale = 1 - (this.verticalOffset / (Config.BOUNCE_HEIGHT * 3));
+                const shadowRadiusX = currentRadius * shadowScale;
+                const shadowRadiusY = (currentRadius / 3) * shadowScale;
+                ctx.ellipse(this.x, shadowY, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.closePath();
+
+                // Draw Circle
+                ctx.save();
+                ctx.translate(this.x, this.y - this.verticalOffset);
+
+                // Landing Jiggle Effect
+                const jiggleDuration = 300;
+                const timeSinceJiggle = Date.now() - this.jiggleEndTime;
+                if (timeSinceJiggle < jiggleDuration) {
+                    const jiggleProgress = timeSinceJiggle / jiggleDuration;
+                    let jiggleAmountMultiplier = (this.currentMoodState === 'mad') ? 0.4 : 0.2;
+                    const jiggleAmount = Math.sin(jiggleProgress * Math.PI * 2) * (1 - jiggleProgress) * jiggleAmountMultiplier;
+                    ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
+                }
+
+                ctx.beginPath();
+                ctx.arc(0, 0, currentRadius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+
+                ctx.restore();
             }
         }
 
-        // --- 5. THOUGHT BUBBLE & INTERACTION ---
+        // ====================================================================
+        // 3. BUFF AND ITEM MANAGERS
+        // ====================================================================
 
-        function showThought(emoji, duration = 2000) {
-            clearTimeout(thoughtTimeout);
-            clearTimeout(fadeTimeout);
-
-            const initialOrbitRadius = circle.radius;
-            const initialX = circle.x + Math.cos(bubbleAngle) * initialOrbitRadius;
-            const initialY = circle.y + Math.sin(bubbleAngle) * initialOrbitRadius;
-            thoughtBubble.style.left = `${initialX}px`;
-            thoughtBubble.style.top = `${initialY}px`;
-
-            thoughtBubble.classList.remove('is-rising');
-            void thoughtBubble.offsetWidth;
-            thoughtBubble.classList.add('is-rising');
-            riseStartTime = Date.now();
-            if (thoughtBubble.style.display === 'block') {
-                bounceEndTime = Date.now() + 300;
+        class BuffManager {
+            constructor() {
+                this.buffs = {};
+                this.initializeDefinitions();
             }
-            thoughtBubble.innerHTML = `<span>${emoji}</span>`;
-            thoughtBubble.style.opacity = 1;
-            thoughtBubble.style.display = 'block';
-            thoughtTimeoutStartTime = Date.now();
-            thoughtTimeoutDuration = duration;
-            thoughtTimeout = setTimeout(() => {
-                if (!isMouseOverBubble) {
-                    thoughtBubble.style.opacity = 0;
-                    fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
-                }
-            }, duration);
-        }
 
-        function scheduleNextIdleThought(delay = 7000) {
-            const FADE_DURATION = 300;
-            const IDLE_THOUGHT_DURATION = 4000;
-            const BREAK_DURATION = 7000;
-            clearTimeout(idleThoughtTimer);
-            idleThoughtTimer = setTimeout(() => {
-                if (circle.targetX === null && annoyance < WARNING_ANNOYANCE_THRESHOLD) {
-                    const candidateEmojis = idleEmojis.filter(e => !idleEmojiHistory.includes(e));
-                    const emojiPool = candidateEmojis.length > 0 ? candidateEmojis : idleEmojis;
-                    const nextEmoji = emojiPool[Math.floor(Math.random() * emojiPool.length)];
-
-                    showThought(nextEmoji, IDLE_THOUGHT_DURATION);
-                    
-                    idleEmojiHistory.push(nextEmoji);
-                    if(idleEmojiHistory.length > 3) {
-                        idleEmojiHistory.shift();
+            initializeDefinitions() {
+                // Initialize buff definitions based on Config
+                Object.entries(Config.Items).forEach(([name, data]) => {
+                    if (data.type === 'buff') {
+                        this.buffs[name] = {
+                            endTime: 0,
+                            blinkTimer: null,
+                            duration: data.duration,
+                            isEureka: false,
+                            isEnding: false, // Flag for buffs that need to finish an action (Kangaroo bounce)
+                            emoji: data.emoji,
+                            indicator: null
+                        };
                     }
-                    
-                    scheduleNextIdleThought(IDLE_THOUGHT_DURATION + FADE_DURATION + BREAK_DURATION);
-                } else {
-                    scheduleNextIdleThought(BREAK_DURATION);
-                }
-            }, delay);
-        }
-        
-        function startMadTimer() {
-            stopMadTimer();
-            madThoughtTimer = setInterval(() => {
-                if (getMoodState(annoyance) === 'mad') {
-                    showThought(madZoneEmojis[Math.floor(Math.random() * madZoneEmojis.length)]);
-                }
-            }, 3000);
-        }
-
-        function stopMadTimer() {
-            clearInterval(madThoughtTimer);
-        }
-        
-        // --- BUFF & ITEM FUNCTIONS ---
-        function applyBuffEffects() {
-            let speed = circle.baseSpeed;
-            let radius = circle.baseRadius;
-            let wear = WEAR_PER_PIXEL;
-            
-            if (buffs.coffee.endTime > Date.now()) {
-                const potency = buffs.coffee.isEureka ? 2.0 : 1.0;
-                speed *= (1 + 0.3 * potency);
-                wear *= (1 + 1.0 * potency);
-            }
-            if (buffs.pizza.endTime > Date.now()) {
-                const potency = buffs.pizza.isEureka ? 2.0 : 1.0;
-                radius *= (1 + 0.3 * potency);
-            }
-
-            circle.speed = speed;
-            circle.radius = radius;
-            currentWearPerPixel = wear;
-        }
-
-
-        function updateItemBar() {
-            let totalItems = 0;
-            Object.entries(items).forEach(([name, item]) => {
-                if (item.count > 0) {
-                    item.button.classList.add('visible');
-                    item.button.textContent = `${item.emoji}x${item.count}`;
-                    totalItems++;
-                } else {
-                    item.button.classList.remove('visible');
-                }
-            });
-            if (totalItems > 0) {
-                itemBar.classList.add('visible');
-            } else {
-                itemBar.classList.remove('visible');
-            }
-        }
-
-        function updateBuffs() {
-            const currentTime = Date.now();
-            Object.entries(buffs).forEach(([name, buff]) => {
-                if (buff.endTime > currentTime) {
-                    const remainingSeconds = Math.ceil((buff.endTime - currentTime) / 1000);
-                    const minutes = Math.floor(remainingSeconds / 60);
-                    const seconds = remainingSeconds % 60;
-                    buff.indicator.querySelector('.buff-timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                } else if (buff.indicator.style.display === 'flex') {
-                    deactivateBuff(name);
-                }
-            });
-        }
-        
-        function addBuffTime(name, duration) {
-            const buff = buffs[name];
-            const baseTime = Math.max(Date.now(), buff.endTime);
-            buff.endTime = baseTime + duration;
-
-            buff.indicator.style.display = 'flex';
-            buff.indicator.classList.remove('blinking', 'blip-out');
-            if (buff.isEureka) {
-                buff.indicator.classList.add('eureka-state');
-            }
-            clearTimeout(buff.blinkTimer);
-
-            const remainingTime = buff.endTime - Date.now();
-            if (remainingTime > 3000) {
-                 buff.blinkTimer = setTimeout(() => {
-                    if(buff.endTime > Date.now()) {
-                       buff.indicator.classList.add('blinking');
-                    }
-                }, remainingTime - 3000);
-            } else {
-                 buff.indicator.classList.add('blinking');
-            }
-        }
-        
-        function deactivateBuff(name, force = false) {
-            const buff = buffs[name];
-            if (buff.endTime === 0) return;
-
-            if (name === 'kangaroo' && !force && distanceTraveledOnCurrentBounce > 0) {
-                buff.isEnding = true;
-                return;
-            }
-            
-            buff.isEureka = false; // Reset Eureka state on deactivation
-            if(name === 'kangaroo') buff.isEnding = false;
-
-            buff.endTime = 0;
-            buff.indicator.classList.add('blip-out');
-            buff.indicator.addEventListener('animationend', () => {
-                buff.indicator.style.display = 'none';
-                buff.indicator.className = 'buff-indicator';
-            }, { once: true });
-
-            clearTimeout(buff.blinkTimer);
-        }
-        
-        // --- PARTICLE FUNCTIONS ---
-        function spawnLandingParticles(x, y) {
-            const count = 10;
-            for(let i=0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 50 + 20;
-                particles.push({
-                    type: 'pebble',
-                    x: x,
-                    y: y,
-                    dx: Math.cos(angle) * speed,
-                    dy: Math.sin(angle) * speed,
-                    life: 1, // 1 second life
-                    maxLife: 1
                 });
             }
-        }
 
-        function spawnUFOMist(x, y) {
-            const count = 2;
-             for(let i=0; i < count; i++) {
-                particles.push({
-                    type: 'mist',
-                    x: x + (Math.random() - 0.5) * 80,
-                    y: y + (Math.random() - 0.5) * 40,
-                    dx: (Math.random() - 0.5) * 20,
-                    dy: (Math.random() - 0.5) * 10,
-                    life: 2, 
-                    maxLife: 2
+            initializeUI() {
+                const container = document.getElementById('buff-container');
+                Object.entries(this.buffs).forEach(([name, buff]) => {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'buff-indicator';
+                    indicator.id = `buff-indicator-${name}`;
+                    indicator.innerHTML = `
+                        <span class="buff-icon">${buff.emoji}</span>
+                        <div class="buff-timer"></div>
+                    `;
+                    container.appendChild(indicator);
+                    buff.indicator = indicator;
                 });
             }
-        }
 
-        function updateAndDrawParticles(deltaTime) {
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.dx * deltaTime;
-                p.y += p.dy * deltaTime;
-                p.life -= deltaTime;
-                
-                if(p.life <= 0) {
-                    particles.splice(i, 1);
-                } else {
-                    if(p.type === 'pebble') {
-                        ctx.beginPath();
-                        ctx.fillStyle = `rgba(30, 30, 30, ${0.1 * (p.life / p.maxLife)})`;
-                        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else if (p.type === 'mist') {
-                        ctx.beginPath();
-                        ctx.fillStyle = `rgba(220, 220, 240, ${0.2 * (p.life / p.maxLife)})`;
-                        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
-                        ctx.fill();
+            loadState(saveData) {
+                const now = Date.now();
+                const loadedBuffs = saveData.buffs;
+                if (!loadedBuffs) return;
+
+                Object.entries(loadedBuffs).forEach(([name, data]) => {
+                    if (this.buffs[name] && data.remainingTime > 0) {
+                        this.buffs[name].endTime = now + data.remainingTime;
+                        this.buffs[name].isEureka = data.isEureka;
+                        // Setup UI immediately on load
+                        this.setupBuffIndicator(this.buffs[name]);
+                        this.setupBlinkTimer(this.buffs[name]);
                     }
+                });
+            }
+
+            saveState() {
+                const savedBuffs = {};
+                const now = Date.now();
+                Object.entries(this.buffs).forEach(([name, buff]) => {
+                    if (buff.endTime > now) {
+                        savedBuffs[name] = {
+                            remainingTime: buff.endTime - now,
+                            isEureka: buff.isEureka
+                        };
+                    }
+                });
+                return savedBuffs;
+            }
+
+            update() {
+                const currentTime = Date.now();
+                Object.entries(this.buffs).forEach(([name, buff]) => {
+                    if (buff.endTime > currentTime) {
+                        this.updateTimerDisplay(buff, currentTime);
+                    } else if (buff.indicator.style.display === 'flex' && !buff.isEnding) {
+                        this.deactivateBuff(name);
+                    }
+                });
+            }
+
+            updateTimerDisplay(buff, currentTime) {
+                const remainingSeconds = Math.ceil((buff.endTime - currentTime) / 1000);
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                buff.indicator.querySelector('.buff-timer').textContent = timerText;
+            }
+
+            addBuffTime(name, duration) {
+                const buff = this.buffs[name];
+                if (!buff) return;
+
+                const baseTime = Math.max(Date.now(), buff.endTime);
+                buff.endTime = baseTime + duration;
+                buff.isEnding = false; // Cancel ending state if extended
+
+                this.setupBuffIndicator(buff);
+                this.setupBlinkTimer(buff);
+            }
+
+            setupBuffIndicator(buff) {
+                buff.indicator.style.display = 'flex';
+                buff.indicator.classList.remove('blinking', 'blip-out');
+                if (buff.isEureka) {
+                    buff.indicator.classList.add('eureka-state');
                 }
             }
-        }
 
-        // --- 6. GRASS FIELD GENERATION ---
-        function generateGrassField() {
-            const field = document.getElementById('grass-field');
-            field.innerHTML = '';
-            const grassTypes = ['^^', '^^^', '/\\/\\', '-^-', 'vV'];
-            const grassColors = ['#228B22', '#3CB371', '#6B8E23', '#556B2F'];
-            const tuftCount = 300;
+            setupBlinkTimer(buff) {
+                clearTimeout(buff.blinkTimer);
+                const remainingTime = buff.endTime - Date.now();
+                const BLINK_THRESHOLD = 3000;
 
-            for (let i = 0; i < tuftCount; i++) {
-                const tuft = document.createElement('span');
-                const xPos = Math.random() * 100;
-                const yPos = Math.random() * 100;
-                tuft.classList.add('grass-tuft');
-                tuft.textContent = grassTypes[Math.floor(Math.random() * grassTypes.length)];
-                tuft.style.color = grassColors[Math.floor(Math.random() * grassColors.length)];
-                tuft.style.left = `${xPos}vw`;
-                tuft.style.top = `${yPos}vh`;
-                tuft.style.fontSize = `${Math.random() * 0.8 + 0.5}rem`;
-                tuft.style.opacity = Math.random() * 0.5 + 0.4;
-                field.appendChild(tuft);
-                grassTufts.push({
-                    element: tuft,
-                    x: xPos / 100 * mainCanvas.width,
-                    y: yPos / 100 * mainCanvas.height,
-                    visible: true
-                });
+                if (remainingTime > BLINK_THRESHOLD) {
+                    buff.blinkTimer = setTimeout(() => {
+                        if (buff.endTime > Date.now()) {
+                            buff.indicator.classList.add('blinking');
+                        }
+                    }, remainingTime - BLINK_THRESHOLD);
+                } else if (remainingTime > 0) {
+                    buff.indicator.classList.add('blinking');
+                }
             }
-        }
 
-        // --- 7. EVENT LISTENERS & INITIALIZATION ---
-        window.addEventListener('mousemove', (event) => {
-            mousePos.x = event.clientX;
-            mousePos.y = event.clientY;
-        });
+            deactivateBuff(name, force = false) {
+                const buff = this.buffs[name];
+                
+                // Check if buff is already inactive
+                if (buff.endTime === 0 && !buff.isEnding) return;
 
-        window.addEventListener('resize', () => {
-            mainCanvas.width = pathCanvas.width = pebbleCanvas.width = window.innerWidth;
-            mainCanvas.height = pathCanvas.height = pebbleCanvas.height = window.innerHeight;
-            initWorldSystem();
-            generateGrassField();
-            pebbles.forEach(p => drawPebble(p));
-            mushrooms.forEach(m => drawPebblesAndMushrooms());
-        });
-
-        mainCanvas.addEventListener('click', (event) => {
-            const clickX = event.clientX;
-            const clickY = event.clientY;
-
-            if (thoughtBubble.style.display === 'block') {
-                const bubbleRect = thoughtBubble.getBoundingClientRect();
-                if (clickX >= bubbleRect.left && clickX <= bubbleRect.right &&
-                    clickY >= bubbleRect.top && clickY <= bubbleRect.bottom) {
+                // Special handling for Kangaroo: wait until landing unless forced
+                if (name === 'kangaroo' && !force && Game.instance.wanderDot.verticalOffset > 0.1) {
+                    buff.isEnding = true;
+                    buff.endTime = 0; // Stop the timer display visually
                     return;
                 }
-            }
 
-            clearTimeout(idleThoughtTimer);
-            const currentTime = Date.now();
-            const timeDiff = currentTime - lastClickTime;
-            const distanceToCenter = Math.sqrt(Math.pow(clickX - circle.x, 2) + Math.pow(clickY - circle.y, 2));
-            const isDirectClick = distanceToCenter <= circle.radius;
-            let annoyanceToAdd;
-            if (isCalm) {
-                annoyanceToAdd = 5;
-                isCalm = false;
-            } else {
-                annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff)); 
-            }
-            if(isDirectClick) {
-                annoyanceToAdd *= 1.5;
-            }
-            const oldAnnoyance = annoyance;
-            annoyance = Math.min(100, annoyance + annoyanceToAdd);
-            let reactionEmoji;
-            if (isDirectClick) {
-                if (annoyance < 20) reactionEmoji = directClickEmojis[0];
-                else if (annoyance < 30) reactionEmoji = directClickEmojis[1];
-                else if (annoyance < 45) reactionEmoji = directClickEmojis[2];
-                else if (annoyance < 60) reactionEmoji = directClickEmojis[3];
-                else if (annoyance < 75) reactionEmoji = directClickEmojis[4];
-                else if (annoyance < 90) reactionEmoji = directClickEmojis[5];
-                else reactionEmoji = directClickEmojis[6];
-            } else {
-                if (annoyance > MAD_THRESHOLD) {
-                    reactionEmoji = madEmojis[Math.floor(Math.random() * madEmojis.length)];
-                    if (oldAnnoyance <= MAD_THRESHOLD) {
-                        startMadTimer();
-                    }
-                } else if (annoyance > WARNING_MAD_THRESHOLD) {
-                    reactionEmoji = warningMadEmojis[Math.floor(Math.random() * warningMadEmojis.length)];
-                } else if (annoyance > ANNOYANCE_THRESHOLD) {
-                    reactionEmoji = annoyedEmojis[Math.floor(Math.random() * annoyedEmojis.length)];
-                } else if (annoyance > WARNING_ANNOYANCE_THRESHOLD) {
-                    reactionEmoji = warningAnnoyedEmojis[Math.floor(Math.random() * warningAnnoyedEmojis.length)];
-                } else {
-                    reactionEmoji = commandReceivedEmojis[Math.floor(Math.random() * commandReceivedEmojis.length)];
-                }
-            }
-            showThought(reactionEmoji);
-            circle.targetX = clickX;
-            circle.targetY = clickY;
-            lastClickTime = currentTime;
-            scheduleNextIdleThought();
-        });
-        
-        thoughtBubble.addEventListener('click', (event) => {
-            event.stopPropagation();
-            const emoji = thoughtBubble.querySelector('span').textContent;
-            
-            const itemMap = { '☕': 'coffee', '🍕': 'pizza', '🦘': 'kangaroo', '⌚': 'watch', '💡': 'lightbulb' };
-            
-            if (itemMap[emoji]) {
-                const itemName = itemMap[emoji];
-                items[itemName].count++;
-                updateItemBar();
-            } else if (emoji === '👽' && !ufo.active) {
-                ufo.active = true;
-                ufo.y = Math.random() * (mainCanvas.height * 0.6) + (mainCanvas.height * 0.1);
-                if(Math.random() < 0.5) {
-                    ufo.direction = 1;
-                    ufo.x = -50;
-                } else {
-                    ufo.direction = -1;
-                    ufo.x = mainCanvas.width + 50;
-                }
-            }
+                buff.endTime = 0;
+                buff.isEureka = false;
+                buff.isEnding = false;
+                clearTimeout(buff.blinkTimer);
 
-            clearTimeout(thoughtTimeout);
-            clearTimeout(fadeTimeout);
-            thoughtBubble.style.display = 'none';
-            isMouseOverBubble = false;
-        });
-        
-        thoughtBubble.addEventListener('mouseenter', () => {
-            isMouseOverBubble = true;
-            thoughtTimeoutRemaining = thoughtTimeoutDuration - (Date.now() - thoughtTimeoutStartTime);
-            clearTimeout(thoughtTimeout);
-            clearTimeout(fadeTimeout);
-        });
-        
-        thoughtBubble.addEventListener('mouseleave', () => {
-            isMouseOverBubble = false;
-            thoughtTimeout = setTimeout(() => {
-                thoughtBubble.style.opacity = 0;
-                fadeTimeout = setTimeout(() => { thoughtBubble.style.display = 'none'; }, 300);
-            }, Math.max(0, thoughtTimeoutRemaining));
-        });
-        
-        Object.entries(items).forEach(([name, item]) => {
-            if (['watch', 'lightbulb'].includes(name)) return;
-            item.button.addEventListener('click', () => {
-                if(item.count > 0) {
-                    const buffName = name;
-                    item.count--;
-                    updateItemBar();
-                    item.button.classList.add('clicked');
-                    item.button.addEventListener('animationend', () => item.button.classList.remove('clicked'), { once: true });
-                    addBuffTime(buffName, buffs[buffName].duration);
-                }
-            });
-        });
-
-        watchItemButton.addEventListener('click', () => {
-            if (items.watch.count > 0) {
-                items.watch.count--;
-                updateItemBar();
-                watchItemButton.classList.add('clicked');
-                watchItemButton.addEventListener('animationend', () => {
-                    watchItemButton.classList.remove('clicked');
+                // UI Animation
+                buff.indicator.classList.add('blip-out');
+                buff.indicator.addEventListener('animationend', () => {
+                    buff.indicator.style.display = 'none';
+                    buff.indicator.className = 'buff-indicator'; // Reset classes
                 }, { once: true });
+            }
 
-                Object.entries(buffs).forEach(([name, buff]) => {
-                    if (buff.endTime > Date.now()) {
-                        addBuffTime(name, WATCH_TIME_EXTENSION);
+            // Utility getters
+            getActiveBuffs() {
+                const currentTime = Date.now();
+                const active = {};
+                Object.entries(this.buffs).forEach(([name, buff]) => {
+                    // Buff is active if time remains OR if it's ending (e.g. Kangaroo mid-air)
+                    if (buff.endTime > currentTime || buff.isEnding) {
+                        active[name] = {
+                            isEureka: buff.isEureka,
+                            // Potency is 2x if Eureka, 1x otherwise
+                            potency: buff.isEureka ? 2.0 : 1.0
+                        };
+                    }
+                });
+                return active;
+            }
+
+            isKangarooEnding() {
+                return this.buffs.kangaroo?.isEnding;
+            }
+
+            // Item effects
+            applyWatchExtension() {
+                Object.keys(this.buffs).forEach(name => {
+                    if (this.buffs[name].endTime > Date.now()) {
+                        this.addBuffTime(name, Config.WATCH_TIME_EXTENSION);
                     }
                 });
             }
-        });
-        
-        lightbulbItemButton.addEventListener('click', () => {
-            if (items.lightbulb.count > 0) {
-                items.lightbulb.count--;
-                updateItemBar();
-                lightbulbItemButton.classList.add('clicked');
-                lightbulbItemButton.addEventListener('animationend', () => {
-                    lightbulbItemButton.classList.remove('clicked');
-                }, { once: true });
 
-                Object.entries(buffs).forEach(([name, buff]) => {
+            applyEureka() {
+                Object.values(this.buffs).forEach(buff => {
                     if (buff.endTime > Date.now()) {
                         buff.isEureka = true;
                         buff.indicator.classList.add('eureka-state');
                     }
                 });
             }
-        });
-        
+        }
 
-        // --- 8. START ---
-        initWorldSystem();
-        generateGrassField();
-        requestAnimationFrame(animate);
-        scheduleNextIdleThought();
+        class ItemManager {
+            constructor(buffManager) {
+                this.buffManager = buffManager;
+                this.items = {};
+                this.initializeDefinitions();
+            }
+
+            initializeDefinitions() {
+                // Initialize item definitions based on Config
+                Object.entries(Config.Items).forEach(([name, data]) => {
+                    this.items[name] = {
+                        count: 0,
+                        button: null,
+                        emoji: data.emoji,
+                        type: data.type
+                    };
+                });
+            }
+
+            initializeUI() {
+                const itemBar = document.getElementById('item-bar');
+                // Use event delegation for efficient listening
+                itemBar.addEventListener('click', (event) => {
+                    const button = event.target.closest('.item-button');
+                    if (button && button.dataset.itemName) {
+                        this.useItem(button.dataset.itemName);
+                    }
+                });
+
+                Object.entries(this.items).forEach(([name, item]) => {
+                    const button = document.createElement('button');
+                    button.className = 'item-button';
+                    button.dataset.itemName = name;
+                    itemBar.appendChild(button);
+                    item.button = button;
+                });
+                this.updateItemBar();
+            }
+
+            loadState(saveData) {
+                const loadedItems = saveData.items;
+                if (!loadedItems) return;
+
+                Object.entries(loadedItems).forEach(([name, count]) => {
+                    if (this.items[name]) {
+                        this.items[name].count = count;
+                    }
+                });
+                this.updateItemBar();
+            }
+
+            saveState() {
+                const savedItems = {};
+                Object.entries(this.items).forEach(([name, item]) => {
+                    savedItems[name] = item.count;
+                });
+                return savedItems;
+            }
+
+            addItem(emoji) {
+                const itemName = Object.keys(this.items).find(name => this.items[name].emoji === emoji);
+                if (itemName) {
+                    this.items[itemName].count++;
+                    this.updateItemBar();
+                    return true;
+                }
+                return false;
+            }
+
+            useItem(name) {
+                const item = this.items[name];
+                if (item.count > 0) {
+                    item.count--;
+                    this.updateItemBar();
+                    this.animateButton(item.button);
+
+                    // Apply effect
+                    if (item.type === 'buff') {
+                        this.buffManager.addBuffTime(name, this.buffManager.buffs[name].duration);
+                    } else if (name === 'watch') {
+                        this.buffManager.applyWatchExtension();
+                    } else if (name === 'lightbulb') {
+                        this.buffManager.applyEureka();
+                    }
+                }
+            }
+
+            animateButton(button) {
+                button.classList.add('clicked');
+                button.addEventListener('animationend', () => button.classList.remove('clicked'), { once: true });
+            }
+
+            updateItemBar() {
+                const itemBar = document.getElementById('item-bar');
+                let totalItems = 0;
+                Object.values(this.items).forEach(item => {
+                    if (item.count > 0) {
+                        item.button.classList.add('visible');
+                        item.button.textContent = `${item.emoji}x${item.count}`;
+                        totalItems++;
+                    } else {
+                        item.button.classList.remove('visible');
+                    }
+                });
+
+                itemBar.classList.toggle('visible', totalItems > 0);
+            }
+        }
+        
+        // ====================================================================
+        // 4. PARTICLE SYSTEM & UFO
+        // ====================================================================
+
+        class ParticleSystem {
+            constructor(ctx) {
+                this.ctx = ctx;
+                this.particles = [];
+            }
+
+            spawnLandingParticles(x, y) {
+                const count = 10;
+                for(let i=0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 50 + 20;
+                    this.particles.push({
+                        type: 'pebble', x: x, y: y,
+                        dx: Math.cos(angle) * speed, dy: Math.sin(angle) * speed,
+                        life: 1, maxLife: 1
+                    });
+                }
+            }
+
+            spawnUFOMist(x, y) {
+                // Spawn fewer particles for better performance
+                if (Math.random() < 0.5) return; 
+
+                this.particles.push({
+                    type: 'mist',
+                    x: x + (Math.random() - 0.5) * 80,
+                    y: y + (Math.random() - 0.5) * 40,
+                    dx: (Math.random() - 0.5) * 20,
+                    dy: (Math.random() - 0.5) * 10,
+                    life: 2, maxLife: 2
+                });
+            }
+
+            updateAndDraw(deltaTime) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.dx * deltaTime;
+                    p.y += p.dy * deltaTime;
+                    p.life -= deltaTime;
+
+                    if(p.life <= 0) {
+                        this.particles.splice(i, 1);
+                    } else {
+                        this.drawParticle(p);
+                    }
+                }
+            }
+
+            drawParticle(p) {
+                const opacity = p.life / p.maxLife;
+                this.ctx.beginPath();
+                if(p.type === 'pebble') {
+                    this.ctx.fillStyle = `rgba(30, 30, 30, ${0.5 * opacity})`;
+                    this.ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                } else if (p.type === 'mist') {
+                    this.ctx.fillStyle = `rgba(220, 220, 240, ${0.2 * opacity})`;
+                    this.ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+                }
+                this.ctx.fill();
+            }
+        }
+
+        class UFO {
+            constructor(ctx, bounds) {
+                this.ctx = ctx;
+                this.bounds = bounds; // Reference to Game.bounds
+                this.active = false;
+                this.x = 0;
+                this.y = 0;
+                this.speed = 300;
+                this.direction = 1;
+            }
+
+            activate() {
+                if (this.active) return;
+                this.active = true;
+                // Spawn in the upper 60% of the screen, starting at least 10% down
+                this.y = Math.random() * (this.bounds.height * 0.6) + (this.bounds.height * 0.1);
+                
+                if(Math.random() < 0.5) {
+                    this.direction = 1;
+                    this.x = -50;
+                } else {
+                    this.direction = -1;
+                    this.x = this.bounds.width + 50;
+                }
+            }
+
+            update(deltaTime, particleManager, worldManager) {
+                if (!this.active) return;
+
+                this.x += this.speed * this.direction * deltaTime;
+                
+                particleManager.spawnUFOMist(this.x, this.y);
+                
+                // Terraforming effect
+                if(Math.random() < 0.1) {
+                    worldManager.alterGround(this.x + (Math.random() - 0.5) * 50, this.y + (Math.random() - 0.5) * 50);
+                }
+
+                // Deactivation when far off-screen
+                if(this.x < -100 || this.x > this.bounds.width + 100) {
+                    this.active = false;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+                this.ctx.font = '4rem monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('🛸', this.x, this.y);
+                this.ctx.textAlign = 'start'; // Reset
+                this.ctx.textBaseline = 'alphabetic';
+            }
+        }
+
+        // ====================================================================
+        // 5. UI MANAGER (Thoughts, Timers, Interaction)
+        // ====================================================================
+
+        class UIManager {
+            constructor(wanderDot) {
+                this.wanderDot = wanderDot;
+                this.thoughtBubble = document.getElementById('thought-bubble');
+                this.worldTimerElement = document.getElementById('world-timer');
+                
+                // Thought state
+                this.idleThoughtTimer = null;
+                this.madThoughtTimer = null;
+                this.thoughtTimeout = null;
+                this.fadeTimeout = null;
+                this.idleEmojiHistory = [];
+
+                // Bubble positioning and animation state
+                this.bubbleAngle = -Math.PI / 2;
+                this.targetBubbleAngle = -Math.PI / 2;
+                this.riseStartTime = 0;
+                this.bounceEndTime = 0;
+                
+                // Interaction state
+                this.isMouseOverBubble = false;
+                this.thoughtTimeoutStartTime = 0;
+                this.thoughtTimeoutDuration = 0;
+                this.thoughtTimeoutRemaining = 0;
+                this.mousePos = { x: 0, y: 0 };
+
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                window.addEventListener('mousemove', (event) => {
+                    this.mousePos.x = event.clientX;
+                    this.mousePos.y = event.clientY;
+                });
+
+                this.thoughtBubble.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    this.handleThoughtClick();
+                });
+
+                this.thoughtBubble.addEventListener('mouseenter', () => this.handleBubbleEnter());
+                this.thoughtBubble.addEventListener('mouseleave', () => this.handleBubbleLeave());
+            }
+
+            // --- THOUGHT MANAGEMENT ---
+            showThought(emoji, duration = 2000) {
+                if (!emoji) return;
+
+                clearTimeout(this.thoughtTimeout);
+                clearTimeout(this.fadeTimeout);
+
+                this.prepareBubbleAnimation();
+
+                this.thoughtBubble.innerHTML = `<span>${emoji}</span>`;
+                this.thoughtBubble.style.opacity = 1;
+                this.thoughtBubble.style.display = 'block';
+
+                this.thoughtTimeoutStartTime = Date.now();
+                this.thoughtTimeoutDuration = duration;
+                this.thoughtTimeout = setTimeout(() => this.hideThought(), duration);
+            }
+
+            prepareBubbleAnimation() {
+                // If bubble was already visible, trigger a bounce
+                if (this.thoughtBubble.style.display === 'block') {
+                    this.bounceEndTime = Date.now() + 300;
+                } else {
+                     // Otherwise, set initial position near the dot for the rise animation
+                    const initialOrbitRadius = this.wanderDot.radius;
+                    const initialX = this.wanderDot.x + Math.cos(this.bubbleAngle) * initialOrbitRadius;
+                    const initialY = this.wanderDot.y + Math.sin(this.bubbleAngle) * initialOrbitRadius;
+                    this.thoughtBubble.style.left = `${initialX}px`;
+                    this.thoughtBubble.style.top = `${initialY}px`;
+                }
+
+                // Trigger rise animation (using reflow trick to restart)
+                this.thoughtBubble.classList.remove('is-rising');
+                void this.thoughtBubble.offsetWidth; 
+                this.thoughtBubble.classList.add('is-rising');
+                this.riseStartTime = Date.now();
+            }
+
+            hideThought() {
+                if (!this.isMouseOverBubble) {
+                    this.thoughtBubble.style.opacity = 0;
+                    this.fadeTimeout = setTimeout(() => {
+                        this.thoughtBubble.style.display = 'none';
+                    }, 300);
+                }
+            }
+
+            // --- IDLE THOUGHT SCHEDULING ---
+            scheduleNextIdleThought(delay = 7000) {
+                const IDLE_THOUGHT_DURATION = 4000;
+                const BREAK_DURATION = 7000;
+                
+                clearTimeout(this.idleThoughtTimer);
+                this.idleThoughtTimer = setTimeout(() => {
+                    // Only show if idle and not annoyed
+                    if (this.wanderDot.targetX === null && this.wanderDot.annoyance < Config.WARNING_ANNOYANCE_THRESHOLD) {
+                        const nextEmoji = this.getNextIdleEmoji();
+                        this.showThought(nextEmoji, IDLE_THOUGHT_DURATION);
+                        
+                        // Schedule next thought after this one finishes + break
+                        this.scheduleNextIdleThought(IDLE_THOUGHT_DURATION + 300 + BREAK_DURATION);
+                    } else {
+                        // If busy or annoyed, check again later
+                        this.scheduleNextIdleThought(BREAK_DURATION);
+                    }
+                }, delay);
+            }
+
+            getNextIdleEmoji() {
+                // Prioritize emojis not recently shown
+                const candidateEmojis = Config.Emojis.idle.filter(e => !this.idleEmojiHistory.includes(e));
+                const emojiPool = candidateEmojis.length > 0 ? candidateEmojis : Config.Emojis.idle;
+                const nextEmoji = Utils.randomChoice(emojiPool);
+
+                // Maintain history
+                this.idleEmojiHistory.push(nextEmoji);
+                if (this.idleEmojiHistory.length > 3) {
+                    this.idleEmojiHistory.shift();
+                }
+                return nextEmoji;
+            }
+
+            // --- MAD THOUGHT SCHEDULING ---
+            startMadTimer() {
+                this.stopMadTimer();
+                this.madThoughtTimer = setInterval(() => {
+                    if (this.wanderDot.currentMoodState === 'mad') {
+                        this.showThought(Utils.randomChoice(Config.Emojis.madZone));
+                    } else {
+                        // Safety check in case the timer fires after mood change
+                        this.stopMadTimer();
+                    }
+                }, 3000);
+            }
+
+            stopMadTimer() {
+                clearInterval(this.madThoughtTimer);
+                this.madThoughtTimer = null;
+            }
+
+            // --- INTERACTION HANDLERS ---
+            handleThoughtClick() {
+                const emoji = this.thoughtBubble.querySelector('span').textContent;
+                
+                // Try adding as item (accessing ItemManager via Game singleton)
+                const collected = Game.instance.itemManager.addItem(emoji);
+                
+                // If not an item, check for special events
+                if (!collected) {
+                    if (emoji === '👽') {
+                        Game.instance.ufo.activate();
+                    }
+                }
+
+                // Hide bubble immediately on click
+                clearTimeout(this.thoughtTimeout);
+                clearTimeout(this.fadeTimeout);
+                this.thoughtBubble.style.display = 'none';
+                this.isMouseOverBubble = false;
+            }
+
+            handleBubbleEnter() {
+                this.isMouseOverBubble = true;
+                // Pause the timeout
+                this.thoughtTimeoutRemaining = this.thoughtTimeoutDuration - (Date.now() - this.thoughtTimeoutStartTime);
+                clearTimeout(this.thoughtTimeout);
+                clearTimeout(this.fadeTimeout);
+                this.thoughtBubble.style.opacity = 1; // Cancel fade if active
+            }
+
+            handleBubbleLeave() {
+                this.isMouseOverBubble = false;
+                // Resume the timeout (minimum 500ms visibility after leaving)
+                this.thoughtTimeout = setTimeout(() => this.hideThought(), Math.max(500, this.thoughtTimeoutRemaining));
+            }
+
+            // --- UPDATE & POSITIONING ---
+            update(worldCreationTime) {
+                this.updateTimer(worldCreationTime);
+                if (this.thoughtBubble.style.display === 'block') {
+                    this.updateBubblePosition();
+                }
+            }
+
+            updateTimer(worldCreationTime) {
+                const elapsedTime = Date.now() - worldCreationTime;
+                const elapsedSeconds = Math.floor(elapsedTime / 1000);
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                
+                let timerText = `Your WanderDot's world has existed for `;
+                if (minutes > 0) {
+                    timerText += `${minutes} minute${minutes !== 1 ? 's' : ''} and `;
+                }
+                timerText += `${seconds} second${seconds !== 1 ? 's' : ''}.`;
+                this.worldTimerElement.textContent = timerText;
+            }
+
+            updateBubblePosition() {
+                const bubbleWidth = this.thoughtBubble.offsetWidth;
+                const bubbleHeight = this.thoughtBubble.offsetHeight;
+                const finalOrbitRadius = this.wanderDot.radius + bubbleHeight / 2 + 5;
+
+                // Find the best angle to avoid screen edges
+                this.targetBubbleAngle = this.findBestBubbleAngle(finalOrbitRadius, bubbleWidth, bubbleHeight);
+                // Smoothly move towards the target angle
+                this.bubbleAngle = Utils.lerp(this.bubbleAngle, this.targetBubbleAngle, 0.1);
+
+                // Calculate position based on angle and animations
+                const { radius, verticalBob } = this.calculateBubbleAnimations(finalOrbitRadius);
+
+                let bubbleTargetX = this.wanderDot.x + Math.cos(this.bubbleAngle) * radius;
+                // Y position accounts for dot's bounce and bubble's bob
+                let bubbleTargetY = this.wanderDot.y - this.wanderDot.verticalOffset + Math.sin(this.bubbleAngle) * radius + verticalBob;
+
+                // Allow mouse drag effect when hovered
+                if(this.isMouseOverBubble) {
+                    const currentX = parseFloat(this.thoughtBubble.style.left) || bubbleTargetX;
+                    const currentY = parseFloat(this.thoughtBubble.style.top) || bubbleTargetY;
+                    bubbleTargetX = Utils.lerp(currentX, this.mousePos.x, 0.2);
+                    bubbleTargetY = Utils.lerp(currentY, this.mousePos.y, 0.2);
+                }
+
+                this.thoughtBubble.style.left = `${bubbleTargetX}px`;
+                this.thoughtBubble.style.top = `${bubbleTargetY}px`;
+            }
+
+            findBestBubbleAngle(radius, width, height) {
+                const SAFE_MARGIN = 10;
+                const bounds = { width: window.innerWidth, height: window.innerHeight };
+                const startAngle = -Math.PI / 2; // Prefer top
+
+                // Check angles spreading out from the preferred angle
+                for (let offset = 0; offset < Math.PI; offset += 0.1) {
+                    for (const sign of [1, -1]) {
+                        const angle = startAngle + offset * sign;
+                        const testX = this.wanderDot.x + Math.cos(angle) * radius;
+                        const testY = this.wanderDot.y + Math.sin(angle) * radius;
+
+                        if (testX - width / 2 > SAFE_MARGIN && testX + width / 2 < bounds.width - SAFE_MARGIN &&
+                            testY - height / 2 > SAFE_MARGIN && testY + height / 2 < bounds.height - SAFE_MARGIN) {
+                            return angle;
+                        }
+                    }
+                }
+                return this.targetBubbleAngle; // Fallback
+            }
+
+            calculateBubbleAnimations(finalOrbitRadius) {
+                let radius = finalOrbitRadius;
+                let verticalBob = 0;
+                const animTime = Date.now();
+
+                // Rise animation (400ms)
+                if (this.riseStartTime > 0 && animTime - this.riseStartTime < 400) {
+                    const riseProgress = (animTime - this.riseStartTime) / 400;
+                    radius = Utils.lerp(this.wanderDot.radius, finalOrbitRadius, riseProgress);
+                } else {
+                    this.riseStartTime = 0;
+                    // Bounce animation (300ms)
+                    if (this.bounceEndTime > 0 && animTime < this.bounceEndTime) {
+                        const bounceProgress = (animTime - (this.bounceEndTime - 300)) / 300;
+                        verticalBob = Math.sin(bounceProgress * Math.PI) * -15;
+                    } else {
+                        this.bounceEndTime = 0;
+                        // Idle Bobbing
+                        verticalBob = Math.sin(animTime / 400) * -3;
+                    }
+                }
+                return { radius, verticalBob };
+            }
+        }
+
+        // ====================================================================
+        // 6. GAME (Main Loop, Initialization, Persistence)
+        // ====================================================================
+
+        class Game {
+            // Singleton instance for easy access between classes
+            static instance = null;
+
+            constructor() {
+                if (Game.instance) return Game.instance;
+                Game.instance = this;
+
+                this.initializeCanvases();
+                this.bounds = { width: window.innerWidth, height: window.innerHeight };
+
+                this.worldCreationTime = Date.now();
+                this.lastFrameTime = 0;
+                this.lastClickTime = 0;
+                this.lastSaveTime = 0;
+
+                this.initializeGameObjects();
+                this.loadGame(); // Load state before final setup
+                this.finalizeInitialization();
+                this.setupEventListeners();
+            }
+
+            initializeCanvases() {
+                this.mainCanvas = document.getElementById('mainCanvas');
+                this.ctx = this.mainCanvas.getContext('2d');
+                this.pathCanvas = document.getElementById('pathCanvas');
+                this.pathCtx = this.pathCanvas.getContext('2d');
+                this.pebbleCanvas = document.getElementById('pebbleCanvas');
+                this.pebbleCtx = this.pebbleCanvas.getContext('2d');
+                this.resizeCanvases();
+            }
+
+            resizeCanvases() {
+                this.mainCanvas.width = this.pathCanvas.width = this.pebbleCanvas.width = window.innerWidth;
+                this.mainCanvas.height = this.pathCanvas.height = this.pebbleCanvas.height = window.innerHeight;
+            }
+
+            initializeGameObjects() {
+                // Initialize Managers and Game Objects in order of dependency
+                this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.pebbleCtx);
+                this.wanderDot = new WanderDot(this.bounds.width / 2, this.bounds.height / 2);
+                this.uiManager = new UIManager(this.wanderDot);
+                this.buffManager = new BuffManager();
+                this.itemManager = new ItemManager(this.buffManager);
+                
+                // Initialize Effects
+                this.particleManager = new ParticleSystem(this.ctx);
+                this.ufo = new UFO(this.ctx, this.bounds);
+            }
+
+            finalizeInitialization() {
+                // Initialize UI elements (needs managers to exist)
+                this.buffManager.initializeUI();
+                this.itemManager.initializeUI();
+                
+                // Generate grass (depends on potentially loaded world state)
+                this.worldManager.generateGrassField();
+                this.worldManager.redrawWorld();
+
+                // Ensure WanderDot starts within bounds if loaded position is now off-screen
+                this.wanderDot.x = Utils.clamp(this.wanderDot.x, Config.BASE_RADIUS, this.bounds.width - Config.BASE_RADIUS);
+                this.wanderDot.y = Utils.clamp(this.wanderDot.y, Config.BASE_RADIUS, this.bounds.height - Config.BASE_RADIUS);
+                this.wanderDot.previousX = this.wanderDot.x;
+                this.wanderDot.previousY = this.wanderDot.y;
+            }
+
+            // --- PERSISTENCE ---
+            saveGame() {
+                const saveData = {
+                    version: 1,
+                    worldCreationTime: this.worldCreationTime,
+                    world: this.worldManager.saveState(),
+                    wanderDot: this.wanderDot.saveState(),
+                    items: this.itemManager.saveState(),
+                    buffs: this.buffManager.saveState(),
+                };
+
+                try {
+                    localStorage.setItem(Config.SAVE_KEY, JSON.stringify(saveData));
+                    this.lastSaveTime = Date.now();
+                } catch (e) {
+                    console.error("Error saving game (localStorage might be full):", e);
+                }
+            }
+
+            loadGame() {
+                const saveDataRaw = localStorage.getItem(Config.SAVE_KEY);
+                if (!saveDataRaw) return;
+
+                try {
+                    const saveData = JSON.parse(saveDataRaw);
+                    
+                    this.worldCreationTime = saveData.worldCreationTime ?? Date.now();
+                    this.worldManager.loadState(saveData.world);
+                    this.wanderDot.loadState(saveData.wanderDot);
+                    
+                    // Overwrite initial position if loaded
+                    if (saveData.wanderDot.x && saveData.wanderDot.y) {
+                        this.wanderDot.x = saveData.wanderDot.x;
+                        this.wanderDot.y = saveData.wanderDot.y;
+                    }
+
+                    this.itemManager.loadState(saveData);
+                    this.buffManager.loadState(saveData);
+
+                } catch (e) {
+                    console.error("Error loading game (data might be corrupted):", e);
+                }
+            }
+
+            // --- EVENTS ---
+            setupEventListeners() {
+                window.addEventListener('resize', () => this.handleResize());
+                this.mainCanvas.addEventListener('click', (event) => this.handleClick(event));
+                // Save game when the user leaves the page
+                window.addEventListener('beforeunload', () => this.saveGame());
+            }
+
+            handleResize() {
+                this.bounds.width = window.innerWidth;
+                this.bounds.height = window.innerHeight;
+                this.resizeCanvases();
+                // Notify manager to update dimensions, preserve data, and redraw
+                this.worldManager.handleResize(this.bounds.width, this.bounds.height);
+            }
+
+            handleClick(event) {
+                const clickX = event.clientX;
+                const clickY = event.clientY;
+
+                // Check if click was on the thought bubble (handled by UIManager)
+                if (this.uiManager.thoughtBubble.style.display === 'block') {
+                    const bubbleRect = this.uiManager.thoughtBubble.getBoundingClientRect();
+                    if (clickX >= bubbleRect.left && clickX <= bubbleRect.right &&
+                        clickY >= bubbleRect.top && clickY <= bubbleRect.bottom) {
+                        return; 
+                    }
+                }
+
+                // Handle interaction with WanderDot
+                const currentTime = Date.now();
+                const timeDiff = currentTime - this.lastClickTime;
+                
+                // Check for direct click (accounting for vertical offset during jump)
+                const distanceToCenter = Utils.distance(clickX, clickY, this.wanderDot.x, this.wanderDot.y - this.wanderDot.verticalOffset);
+                const isDirectClick = distanceToCenter <= this.wanderDot.radius;
+
+                // Calculate annoyance (faster clicks = more annoyance)
+                const annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff));
+                
+                const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
+
+                // Show reaction and manage Mad Timer
+                this.uiManager.showThought(reactionEmoji);
+                const currentMood = this.wanderDot.currentMoodState;
+                
+                // Start the Mad Timer if newly mad
+                if (currentMood === 'mad' && !this.uiManager.madThoughtTimer) {
+                     this.uiManager.startMadTimer();
+                } 
+                // Note: Stopping the timer is handled during mood updates if the state changes away from mad
+
+                // Set new target if not a direct click
+                if (!isDirectClick) {
+                   this.wanderDot.setTarget(clickX, clickY);
+                } else if (this.wanderDot.targetX !== null) {
+                    // If direct click happened while moving, stop the movement
+                    this.wanderDot.clearTarget();
+                }
+
+                this.lastClickTime = currentTime;
+                this.uiManager.scheduleNextIdleThought();
+            }
+
+            // Main game loop
+            animate(currentTime) {
+                requestAnimationFrame((time) => this.animate(time));
+
+                // Calculate deltaTime
+                if (!this.lastFrameTime) {
+                    this.lastFrameTime = currentTime;
+                    return;
+                }
+                const deltaTime = (currentTime - this.lastFrameTime) / 1000;
+                
+                // Prevent massive spikes if the tab was inactive
+                if (deltaTime > 0.1) {
+                     this.lastFrameTime = currentTime;
+                     return;
+                }
+
+                this.lastFrameTime = currentTime;
+
+                // Update Logic
+                this.update(deltaTime);
+
+                // Rendering
+                this.draw(deltaTime);
+
+                // Persistence check
+                if (Date.now() - this.lastSaveTime > Config.SAVE_INTERVAL) {
+                    this.saveGame();
+                }
+            }
+
+            update(deltaTime) {
+                // Update WanderDot (handles mood, movement, and world interaction)
+                const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager);
+                
+                // Handle mood transition thoughts
+                if (transitionEmoji) {
+                    this.uiManager.showThought(transitionEmoji);
+                    // If we transitioned away from mad, stop the mad timer
+                    if (transitionEmoji === Config.Emojis.cooldownToAnnoyed[0]) {
+                        this.uiManager.stopMadTimer();
+                    }
+                }
+
+                // Update UFO
+                this.ufo.update(deltaTime, this.particleManager, this.worldManager);
+                
+                // Update UI and Buffs
+                this.buffManager.update();
+                this.uiManager.update(this.worldCreationTime);
+            }
+
+            draw(deltaTime) {
+                // Clear main canvas
+                this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
+
+                // Draw environment elements (Optimized drawing)
+                this.worldManager.drawPebblesAndMushrooms();
+                
+                // Draw main actors
+                this.wanderDot.draw(this.ctx);
+                this.ufo.draw();
+
+                // Draw particles (updated here for convenience)
+                this.particleManager.updateAndDraw(deltaTime);
+            }
+
+            start() {
+                this.uiManager.scheduleNextIdleThought();
+                // Start the animation loop
+                requestAnimationFrame((time) => this.animate(time));
+            }
+        }
+
+        // ====================================================================
+        // 7. STARTUP
+        // ====================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the application
+            const game = new Game();
+            game.start();
+        });
+
     </script>
 </body>
 </html>
-
