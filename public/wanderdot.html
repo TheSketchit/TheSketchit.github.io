@@ -97,6 +97,13 @@
         
         .buff-icon {
             font-size: 1.5rem;
+            transition: box-shadow 0.3s ease-in-out;
+        }
+
+        /* NEW: Gold outline for Eureka state */
+        .eureka-state .buff-icon {
+            border-radius: 5px;
+            box-shadow: 0 0 8px 3px gold;
         }
 
         .buff-timer {
@@ -142,6 +149,47 @@
         .item-button.clicked {
             animation: use-item-anim 0.2s ease-out;
         }
+        
+        #timer-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+        }
+        #timer-icon {
+            font-size: 1.2rem;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(204, 204, 204, 0.5);
+            padding: 5px;
+            border-radius: 4px;
+            cursor: default;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.8rem;
+            height: 1.8rem;
+        }
+        #world-timer {
+            margin-left: 10px;
+            font-size: 0.9rem;
+            color: white;
+            text-shadow: 0 0 5px black;
+            background-color: rgba(128, 128, 128, 0.3);
+            padding: 8px 12px;
+            border-radius: 5px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        #timer-container:hover #world-timer {
+            opacity: 1;
+            visibility: visible;
+        }
 
 
         /* Keyframe animations */
@@ -173,6 +221,12 @@
         @keyframes use-item-anim {
             50% { transform: scale(0.85); }
         }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
     </style>
 </head>
 <body>
@@ -182,6 +236,10 @@
         <canvas id="pebbleCanvas"></canvas>
         <canvas id="mainCanvas"></canvas>
         <div id="thought-bubble"></div>
+        <div id="timer-container">
+            <div id="timer-icon">🕰️</div>
+            <div id="world-timer"></div>
+        </div>
         <div id="buff-container">
             <div id="buff-indicator-coffee" class="buff-indicator">
                 <span class="buff-icon">☕</span>
@@ -201,6 +259,7 @@
             <button id="coffee-item-button" class="item-button"></button>
             <button id="pizza-item-button" class="item-button"></button>
             <button id="kangaroo-item-button" class="item-button"></button>
+            <button id="lightbulb-item-button" class="item-button"></button>
         </div>
     </div>
 
@@ -217,6 +276,8 @@
         const coffeeItemButton = document.getElementById('coffee-item-button');
         const pizzaItemButton = document.getElementById('pizza-item-button');
         const kangarooItemButton = document.getElementById('kangaroo-item-button');
+        const lightbulbItemButton = document.getElementById('lightbulb-item-button');
+        const worldTimerElement = document.getElementById('world-timer');
 
         const pathCanvas = document.getElementById('pathCanvas');
         const pathCtx = pathCanvas.getContext('2d');
@@ -228,6 +289,7 @@
 
         // --- 2. EMOJI MOODS ---
         const idleEmojis = ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'];
+        let idleEmojiHistory = [];
         const commandReceivedEmojis = ['🤔','👀'];
         const warningAnnoyedEmojis = ['😐', '😑'];
         const annoyedEmojis = ['😒', '🙄', '😑', '🤨'];
@@ -248,7 +310,8 @@
             color: '#FFFFE0',
             dx: (Math.random() - 0.5) * 2,
             dy: (Math.random() - 0.5) * 2,
-            speed: 120, 
+            speed: 120,
+            baseSpeed: 120,
             targetX: null,
             targetY: null,
             previousX: mainCanvas.width / 2,
@@ -278,6 +341,7 @@
         let fadeTimeout;
         let lastFrameTime = 0;
         let mousePos = { x: 0, y: 0 };
+        const worldCreationTime = Date.now();
         
         // --- BUFF & ITEM MANAGEMENT ---
         const COFFEE_BUFF_DURATION = 20000;
@@ -290,12 +354,13 @@
             coffee: { count: 0, button: coffeeItemButton, emoji: '☕' },
             pizza: { count: 0, button: pizzaItemButton, emoji: '🍕' },
             kangaroo: { count: 0, button: kangarooItemButton, emoji: '🦘' },
+            lightbulb: { count: 0, button: lightbulbItemButton, emoji: '💡'}
         };
 
         const buffs = {
-            coffee: { endTime: 0, blinkTimer: null, indicator: coffeeBuffIndicator, duration: COFFEE_BUFF_DURATION },
-            pizza: { endTime: 0, blinkTimer: null, indicator: pizzaBuffIndicator, duration: PIZZA_BUFF_DURATION },
-            kangaroo: { endTime: 0, blinkTimer: null, indicator: kangarooBuffIndicator, duration: KANGAROO_BUFF_DURATION, isEnding: false }
+            coffee: { endTime: 0, blinkTimer: null, indicator: coffeeBuffIndicator, duration: COFFEE_BUFF_DURATION, isEureka: false },
+            pizza: { endTime: 0, blinkTimer: null, indicator: pizzaBuffIndicator, duration: PIZZA_BUFF_DURATION, isEureka: false },
+            kangaroo: { endTime: 0, blinkTimer: null, indicator: kangarooBuffIndicator, duration: KANGAROO_BUFF_DURATION, isEnding: false, isEureka: false }
         };
 
         // Kangaroo bounce state
@@ -314,6 +379,9 @@
         let thoughtTimeoutRemaining = 0;
         let isMouseOverBubble = false;
 
+        // --- PARTICLE SYSTEM ---
+        let particles = [];
+        
         // --- WORLD SYSTEM (Paths, Grass, Pebbles) ---
         let pathGrid;
         const GRID_CELL_SIZE = 10;
@@ -394,20 +462,26 @@
         function applyLandingImpact(x, y) {
             const centerX = Math.floor(x / GRID_CELL_SIZE);
             const centerY = Math.floor(y / GRID_CELL_SIZE);
-            const KANGAROO_IMPACT_WEAR = 15;
-            const impactRadius = 2;
+            let baseImpactWear = 15;
+            if (currentMoodState === 'mad') baseImpactWear *= 1.7;
+            if (buffs.kangaroo.isEureka) baseImpactWear *= 1.3;
 
-             for(let i = -impactRadius; i <= impactRadius; i++) {
-                for (let j = -impactRadius; j <= impactRadius; j++) {
-                    if (i*i + j*j > impactRadius * impactRadius) continue;
-                    
+            const impactRadius = 2.5;
+
+             for(let i = -Math.ceil(impactRadius); i <= Math.ceil(impactRadius); i++) {
+                for (let j = -Math.ceil(impactRadius); j <= Math.ceil(impactRadius); j++) {
+                    const distance = Math.sqrt(i * i + j * j);
+                    if (distance > impactRadius) continue;
+
                     const gridX = centerX + i;
                     const gridY = centerY + j;
 
                     if (gridX >= 0 && gridX < pathGrid.length && gridY >= 0 && gridY < pathGrid[0].length) {
+                        const falloff = 1 - (distance / impactRadius);
+                        const wearAmount = baseImpactWear * falloff;
                         const cell = pathGrid[gridX][gridY];
                         const oldWear = cell.wear;
-                        cell.wear = Math.min(MAX_WEAR, cell.wear + KANGAROO_IMPACT_WEAR);
+                        cell.wear = Math.min(MAX_WEAR, cell.wear + wearAmount);
 
                         if (Math.floor(cell.wear) > Math.floor(oldWear)) {
                             drawPathCell(gridX, gridY);
@@ -464,6 +538,21 @@
                             tuft.element.style.display = 'none';
                             tuft.visible = false;
                         }
+                    }
+                }
+            });
+        }
+        
+        function wiggleNearbyGrass(x, y) {
+            const WIGGLE_RADIUS = 70;
+            grassTufts.forEach(tuft => {
+                if(tuft.visible) {
+                    const dist = Math.sqrt(Math.pow(tuft.x - x, 2) + Math.pow(tuft.y - y, 2));
+                    if(dist < WIGGLE_RADIUS) {
+                        tuft.element.style.animation = 'wiggle 0.5s ease-out';
+                        tuft.element.addEventListener('animationend', () => {
+                            tuft.element.style.animation = '';
+                        }, { once: true });
                     }
                 }
             });
@@ -552,7 +641,9 @@
             const timeSinceJiggle = Date.now() - jiggleEndTime;
             if (timeSinceJiggle < jiggleDuration) {
                 const jiggleProgress = timeSinceJiggle / jiggleDuration;
-                const jiggleAmount = Math.sin(jiggleProgress * Math.PI * 2) * (1 - jiggleProgress) * 0.2;
+                let jiggleAmountMultiplier = 0.2;
+                if(currentMoodState === 'mad') jiggleAmountMultiplier = 0.4;
+                const jiggleAmount = Math.sin(jiggleProgress * Math.PI * 2) * (1 - jiggleProgress) * jiggleAmountMultiplier;
                 ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
             }
             
@@ -592,7 +683,10 @@
                 }
             }
             
-            const effectiveSpeed = circle.speed * circle.currentSpeedMultiplier;
+            let effectiveSpeed = circle.speed * circle.currentSpeedMultiplier;
+            if(buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
+                effectiveSpeed = circle.baseSpeed; // Override speed for bouncing
+            }
             const distanceMoved = effectiveSpeed * deltaTime;
             
             circle.x += circle.dx * distanceMoved;
@@ -638,15 +732,30 @@
 
             ctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
             
+            applyBuffEffects();
             updateMood(deltaTime);
             updateCirclePosition(deltaTime);
             updateGrassVisibility();
             updateBuffs();
+            updateAndDrawParticles(deltaTime);
+            
+            const elapsedTime = Date.now() - worldCreationTime;
+            const elapsedSeconds = Math.floor(elapsedTime / 1000);
+            const minutes = Math.floor(elapsedSeconds / 60);
+            const seconds = elapsedSeconds % 60;
+            let timerText = `Your WanderDot's world has existed for `;
+            if (minutes > 0) {
+                timerText += `${minutes} minute${minutes !== 1 ? 's' : ''} and `;
+            }
+            timerText += `${seconds} second${seconds !== 1 ? 's' : ''}.`;
+            worldTimerElement.textContent = timerText;
             
             let verticalOffset = 0;
             if (buffs.kangaroo.endTime > Date.now() || buffs.kangaroo.isEnding) {
+                let currentBounceHeight = BOUNCE_HEIGHT;
+                if(currentMoodState === 'mad') currentBounceHeight /= 2;
                 const bounceProgress = (distanceTraveledOnCurrentBounce / BOUNCE_DISTANCE) * Math.PI;
-                verticalOffset = Math.sin(bounceProgress) * BOUNCE_HEIGHT;
+                verticalOffset = Math.sin(bounceProgress) * currentBounceHeight;
             }
             drawCircle(verticalOffset);
 
@@ -713,7 +822,6 @@
             clearTimeout(thoughtTimeout);
             clearTimeout(fadeTimeout);
 
-            // Set initial position to prevent flying in
             const initialOrbitRadius = circle.radius;
             const initialX = circle.x + Math.cos(bubbleAngle) * initialOrbitRadius;
             const initialY = circle.y + Math.sin(bubbleAngle) * initialOrbitRadius;
@@ -747,7 +855,17 @@
             clearTimeout(idleThoughtTimer);
             idleThoughtTimer = setTimeout(() => {
                 if (circle.targetX === null && annoyance < WARNING_ANNOYANCE_THRESHOLD) {
-                    showThought(idleEmojis[Math.floor(Math.random() * idleEmojis.length)], IDLE_THOUGHT_DURATION);
+                    const candidateEmojis = idleEmojis.filter(e => !idleEmojiHistory.includes(e));
+                    const emojiPool = candidateEmojis.length > 0 ? candidateEmojis : idleEmojis;
+                    const nextEmoji = emojiPool[Math.floor(Math.random() * emojiPool.length)];
+
+                    showThought(nextEmoji, IDLE_THOUGHT_DURATION);
+                    
+                    idleEmojiHistory.push(nextEmoji);
+                    if(idleEmojiHistory.length > 3) {
+                        idleEmojiHistory.shift();
+                    }
+                    
                     scheduleNextIdleThought(IDLE_THOUGHT_DURATION + FADE_DURATION + BREAK_DURATION);
                 } else {
                     scheduleNextIdleThought(BREAK_DURATION);
@@ -769,6 +887,27 @@
         }
         
         // --- BUFF & ITEM FUNCTIONS ---
+        function applyBuffEffects() {
+            let speed = circle.baseSpeed;
+            let radius = circle.baseRadius;
+            let wear = WEAR_PER_PIXEL;
+            
+            if (buffs.coffee.endTime > Date.now()) {
+                const potency = buffs.coffee.isEureka ? 1.3 : 1.0;
+                speed *= (1 + 0.3 * potency);
+                wear *= (1 + 1.0 * potency);
+            }
+            if (buffs.pizza.endTime > Date.now()) {
+                const potency = buffs.pizza.isEureka ? 1.3 : 1.0;
+                radius *= (1 + 0.3 * potency);
+            }
+
+            circle.speed = speed;
+            circle.radius = radius;
+            currentWearPerPixel = wear;
+        }
+
+
         function updateItemBar() {
             let totalItems = 0;
             Object.entries(items).forEach(([name, item]) => {
@@ -803,23 +942,14 @@
         
         function addBuffTime(name, duration) {
             const buff = buffs[name];
-            const wasActive = buff.endTime > Date.now();
             const baseTime = Math.max(Date.now(), buff.endTime);
             buff.endTime = baseTime + duration;
 
-            if (!wasActive) {
-                if (name === 'coffee') {
-                    circle.speed *= 1.3;
-                    currentWearPerPixel *= 2;
-                } else if (name === 'pizza') {
-                    circle.radius *= 1.3;
-                } else if (name === 'kangaroo') {
-                    distanceTraveledOnCurrentBounce = 0;
-                }
-            }
-
             buff.indicator.style.display = 'flex';
             buff.indicator.classList.remove('blinking', 'blip-out');
+            if (buff.isEureka) {
+                buff.indicator.classList.add('eureka-state');
+            }
             clearTimeout(buff.blinkTimer);
 
             const remainingTime = buff.endTime - Date.now();
@@ -838,18 +968,12 @@
             const buff = buffs[name];
             if (buff.endTime === 0) return;
 
-            if (name === 'kangaroo' && !force) {
+            if (name === 'kangaroo' && !force && distanceTraveledOnCurrentBounce > 0) {
                 buff.isEnding = true;
                 return;
             }
-
-            if (name === 'coffee') {
-                if (circle.speed > 120) circle.speed /= 1.3;
-                currentWearPerPixel = WEAR_PER_PIXEL;
-            } else if (name === 'pizza') {
-                circle.radius = circle.baseRadius;
-            }
             
+            buff.isEureka = false; // Reset Eureka state on deactivation
             if(name === 'kangaroo') buff.isEnding = false;
 
             buff.endTime = 0;
@@ -861,7 +985,41 @@
 
             clearTimeout(buff.blinkTimer);
         }
+        
+        // --- PARTICLE FUNCTIONS ---
+        function spawnLandingParticles(x, y) {
+            const count = 10;
+            for(let i=0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 50 + 20;
+                particles.push({
+                    x: x,
+                    y: y,
+                    dx: Math.cos(angle) * speed,
+                    dy: Math.sin(angle) * speed,
+                    life: 1, // 1 second life
+                    maxLife: 1
+                });
+            }
+        }
 
+        function updateAndDrawParticles(deltaTime) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.dx * deltaTime;
+                p.y += p.dy * deltaTime;
+                p.life -= deltaTime;
+                
+                if(p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(30, 30, 30, ${0.1 * (p.life / p.maxLife)})`;
+                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
 
         // --- 6. GRASS FIELD GENERATION ---
         function generateGrassField() {
@@ -971,7 +1129,7 @@
             event.stopPropagation();
             const emoji = thoughtBubble.querySelector('span').textContent;
             
-            const itemMap = { '☕': 'coffee', '🍕': 'pizza', '🦘': 'kangaroo', '⌚': 'watch' };
+            const itemMap = { '☕': 'coffee', '🍕': 'pizza', '🦘': 'kangaroo', '⌚': 'watch', '💡': 'lightbulb' };
             
             if (itemMap[emoji]) {
                 const itemName = itemMap[emoji];
@@ -1000,7 +1158,7 @@
         });
         
         Object.entries(items).forEach(([name, item]) => {
-            if (name === 'watch') return;
+            if (name === 'watch' || name === 'lightbulb') return;
             item.button.addEventListener('click', () => {
                 if(item.count > 0) {
                     item.count--;
@@ -1024,6 +1182,24 @@
                 Object.entries(buffs).forEach(([name, buff]) => {
                     if (buff.endTime > Date.now()) {
                         addBuffTime(name, WATCH_TIME_EXTENSION);
+                    }
+                });
+            }
+        });
+        
+        lightbulbItemButton.addEventListener('click', () => {
+            if (items.lightbulb.count > 0) {
+                items.lightbulb.count--;
+                updateItemBar();
+                lightbulbItemButton.classList.add('clicked');
+                lightbulbItemButton.addEventListener('animationend', () => {
+                    lightbulbItemButton.classList.remove('clicked');
+                }, { once: true });
+
+                Object.entries(buffs).forEach(([name, buff]) => {
+                    if (buff.endTime > Date.now()) {
+                        buff.isEureka = true;
+                        buff.indicator.classList.add('eureka-state');
                     }
                 });
             }
