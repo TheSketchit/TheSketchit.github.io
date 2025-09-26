@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>WanderDot's World</title>
     <style>
         /* --- 1. CSS VARIABLES & SETUP --- */
@@ -16,13 +16,20 @@
             --font-main: monospace;
         }
 
-        body {
+        /* Strict overflow hidden to prevent mobile scrolling/OOB viewing */
+        html, body {
             margin: 0;
+            padding: 0;
             overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
             background-color: var(--color-field-bg);
             font-family: var(--font-main);
             cursor: default;
-            user-select: none; /* Prevent selection globally */
+            user-select: none; 
         }
 
         /* --- 2. WORLD CONTAINERS & LAYERS --- */
@@ -30,6 +37,7 @@
             position: relative;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
         }
 
         #grass-field {
@@ -53,13 +61,12 @@
         }
 
         #pathCanvas { z-index: 1; }
-        /* Entity Canvas handles all discrete objects (Pebbles, Mushrooms, Flowers, etc.) */
         #entityCanvas { z-index: 2; } 
         #mainCanvas { z-index: 3; }
 
         /* --- 3. UI ELEMENTS --- */
 
-        /* Thought Bubble */
+        /* Thought Bubble (Unchanged) */
         #thought-bubble {
             position: absolute;
             display: none;
@@ -69,7 +76,6 @@
             border: 2px solid var(--color-ui-border);
             border-radius: 50%;
             backdrop-filter: blur(3px);
-            /* Faster tracking transition for smoother movement */
             transition: opacity 0.3s ease-in-out, left 0.1s linear, top 0.1s linear; 
             z-index: 4;
             cursor: pointer;
@@ -84,7 +90,7 @@
             pointer-events: none;
         }
 
-        /* Buff Container (Top Right) */
+        /* Buff Container */
         #buff-container {
             position: absolute;
             top: 20px; right: 20px;
@@ -117,10 +123,10 @@
             margin-top: 2px;
         }
         
-        /* Item Bar (Bottom Center) */
+        /* Item Bar (Unchanged) */
         #item-bar {
             position: absolute;
-            bottom: -100px; /* Start off-screen */
+            bottom: -100px;
             left: 50%;
             transform: translateX(-50%);
             background-color: var(--color-ui-bg);
@@ -159,7 +165,7 @@
             animation: use-item-anim 0.2s ease-out;
         }
         
-        /* World Timer (Top Left) */
+        /* World Timer (Top Left) - Updated for Rollout Animation */
         #timer-container {
             position: absolute;
             top: 10px; left: 10px;
@@ -174,7 +180,8 @@
             border: 2px solid rgba(204, 204, 204, 0.5);
             padding: 5px;
             border-radius: 4px;
-            cursor: default;
+            /* Changed cursor to pointer as it's now clickable */
+            cursor: pointer; 
             display: flex;
             align-items: center;
             justify-content: center;
@@ -187,21 +194,28 @@
             color: var(--color-text);
             text-shadow: 0 0 5px black;
             background-color: rgba(128, 128, 128, 0.3);
-            padding: 8px 12px;
             border-radius: 5px;
             white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
             pointer-events: none;
-            transition: opacity 0.3s ease-in-out;
+            
+            /* Rollout transition setup */
+            opacity: 0;
+            max-width: 0;
+            padding: 8px 0px; /* Vertical padding only */
+            overflow: hidden;
+            transition: opacity 0.3s ease-in-out, max-width 0.5s ease-in-out, padding 0.5s ease-in-out;
         }
 
-        #timer-container:hover #world-timer {
+        /* Active states for rollout (Hover or Clicked) */
+        #timer-container:hover #world-timer,
+        #timer-container.active #world-timer {
             opacity: 1;
-            visibility: visible;
+            max-width: 600px; /* Ample space for the text */
+            padding: 8px 12px; /* Restore horizontal padding */
         }
 
-        /* --- 4. KEYFRAME ANIMATIONS --- */
+
+        /* --- 4. KEYFRAME ANIMATIONS (Unchanged) --- */
         @keyframes rise-up {
             from { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
             to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -254,7 +268,7 @@
         // ====================================================================
 
         const Config = {
-            SAVE_KEY: 'WanderDot_Refactored_V4_Save',
+            SAVE_KEY: 'WanderDot_Refactored_V5_Save',
             SAVE_INTERVAL: 10000, // ms
 
             // Mood Thresholds
@@ -266,11 +280,11 @@
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
             COLOR_ANNOYED: { r: 255, g: 165, b: 0 },
             COLOR_MAD: { r: 152, g: 14, b: 11 },
-            COLOR_HANGRY_GLOW: 'rgba(255, 100, 100, 0.7)', // NEW
+            COLOR_HANGRY_GLOW: 'rgba(255, 100, 100, 0.7)',
             
             // Terrain Colors
-            COLOR_FIELD: { r: 1, g: 50, b: 32 }, // Dark Green
-            COLOR_DIRT: { r: 101, g: 67, b: 33 }, // Brown
+            COLOR_FIELD: { r: 1, g: 50, b: 32 },
+            COLOR_DIRT: { r: 101, g: 67, b: 33 },
             COLOR_ALIEN_BLUE: { r: 100, g: 149, b: 237 }, 
             COLOR_ALIEN_CLAY: { r: 205, g: 133, b: 63 },
 
@@ -281,13 +295,15 @@
             GRASS_REMOVAL_THRESHOLD: 50,
             PEBBLE_SPAWN_THRESHOLD: 70,
             GRASS_TUFT_COUNT: 300,
+            // Reduced UFO mushroom spawn chance
+            UFO_MUSHROOM_CHANCE: 0.015, // Reduced from 0.05
 
             // WanderDot Base Stats
             BASE_SPEED: 120,
             BASE_RADIUS: 20,
-            EAT_MUSHROOM_CHANCE: 0.02, // Increased significantly from 0.005
+            EAT_MUSHROOM_CHANCE: 0.02,
             EAT_DETECTION_RADIUS: 100,
-            EAT_DURATION: 2000, // ms
+            EAT_DURATION: 3500, // Increased to 3.5s
 
             // Kangaroo Mechanics
             BOUNCE_DISTANCE: 120,
@@ -296,8 +312,7 @@
 
             // Buffs & Items Configuration
             WATCH_TIME_EXTENSION: 20000,
-            MUSHROOM_BUFF_MIN: 15000,
-            MUSHROOM_BUFF_MAX: 120000,
+            MUSHROOM_BUFF_DURATION: 20000, // Flat 20s
             SEED_MATURATION_TIME: 60000, // 1 minute
 
             Items: {
@@ -306,7 +321,8 @@
                 pizza: { emoji: '🍕', type: 'buff', duration: 30000 },
                 kangaroo: { emoji: '🦘', type: 'buff', duration: 30000 },
                 lightbulb: { emoji: '💡', type: 'utility' },
-                mushroom: { emoji: '🍄', type: 'buff' } 
+                // hideTimer flag added
+                mushroom: { emoji: '🍄', type: 'buff', hideTimer: true } 
             },
 
             // Emojis
@@ -319,12 +335,11 @@
                 cooldownToAnnoyed: ['😤'],
                 cooldownToNormal: ['🥰'],
                 directClick: ['😘', '🤭', '😛', '😳', '🥵', '🍆', '💦'],
-                // NEW: Eating progression
                 EATING_SEEKING: '👅',
                 EATING_CONSUMING: '🤤',
                 EATING_SATISFIED: '😋',
                 // Entities
-                SEED: '🫘',
+                SEED: '🥔', // Changed to Potato
                 FLOWER: '🌼',
                 BROWN_MUSHROOM: '🍄‍🟫',
                 DIAMOND: '🔸',
@@ -366,13 +381,12 @@
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
         
-        // Handles discrete objects in the world
         class EntityManager {
             constructor(ctx) {
                 this.ctx = ctx;
                 this.pebbles = [];
                 this.mushrooms = [];
-                this.dynamicEntities = []; // Seeds, Flowers, Diamonds
+                this.dynamicEntities = [];
                 this.needsRedraw = true;
             }
 
@@ -391,7 +405,7 @@
                 };
             }
 
-            // --- Dynamic Entities (Seeds, Diamonds) ---
+            // --- Dynamic Entities ---
             addEntity(type, x, y, data = {}) {
                 const entity = {
                     type: type,
@@ -420,7 +434,6 @@
                 const terrainInfo = worldManager.getTerrainInfoAtPoint(seed.x, seed.y);
                 let newType = null;
 
-                // Determine growth based on terrain type AND wear level (must be grassy)
                 if (terrainInfo.wear < Config.GRASS_REMOVAL_THRESHOLD) {
                     if (terrainInfo.type === TerrainType.NORMAL) {
                         newType = 'flower';
@@ -429,7 +442,6 @@
                     }
                 }
                 
-                // Replace seed or remove it if conditions aren't met (e.g., on dirt/clay)
                 if (newType) {
                     seed.type = newType;
                 } else {
@@ -445,7 +457,6 @@
             }
 
             addMushroom(mushroom) {
-                // Prevent duplicates
                 if(!this.mushrooms.some(m => m.gridX === mushroom.gridX && m.gridY === mushroom.gridY)) {
                     this.mushrooms.push(mushroom);
                     this.needsRedraw = true;
@@ -522,17 +533,28 @@
             }
 
             drawDynamicEntities() {
-                this.ctx.font = '1rem monospace';
                 this.ctx.globalAlpha = 1.0;
                 this.dynamicEntities.forEach(e => {
                     let emoji = '';
-                    if (e.type === 'seed') emoji = Config.Emojis.SEED;
+                    let fontSize = '1rem';
+                    let textShadow = 'none';
+
+                    if (e.type === 'seed') {
+                        emoji = Config.Emojis.SEED;
+                        fontSize = '0.5rem'; // Tiny
+                        // Use text shadow to make the emoji appear dark/black
+                        textShadow = '0 0 2px black, 0 0 2px black, 0 0 2px black'; 
+                    }
                     else if (e.type === 'flower') emoji = Config.Emojis.FLOWER;
                     else if (e.type === 'brownMushroom') emoji = Config.Emojis.BROWN_MUSHROOM;
                     else if (e.type === 'diamond') emoji = Config.Emojis.DIAMOND;
                     
                     if (emoji) {
+                        this.ctx.font = `${fontSize} monospace`;
+                        this.ctx.shadowColor = textShadow === 'none' ? 'transparent' : 'black';
+                        this.ctx.shadowBlur = textShadow === 'none' ? 0 : 2;
                         this.ctx.fillText(emoji, e.x, e.y);
+                        this.ctx.shadowBlur = 0; // Reset shadow
                     }
                 });
             }
@@ -543,11 +565,12 @@
         // ====================================================================
 
         class WorldManager {
+            // (Constructor and Initialization methods remain robust for resizing)
             constructor(width, height, pathCtx, entityManager) {
                 this.width = width;
                 this.height = height;
                 this.pathCtx = pathCtx;
-                this.entityManager = entityManager; // Dependency Injection
+                this.entityManager = entityManager;
 
                 this.pathGrid = [];
                 this.grassGrid = [];
@@ -563,6 +586,7 @@
                 const newPathGrid = [];
                 const newGrassGrid = [];
 
+                // This logic correctly preserves data during resize (Handles Issue 5)
                 for (let i = 0; i < gridWidth; i++) {
                     newPathGrid[i] = [];
                     newGrassGrid[i] = [];
@@ -570,7 +594,6 @@
                         if (this.pathGrid[i] && this.pathGrid[i][j]) {
                             newPathGrid[i][j] = this.pathGrid[i][j];
                         } else {
-                            // Added mistOpacity for smooth visualization
                             newPathGrid[i][j] = { wear: 0, hasPebble: false, terrainType: TerrainType.NORMAL, mistOpacity: 0 };
                         }
                         newGrassGrid[i][j] = [];
@@ -580,7 +603,7 @@
                 this.grassGrid = newGrassGrid;
             }
 
-            // --- Persistence & Setup ---
+            // --- Persistence & Setup (Unchanged) ---
             loadState(saveData) {
                 const loadedGrid = saveData.pathGrid;
                 if (!loadedGrid || loadedGrid.length === 0) return;
@@ -593,7 +616,6 @@
                 for (let i = 0; i < Math.min(gridWidth, loadedWidth); i++) {
                     for (let j = 0; j < Math.min(gridHeight, loadedHeight); j++) {
                         if (loadedGrid[i] && loadedGrid[i][j]) {
-                            // Handle potential legacy 'alien' type mapping
                             if (loadedGrid[i][j].terrainType === 'alien') {
                                 loadedGrid[i][j].terrainType = TerrainType.ALIEN_BLUE; 
                             }
@@ -630,7 +652,7 @@
                 }
             }
 
-            // --- Utility Functions ---
+            // --- Utility Functions (Unchanged) ---
             isValidCell(gridX, gridY) {
                 return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && gridY < this.pathGrid[0].length;
             }
@@ -645,7 +667,7 @@
                 return { type: TerrainType.NORMAL, wear: 0 };
             }
 
-            // --- GRASS MANAGEMENT (Implementation unchanged) ---
+            // --- GRASS MANAGEMENT (Unchanged) ---
             generateGrassField() {
                 const field = document.getElementById('grass-field');
                 field.innerHTML = '';
@@ -723,16 +745,22 @@
                 const buffs = buffManager.getActiveBuffs();
                 let wearMultiplier = Config.WEAR_PER_PIXEL;
                 
-                // Coffee/Mushroom increases wear rate
+                // Coffee increases wear rate
                 if (buffs.coffee) {
                     wearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
                 }
-                if (buffs.mushroom) {
-                    wearMultiplier *= (1 + 1.5 * buffs.mushroom.potency); // Mushroom stronger than coffee
+                // Mushroom buff no longer increases wear rate (Issue 3)
+
+                // Pizza/Mushroom increases wear radius
+                let wearRadius = 1;
+                if (buffs.pizza || buffs.mushroom) {
+                    wearRadius = 2;
+                }
+                // Simple check for combined stacking leading to larger radius
+                if (buffs.pizza && buffs.mushroom) {
+                    wearRadius = 3;
                 }
 
-                // Pizza increases wear radius
-                const wearRadius = buffs.pizza ? 2 : 1;
 
                 for (let i = 0; i <= steps; i++) {
                     const t = i / steps;
@@ -753,9 +781,7 @@
                 if (buffs.kangaroo) {
                     impactWear *= (1 + 0.3 * buffs.kangaroo.potency);
                 }
-                if (buffs.mushroom) {
-                    impactWear *= (1 + 1.5 * buffs.mushroom.potency);
-                }
+                // Mushroom buff no longer increases impact wear (Issue 3)
 
                 if (moodState === 'mad') {
                     impactWear *= 1.7;
@@ -765,7 +791,6 @@
 
                 const impactRadius = 2.5;
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
-                // Use base radius for consistency when destroying mushrooms
                 this.entityManager.removeMushroomInArea(x, y, Config.BASE_RADIUS * 2); 
             }
 
@@ -811,27 +836,23 @@
                 }
             }
 
-            // --- RENDERING & SPAWNING ---
+            // --- RENDERING & SPAWNING (Unchanged) ---
             drawPathCell(gridX, gridY) {
                 const cell = this.pathGrid[gridX][gridY];
                 const wearRatio = cell.wear / Config.MAX_WEAR;
                 let baseColor, targetColor;
                 let baseOpacity = 0;
 
-                // Determine colors based on terrain type
                 switch (cell.terrainType) {
                     case TerrainType.ALIEN_BLUE:
                         baseColor = Config.COLOR_ALIEN_BLUE;
-                        // Blue Mist wears down into NORMAL dirt
                         targetColor = Config.COLOR_DIRT; 
-                        // Blue mist visibility relies on mistOpacity set during UFO event
                         baseOpacity = cell.mistOpacity ?? 0; 
                         break;
                     case TerrainType.ALIEN_CLAY:
-                        // Clay starts as slightly orange dirt and gets more intense
                         baseColor = Config.COLOR_DIRT; 
                         targetColor = Config.COLOR_ALIEN_CLAY;
-                        baseOpacity = 0.2; // Clay is visible immediately
+                        baseOpacity = 0.2;
                         break;
                     case TerrainType.NORMAL:
                     default:
@@ -841,12 +862,10 @@
                 }
 
                 const pathColor = Utils.lerpColor(baseColor, targetColor, wearRatio);
-                // Opacity calculation ensures the base color/mist shows through initially
                 const pathOpacity = Math.max(wearRatio * 0.8, baseOpacity);
 
                 this.pathCtx.fillStyle = pathColor;
                 this.pathCtx.globalAlpha = pathOpacity;
-                // ClearRect is necessary when using globalAlpha to prevent color stacking artifacts
                 this.pathCtx.clearRect(gridX * Config.GRID_CELL_SIZE, gridY * Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE);
                 this.pathCtx.fillRect(gridX * Config.GRID_CELL_SIZE, gridY * Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE);
                 this.pathCtx.globalAlpha = 1.0;
@@ -855,21 +874,18 @@
             trySpawnEntity(gridX, gridY, cell) {
                 if (cell.hasPebble) return;
 
-                // 1. Diamond Spawn (Clay only)
                 if (cell.terrainType === TerrainType.ALIEN_CLAY && Math.random() < 0.005) {
                     const x = gridX * Config.GRID_CELL_SIZE + Utils.randomRange(2, Config.GRID_CELL_SIZE - 2);
                     const y = gridY * Config.GRID_CELL_SIZE + Utils.randomRange(2, Config.GRID_CELL_SIZE - 2);
                     this.entityManager.addEntity('diamond', x, y);
-                    // Diamonds don't block pebbles
                 }
 
-                // 2. Pebble/Space Rock Spawn
                 if (cell.wear > Config.PEBBLE_SPAWN_THRESHOLD) {
                     let spawnChance = 0.01;
                     let pebbleType = 'normal';
                     
                     if (cell.terrainType === TerrainType.ALIEN_BLUE) {
-                        spawnChance = 0.03; // Higher chance for space rocks
+                        spawnChance = 0.03;
                         pebbleType = 'spaceRock';
                     } else if (cell.terrainType === TerrainType.ALIEN_CLAY) {
                         spawnChance = 0.008; 
@@ -886,10 +902,10 @@
                 let colors, chars;
 
                 if (type === 'spaceRock') {
-                    colors = ['#4B0082', '#6A0DAD', '#551A8B']; // Dark purples
+                    colors = ['#4B0082', '#6A0DAD', '#551A8B'];
                     chars = ['*', 'o', 'O', '.:', '.:.'];
                 } else {
-                    colors = ['#000000', '#1C1C1C', '#2A1A10', '#3D2B1F']; // Browns/Blacks
+                    colors = ['#000000', '#1C1C1C', '#2A1A10', '#3D2B1F'];
                     chars = ['..', '.-.', ".;'", '-_,`', ':'];
                 }
 
@@ -929,17 +945,13 @@
                         if (this.isValidCell(gridX, gridY)) {
                             const cell = this.pathGrid[gridX][gridY];
                             
-                            // Determine new terrain type based on existing wear
                             const isGrass = cell.wear < Config.GRASS_REMOVAL_THRESHOLD;
                             const targetType = isGrass ? TerrainType.ALIEN_BLUE : TerrainType.ALIEN_CLAY;
 
                             
-                            // Apply varying opacity for the mist effect (only if changing to Blue)
                             if (targetType === TerrainType.ALIEN_BLUE) {
-                                // Falloff based on distance from center of spray + randomization
                                 const distance = Math.sqrt(distSq);
                                 const falloff = 1 - (distance / alterRadius);
-                                // Ensure we don't overwrite a stronger existing mist level
                                 const newOpacity = Utils.clamp(falloff * Utils.randomRange(0.2, 0.5), 0.1, 0.5);
                                 cell.mistOpacity = Math.max(cell.mistOpacity, newOpacity);
                             }
@@ -948,11 +960,10 @@
                                 cell.terrainType = targetType;
                             }
                             
-                            // Always redraw as mistOpacity might have changed even if type didn't
                             this.drawPathCell(gridX, gridY);
 
-                            // Spawn Mushrooms (only on Blue Grass)
-                            if(targetType === TerrainType.ALIEN_BLUE && Math.random() < 0.05) {
+                            // Spawn Mushrooms (using configured reduced chance)
+                            if(targetType === TerrainType.ALIEN_BLUE && Math.random() < Config.UFO_MUSHROOM_CHANCE) {
                                 this.spawnMushroom(gridX, gridY);
                             }
                         }
@@ -987,7 +998,7 @@
                 this.annoyance = 0;
                 this.currentMoodState = 'normal';
                 this.isCalm = false;
-                this.isHangry = false; // NEW: Hangry state flag
+                this.isHangry = false;
                 
                 // Behavior state
                 this.isEating = false;
@@ -1002,7 +1013,6 @@
 
             loadState(saveData) {
                 this.annoyance = saveData.annoyance ?? 0;
-                // Restore hangry state if saved (useful if saved while hangry)
                 this.isHangry = saveData.isHangry ?? false;
             }
 
@@ -1011,31 +1021,27 @@
                     annoyance: this.annoyance,
                     x: this.x,
                     y: this.y,
-                    isHangry: this.isHangry // NEW: Save hangry state
+                    isHangry: this.isHangry
                 };
             }
 
             setTarget(x, y) {
-                // NEW: Ignore commands if Hangry
                 if (this.isHangry) {
-                    return false; // Indicate command ignored
+                    return false;
                 }
 
-                // NEW: Check if command interrupts eating
                 if (this.isEating) {
                     this.triggerHangry();
-                    return false; // Command ignored, Hangry state activated
+                    return false;
                 }
 
                 this.targetX = x;
                 this.targetY = y;
-                return true; // Indicate command accepted
+                return true;
             }
 
-            // NEW: Helper to trigger Hangry state
             triggerHangry() {
                 this.isHangry = true;
-                // Ensure annoyance is high enough to trigger 'mad' state
                 this.annoyance = Math.max(this.annoyance, Config.MAD_THRESHOLD + 1);
                 // Reset eating state
                 this.isEating = false;
@@ -1058,7 +1064,7 @@
                 this.updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager);
             }
 
-            // --- MOOD LOGIC ---
+            // --- MOOD LOGIC (Unchanged) ---
             getMoodState(annoyanceValue) {
                 if (annoyanceValue > Config.MAD_THRESHOLD) return 'mad';
                 if (annoyanceValue > Config.ANNOYANCE_THRESHOLD) return 'annoyed';
@@ -1118,7 +1124,7 @@
                 if (this.currentMoodState !== previousState) {
                     if (previousState === 'mad' && this.currentMoodState === 'annoyed') {
                         transitionEmoji = Config.Emojis.cooldownToAnnoyed[0];
-                        // NEW: Exit Hangry state when cooling down to annoyed
+                        // Exit Hangry state when cooling down to annoyed
                         if (this.isHangry) {
                             this.isHangry = false;
                         }
@@ -1143,11 +1149,13 @@
                 if (buffs.coffee) {
                     speed *= (1 + 0.3 * buffs.coffee.potency);
                 }
+                
+                // Pizza and Mushroom both increase size (Issue 3)
                 if (buffs.pizza) {
                     radius *= (1 + 0.3 * buffs.pizza.potency);
                 }
                 if (buffs.mushroom) {
-                    radius *= (1 + 0.6 * buffs.mushroom.potency);
+                    radius *= (1 + 0.3 * buffs.mushroom.potency);
                 }
 
                 this.speed = speed;
@@ -1167,7 +1175,7 @@
                 }
             }
 
-            // --- MOVEMENT & BEHAVIOR LOGIC ---
+            // --- MOVEMENT & BEHAVIOR LOGIC (Unchanged) ---
             updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager) {
                 this.previousX = this.x;
                 this.previousY = this.y;
@@ -1228,28 +1236,24 @@
                 }
             }
 
-            // NEW: Mushroom Eating Behavior
             handleEatingBehavior(entityManager, buffManager) {
                 const uiManager = Game.instance.uiManager;
 
-                // Stage 1: Moving towards the mushroom (targetX is set)
+                // Stage 1: Moving towards the mushroom
                 if (this.targetX !== null) {
-                    // Ensure the seeking thought bubble is displayed
                     if (uiManager.getCurrentThought() !== Config.Emojis.EATING_SEEKING) {
                         // Show for a long duration, ensuring it stays up until consumption or interruption
                         uiManager.showThought(Config.Emojis.EATING_SEEKING, Config.EAT_DURATION + 60000); 
                     }
-                    return true; // Continue moving
+                    return true;
                 }
 
                 // Stage 2: Reached the mushroom, start chewing animation
                 if (this.eatingStartTime === 0) {
                     this.eatingStartTime = Date.now();
-                    // Remove the mushroom from the world
                     if (this.eatingTarget) {
                         entityManager.removeMushroomByObject(this.eatingTarget);
                     }
-                    // Show chewing thought bubble
                     uiManager.showThought(Config.Emojis.EATING_CONSUMING, Config.EAT_DURATION);
                 }
 
@@ -1259,17 +1263,16 @@
                     this.eatingStartTime = 0;
                     this.eatingTarget = null;
                     
-                    // Apply the buff
-                    const duration = Utils.randomRange(Config.MUSHROOM_BUFF_MIN, Config.MUSHROOM_BUFF_MAX);
-                    buffManager.addBuffTime('mushroom', duration);
+                    // Apply the buff (using the new flat duration)
+                    buffManager.addBuffTime('mushroom', Config.MUSHROOM_BUFF_DURATION);
 
                     // Show satisfied thought bubble
                     uiManager.showThought(Config.Emojis.EATING_SATISFIED, 2000);
 
-                    return true; // Resume normal movement
+                    return true;
                 }
 
-                return false; // Stay still while chewing
+                return false;
             }
 
             moveToTarget() {
@@ -1295,26 +1298,21 @@
             }
 
             wander(entityManager, buffManager) {
-                // NEW: If currently eating (seeking) OR Hangry, do NOT wander randomly.
                 if (this.isEating || this.isHangry) {
                     return;
                 }
                 
-                // Check for nearby mushrooms (only if not already mushroom buffed)
                 if (!buffManager.getActiveBuffs().mushroom) {
                     const nearbyMushroom = entityManager.getNearbyMushroom(this.x, this.y, Config.EAT_DETECTION_RADIUS);
                     if (nearbyMushroom && Math.random() < Config.EAT_MUSHROOM_CHANCE) {
                         this.isEating = true;
                         this.eatingTarget = nearbyMushroom;
-                        // We set the target directly, bypassing the public setTarget Hangry check
                         this.targetX = nearbyMushroom.x;
                         this.targetY = nearbyMushroom.y;
-                        // The thought bubble (👅) will be set in handleEatingBehavior on the next frame
                         return; 
                     }
                 }
 
-                // Standard wander randomization
                 if (Math.random() < 0.015) {
                     this.dx = (Math.random() - 0.5) * 2;
                     this.dy = (Math.random() - 0.5) * 2;
@@ -1367,7 +1365,6 @@
                     if (this.isEating) {
                         this.isEating = false;
                         this.eatingTarget = null;
-                        // Clear the seeking thought bubble if it's active
                         const uiManager = Game.instance.uiManager;
                         if (uiManager.getCurrentThought() === Config.Emojis.EATING_SEEKING) {
                             uiManager.hideThought();
@@ -1406,11 +1403,13 @@
                 ctx.save();
                 
                 let drawY = this.y - this.verticalOffset;
+                let eatingWiggle = 0;
 
                 // Eating Animation (Wiggle up and down)
                 if (this.isEating && this.eatingStartTime > 0) {
                     const elapsed = Date.now() - this.eatingStartTime;
-                    drawY += Math.sin(elapsed / 100) * 5;
+                    eatingWiggle = Math.sin(elapsed / 100) * 5;
+                    drawY += eatingWiggle;
                 }
 
                 ctx.translate(this.x, drawY);
@@ -1425,7 +1424,7 @@
                     ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
                 }
 
-                // NEW: Draw Hangry Glow
+                // Draw Hangry Glow
                 if (this.isHangry) {
                     ctx.shadowBlur = 25;
                     ctx.shadowColor = Config.COLOR_HANGRY_GLOW;
@@ -1437,13 +1436,15 @@
                 ctx.fill();
                 ctx.closePath();
                 
-                // Draw held item (Mushroom) during chewing phase
+                // Draw held item (Mushroom) during chewing phase (Issue 1)
                 if (this.isEating && this.eatingStartTime > 0) {
                     ctx.shadowBlur = 0; // Don't glow the mushroom itself
-                    ctx.font = `${this.radius}px monospace`;
+                    ctx.font = `${this.radius * 0.8}px monospace`; // Slightly smaller font
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('🍄', 0, 0);
+                    // Draw slightly offset downwards so the wiggle makes it visible (Y axis is positive downwards)
+                    // The eatingWiggle is already applied to the main translation, so we offset relative to the center.
+                    ctx.fillText('🍄', 0, this.radius * 0.4); 
                 }
 
                 ctx.restore();
@@ -1454,7 +1455,6 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (Implementation remains unchanged from previous iteration)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -1472,7 +1472,8 @@
                             isEureka: false,
                             isEnding: false,
                             emoji: data.emoji,
-                            indicator: null
+                            indicator: null,
+                            hideTimer: data.hideTimer || false // (Issue 4)
                         };
                     }
                 });
@@ -1487,9 +1488,13 @@
                     const indicator = document.createElement('div');
                     indicator.className = 'buff-indicator';
                     indicator.id = `buff-indicator-${name}`;
+                    
+                    // Conditionally hide the timer element (Issue 4)
+                    const timerHTML = buff.hideTimer ? '' : '<div class="buff-timer"></div>';
+
                     indicator.innerHTML = `
                         <span class="buff-icon">${buff.emoji}</span>
-                        <div class="buff-timer"></div>
+                        ${timerHTML}
                     `;
                     container.appendChild(indicator);
                     buff.indicator = indicator;
@@ -1537,11 +1542,18 @@
             }
 
             updateTimerDisplay(buff, currentTime) {
+                // Skip update if timer is hidden (Issue 4)
+                if (buff.hideTimer) return;
+
                 const remainingSeconds = Math.ceil((buff.endTime - currentTime) / 1000);
                 const minutes = Math.floor(remainingSeconds / 60);
                 const seconds = remainingSeconds % 60;
                 const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                buff.indicator.querySelector('.buff-timer').textContent = timerText;
+                
+                const timerEl = buff.indicator.querySelector('.buff-timer');
+                if (timerEl) {
+                    timerEl.textContent = timerText;
+                }
             }
 
             addBuffTime(name, duration) {
@@ -1647,7 +1659,7 @@
         }
 
         class ItemManager {
-            // (Implementation remains unchanged from previous iteration)
+            // (Implementation remains unchanged)
             constructor(buffManager) {
                 this.buffManager = buffManager;
                 this.items = {};
@@ -1759,7 +1771,7 @@
         // 5. PARTICLE SYSTEM & UFO
         // ====================================================================
 
-        // (Implementation remains unchanged from previous iteration)
+        // (Implementation remains unchanged)
         class ParticleSystem {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -1814,7 +1826,6 @@
                     this.ctx.fillStyle = `rgba(30, 30, 30, ${0.5 * opacity})`;
                     this.ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
                 } else if (p.type === 'mist') {
-                    // Use a slightly bluer mist color matching the terrain
                     this.ctx.fillStyle = `rgba(200, 220, 255, ${0.2 * opacity})`;
                     this.ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
                 }
@@ -1883,6 +1894,8 @@
                 this.wanderDot = wanderDot;
                 this.thoughtBubble = document.getElementById('thought-bubble');
                 this.worldTimerElement = document.getElementById('world-timer');
+                this.timerContainer = document.getElementById('timer-container');
+                this.timerIcon = document.getElementById('timer-icon');
                 
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
@@ -1917,9 +1930,20 @@
 
                 this.thoughtBubble.addEventListener('mouseenter', () => this.handleBubbleEnter());
                 this.thoughtBubble.addEventListener('mouseleave', () => this.handleBubbleLeave());
+
+                // NEW: Add click listener for Timer toggle (Issue 7)
+                // Using 'pointerdown' for responsiveness on both desktop and mobile
+                this.timerIcon.addEventListener('pointerdown', (event) => {
+                    event.stopPropagation();
+                    this.toggleTimerPin();
+                });
             }
 
-            // NEW: Helper to get current emoji
+            // NEW: Toggle Timer Pinning (Issue 7)
+            toggleTimerPin() {
+                this.timerContainer.classList.toggle('active');
+            }
+
             getCurrentThought() {
                 if (this.thoughtBubble.style.display === 'block') {
                     const span = this.thoughtBubble.querySelector('span');
@@ -2020,8 +2044,6 @@
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
 
-                // Note: We allow thoughts during eating phases (seeking/consuming) as they are indicators (👅, 🤤)
-
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
 
@@ -2053,7 +2075,7 @@
                 this.riseStartTime = Date.now();
             }
 
-            // --- IDLE THOUGHT SCHEDULING ---
+            // --- IDLE THOUGHT SCHEDULING (Unchanged) ---
             scheduleNextIdleThought(delay = 7000) {
                 const IDLE_THOUGHT_DURATION = 4000;
                 const BREAK_DURATION = 7000;
@@ -2156,6 +2178,7 @@
                 Game.instance = this;
 
                 this.initializeCanvases();
+                // Ensure bounds reflect the actual window size immediately
                 this.bounds = { width: window.innerWidth, height: window.innerHeight };
 
                 this.worldCreationTime = Date.now();
@@ -2180,6 +2203,7 @@
             }
 
             resizeCanvases() {
+                // Use window.innerWidth/Height for consistency
                 this.mainCanvas.width = this.pathCanvas.width = this.entityCanvas.width = window.innerWidth;
                 this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = window.innerHeight;
             }
@@ -2209,13 +2233,13 @@
                 this.wanderDot.previousY = this.wanderDot.y;
             }
 
-            // --- PERSISTENCE ---
+            // --- PERSISTENCE (Unchanged) ---
             saveGame() {
                 // Prevent saving during the transient eating state (chewing phase)
                 if (this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0) return;
 
                 const saveData = {
-                    version: 4,
+                    version: 5,
                     worldCreationTime: this.worldCreationTime,
                     world: this.worldManager.saveState(),
                     entities: this.entityManager.saveState(),
@@ -2272,19 +2296,25 @@
             // --- EVENTS ---
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
-                this.mainCanvas.addEventListener('click', (event) => this.handleClick(event));
+                // Use pointerdown for better responsiveness on all devices
+                this.mainCanvas.addEventListener('pointerdown', (event) => this.handleClick(event));
                 window.addEventListener('beforeunload', () => this.saveGame());
             }
 
             handleResize() {
+                // Update bounds and canvases immediately based on new window size
                 this.bounds.width = window.innerWidth;
                 this.bounds.height = window.innerHeight;
                 this.resizeCanvases();
+                // Notify managers to adapt to the new size (Handles Issue 5)
                 this.worldManager.handleResize(this.bounds.width, this.bounds.height);
                 this.entityManager.needsRedraw = true;
             }
 
             handleClick(event) {
+                // Prevent default browser behavior (like drag/select)
+                event.preventDefault(); 
+
                 const clickX = event.clientX;
                 const clickY = event.clientY;
 
@@ -2343,7 +2373,7 @@
                 this.uiManager.scheduleNextIdleThought();
             }
 
-            // Main game loop
+            // Main game loop (Unchanged)
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
 
@@ -2353,6 +2383,7 @@
                 }
                 const deltaTime = (currentTime - this.lastFrameTime) / 1000;
                 
+                // Handle large deltaTime spikes (e.g., tab inactive)
                 if (deltaTime > 0.1) {
                      this.lastFrameTime = currentTime;
                      this.updateTimeBasedSystems();
