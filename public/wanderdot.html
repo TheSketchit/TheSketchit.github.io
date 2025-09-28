@@ -30,6 +30,9 @@
             font-family: var(--font-main);
             cursor: default;
             user-select: none; 
+            /* NEW: Ensure pixel art scales cleanly */
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         /* --- 2. WORLD CONTAINERS & LAYERS --- */
@@ -39,19 +42,7 @@
             overflow: hidden;
         }
 
-        #grass-field {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .grass-tuft {
-            position: absolute;
-            font-weight: bold;
-        }
+        /* REMOVED: #grass-field div is no longer used, replaced by grassCanvas */
 
         canvas {
             display: block;
@@ -59,13 +50,15 @@
             top: 0; left: 0;
         }
 
+        /* UPDATED: Z-Index layering */
+        #grassCanvas { z-index: 0; } /* NEW: Grass layer at the bottom */
         #pathCanvas { z-index: 1; }
         #entityCanvas { z-index: 2; } 
         #mainCanvas { z-index: 3; }
 
         /* --- 3. UI ELEMENTS --- */
 
-        /* Thought Bubble - Updated for dynamic font size */
+        /* Thought Bubble */
         #thought-bubble {
             position: absolute;
             display: none;
@@ -79,7 +72,7 @@
             z-index: 4;
             cursor: pointer;
             transform: translate(-50%, -50%); 
-            white-space: nowrap; /* NEW: Prevent timer text (e.g. "🤤 4s") from wrapping in the bubble */
+            white-space: nowrap;
         }
 
         .is-rising {
@@ -165,13 +158,13 @@
             animation: use-item-anim 0.2s ease-out;
         }
         
-        /* World Timer (Top Left) - Updated for Mobile Wrapping */
+        /* World Timer (Top Left) */
         #timer-container {
             position: absolute;
             top: 10px; left: 10px;
             z-index: 5;
             display: flex;
-            align-items: flex-start; /* UPDATED: Changed from center to flex-start for better alignment when text wraps */
+            align-items: flex-start;
         }
 
         #timer-icon {
@@ -216,14 +209,13 @@
         /* --- 3.5. MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
             #world-timer {
-                white-space: normal; /* NEW: Allow wrapping on mobile */
+                white-space: normal; /* Allow wrapping on mobile */
             }
 
             /* Active states on mobile */
             #timer-container:hover #world-timer,
             #timer-container.active #world-timer {
-                /* NEW: Constrain width to prevent overflow. 
-                   100vw - (Left position 10px) - (Right margin 10px) - (Icon width + margin ~50px) */
+                /* Constrain width to prevent overflow. */
                 max-width: calc(100vw - 70px);
             }
         }
@@ -262,7 +254,7 @@
 </head>
 <body>
     <div id="world-container">
-        <div id="grass-field"></div>
+        <canvas id="grassCanvas"></canvas>
         <canvas id="pathCanvas"></canvas>
         <canvas id="entityCanvas"></canvas>
         <canvas id="mainCanvas"></canvas>
@@ -282,7 +274,7 @@
         // ====================================================================
 
         const Config = {
-            SAVE_KEY: 'WanderDot_Refactored_V7_Save', // Updated save key version
+            SAVE_KEY: 'WanderDot_Refactored_V8_Save', // Updated save key version
             SAVE_INTERVAL: 10000, // ms
 
             // Mood Thresholds
@@ -305,10 +297,22 @@
             // World Grid
             GRID_CELL_SIZE: 10,
             MAX_WEAR: 100,
-            WEAR_PER_PIXEL: 0.05,
-            GRASS_REMOVAL_THRESHOLD: 50,
+            WEAR_PER_PIXEL: 0.05, // Wear applied to the dirt path
+            
+            // Grass Configuration (NEW)
+            GRASS_BLADE_COUNT: 15000, // Increased count for dense coverage with small sprites
+            GRASS_INTERACTION_RADIUS: 35, // How far away grass reacts to movement
+            GRASS_LANDING_RADIUS: 60, // How far away grass reacts to landing
+            GRASS_WEAR_PER_INTERACTION: 0.04, // Health reduction per movement step
+            GRASS_WEAR_PER_LANDING: 0.3, // Health reduction per landing
+            GRASS_DEATH_THRESHOLD: 0.1, // Remove grass below 10% health/opacity
+            GRASS_SLIDE_DISTANCE: 10, // Max distance grass slides aside
+            GRASS_BEND_ANGLE: 45 * (Math.PI / 180), // Max bend angle (in radians)
+
+            // Legacy thresholds (used for entity spawning/maturation on dirt)
+            GRASS_REMOVAL_THRESHOLD: 50, 
             PEBBLE_SPAWN_THRESHOLD: 70,
-            GRASS_TUFT_COUNT: 300,
+            
             UFO_MUSHROOM_CHANCE: 0.015,
 
             // WanderDot Base Stats
@@ -316,7 +320,7 @@
             BASE_RADIUS: 20,
             EAT_MUSHROOM_CHANCE: 0.02,
             EAT_DETECTION_RADIUS: 100,
-            EAT_DURATION: 4000, // UPDATED: Set to 4000ms (4 seconds)
+            EAT_DURATION: 4000,
 
             // Kangaroo Mechanics
             BOUNCE_DISTANCE: 120,
@@ -334,7 +338,6 @@
                 pizza: { emoji: '🍕', type: 'buff', duration: 30000 },
                 kangaroo: { emoji: '🦘', type: 'buff', duration: 30000 },
                 lightbulb: { emoji: '💡', type: 'utility' },
-                // hideTimer: true ensures the DIGESTION time (buff duration) is hidden in the UI.
                 mushroom: { emoji: '🍄', type: 'buff', hideTimer: true } 
             },
 
@@ -354,8 +357,19 @@
                 // Entities
                 SEED: '🥔',
                 FLOWER: '🌼',
-                BROWN_MUSHROOM: '🍄‍🟫', // Default, will be checked on startup
+                BROWN_MUSHROOM: '🍄‍🟫',
                 DIAMOND: '🔸',
+            },
+
+            Assets: {
+                grass: [
+                    '../images/Grass/grass_blade_01.png',
+                    '../images/Grass/grass_blade_02.png',
+                    '../images/Grass/grass_blade_03.png',
+                    '../images/Grass/grass_blade_04.png',
+                    '../images/Grass/grass_blade_05.png',
+                    '../images/Grass/grass_blade_06.png',
+                ]
             }
         };
 
@@ -388,27 +402,16 @@
             randomRange(min, max) {
                 return Math.random() * (max - min) + min;
             },
-            // NEW: Check if an emoji (especially ZWJ sequences) is likely rendered as a single glyph.
             checkEmojiSupport(emoji) {
                 try {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    // If canvas is not supported, we cannot test, so assume support.
                     if (!ctx) return true; 
 
-                    // Set a baseline font size for measurement
                     ctx.font = '20px sans-serif';
-                    
-                    // Measure the target emoji
                     const metrics = ctx.measureText(emoji);
-                    
-                    // Measure a known single standard emoji (e.g., the base mushroom) for comparison
                     const baselineMetrics = ctx.measureText('🍄'); 
 
-                    // Heuristic: If the ZWJ sequence (like Brown Mushroom) is rendered as one glyph, 
-                    // its width should be very similar to the baseline emoji. 
-                    // If it's rendered as two separate emojis (Mushroom + Brown Square), it will be significantly wider.
-                    // We allow a small tolerance (1.5x).
                     return metrics.width <= baselineMetrics.width * 1.5;
                 } catch (e) {
                     console.warn("Emoji support check failed, assuming support:", e);
@@ -418,11 +421,54 @@
         };
 
         // ====================================================================
+        // 0.5. ASSET MANAGER (NEW)
+        // ====================================================================
+        
+        class AssetManager {
+            constructor() {
+                this.images = {
+                    grass: []
+                };
+                this.loadedCount = 0;
+                this.totalCount = 0;
+            }
+
+            loadAll(onComplete) {
+                this.totalCount = Config.Assets.grass.length;
+
+                if (this.totalCount === 0) {
+                    onComplete();
+                    return;
+                }
+
+                Config.Assets.grass.forEach((path, index) => {
+                    const img = new Image();
+                    img.src = path;
+                    img.onload = () => {
+                        this.images.grass[index] = img;
+                        this.loadedCount++;
+                        if (this.loadedCount === this.totalCount) {
+                            onComplete();
+                        }
+                    };
+                    img.onerror = () => {
+                        console.error(`Failed to load asset: ${path}. Ensure the path is correct.`);
+                        // Treat as loaded even if failed, to allow game to proceed (might look weird)
+                        this.loadedCount++;
+                        if (this.loadedCount === this.totalCount) {
+                            onComplete();
+                        }
+                    }
+                });
+            }
+        }
+
+        // ====================================================================
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
         
+        // (Implementation mostly unchanged from previous version)
         class EntityManager {
-            // (Implementation mostly unchanged, only drawDynamicEntities updated to use the Config emoji)
             constructor(ctx) {
                 this.ctx = ctx;
                 this.pebbles = [];
@@ -500,6 +546,7 @@
                 const terrainInfo = worldManager.getTerrainInfoAtPoint(seed.x, seed.y);
                 let newType = null;
 
+                // Maturation still relies on the underlying dirt path wear level
                 if (terrainInfo.wear < Config.GRASS_REMOVAL_THRESHOLD) {
                     if (terrainInfo.type === TerrainType.NORMAL) {
                         newType = 'flower';
@@ -611,7 +658,6 @@
                         // Use text shadow to make the emoji appear dark/black
                         textShadow = '0 0 2px black, 0 0 2px black, 0 0 2px black'; 
                     }
-                    // Uses the potentially updated BROWN_MUSHROOM emoji (either 🍄‍🟫 or 🥀)
                     else if (e.type === 'brownMushroom') emoji = Config.Emojis.BROWN_MUSHROOM;
                     else if (e.type === 'flower') emoji = Config.Emojis.FLOWER;
                     else if (e.type === 'diamond') emoji = Config.Emojis.DIAMOND;
@@ -632,16 +678,20 @@
         // ====================================================================
 
         class WorldManager {
-             // (Implementation remains unchanged from previous version)
-            constructor(width, height, pathCtx, entityManager) {
+            // UPDATED: Added grassCtx, assetManager, and new grass structures
+            constructor(width, height, pathCtx, grassCtx, entityManager, assetManager) {
                 this.width = width;
                 this.height = height;
                 this.pathCtx = pathCtx;
+                this.grassCtx = grassCtx; // NEW
                 this.entityManager = entityManager;
+                this.assetManager = assetManager; // NEW
 
                 this.pathGrid = [];
-                this.grassGrid = [];
-                this.grassTufts = [];
+                
+                // Grass structures (NEW)
+                this.grassBlades = [];
+                this.needsGrassRedraw = true;
                 
                 this.initializeGrid();
             }
@@ -651,51 +701,74 @@
                 const gridHeight = Math.ceil(this.height / Config.GRID_CELL_SIZE);
 
                 const newPathGrid = [];
-                const newGrassGrid = [];
 
                 // This logic correctly preserves data during resize
                 for (let i = 0; i < gridWidth; i++) {
                     newPathGrid[i] = [];
-                    newGrassGrid[i] = [];
                     for (let j = 0; j < gridHeight; j++) {
                         if (this.pathGrid[i] && this.pathGrid[i][j]) {
                             newPathGrid[i][j] = this.pathGrid[i][j];
                         } else {
                             newPathGrid[i][j] = { wear: 0, hasPebble: false, terrainType: TerrainType.NORMAL, mistOpacity: 0 };
                         }
-                        newGrassGrid[i][j] = [];
                     }
                 }
                 this.pathGrid = newPathGrid;
-                this.grassGrid = newGrassGrid;
             }
 
-            // --- Persistence & Setup (Unchanged) ---
+            // --- Persistence & Setup ---
+            // UPDATED: Load grass blade data
             loadState(saveData) {
+                // Load Path Grid (Unchanged)
                 const loadedGrid = saveData.pathGrid;
-                if (!loadedGrid || loadedGrid.length === 0) return;
+                if (loadedGrid && loadedGrid.length > 0) {
+                    const gridWidth = this.pathGrid.length;
+                    const gridHeight = this.pathGrid[0].length;
+                    const loadedWidth = loadedGrid.length;
+                    const loadedHeight = loadedGrid[0]?.length || 0;
 
-                const gridWidth = this.pathGrid.length;
-                const gridHeight = this.pathGrid[0].length;
-                const loadedWidth = loadedGrid.length;
-                const loadedHeight = loadedGrid[0]?.length || 0;
-
-                for (let i = 0; i < Math.min(gridWidth, loadedWidth); i++) {
-                    for (let j = 0; j < Math.min(gridHeight, loadedHeight); j++) {
-                        if (loadedGrid[i] && loadedGrid[i][j]) {
-                            if (loadedGrid[i][j].terrainType === 'alien') {
-                                loadedGrid[i][j].terrainType = TerrainType.ALIEN_BLUE; 
+                    for (let i = 0; i < Math.min(gridWidth, loadedWidth); i++) {
+                        for (let j = 0; j < Math.min(gridHeight, loadedHeight); j++) {
+                            if (loadedGrid[i] && loadedGrid[i][j]) {
+                                if (loadedGrid[i][j].terrainType === 'alien') {
+                                    loadedGrid[i][j].terrainType = TerrainType.ALIEN_BLUE; 
+                                }
+                                this.pathGrid[i][j] = loadedGrid[i][j];
                             }
-                            this.pathGrid[i][j] = loadedGrid[i][j];
                         }
                     }
                 }
+
+                // Load Grass Blades (NEW)
+                // This relies on the asset manager already being initialized.
+                const loadedBlades = saveData.grassBlades;
+                if (loadedBlades && loadedBlades.length > 0) {
+                    this.grassBlades = loadedBlades.map(blade => ({
+                        ...blade,
+                        // Ensure transient animation properties are reset on load
+                        offsetX: 0,
+                        offsetY: 0,
+                        angle: 0
+                    }));
+                }
             }
 
+            // UPDATED: Save grass blade data
             saveState() {
                 const clonedPathGrid = this.pathGrid.map(row => row.map(cell => ({...cell})));
+                
+                // NEW: Save grass blades, filtering out transient animation data (offsetX/Y/angle)
+                const savedBlades = this.grassBlades.map(blade => ({
+                    x: blade.x,
+                    y: blade.y,
+                    imageIndex: blade.imageIndex,
+                    scale: blade.scale,
+                    health: blade.health
+                }));
+
                 return {
                     pathGrid: clonedPathGrid,
+                    grassBlades: savedBlades,
                 };
             }
 
@@ -703,11 +776,15 @@
                 this.width = width;
                 this.height = height;
                 this.initializeGrid();
-                this.generateGrassField();
+                // Regenerate grass field on resize to fill the new area correctly.
+                // A more complex approach could try to preserve existing blades, but this is simpler.
+                this.grassBlades = []; 
+                this.generateGrassField(); 
                 this.redrawWorld();
             }
 
             redrawWorld() {
+                // Redraw Paths
                 this.pathCtx.clearRect(0, 0, this.width, this.height);
                 for (let i = 0; i < this.pathGrid.length; i++) {
                     for (let j = 0; j < this.pathGrid[i].length; j++) {
@@ -717,6 +794,8 @@
                         }
                     }
                 }
+                // Redraw Grass
+                this.needsGrassRedraw = true;
             }
 
             // --- Utility Functions (Unchanged) ---
@@ -734,158 +813,265 @@
                 return { type: TerrainType.NORMAL, wear: 0 };
             }
 
-            // --- GRASS MANAGEMENT ---
+            // --- GRASS MANAGEMENT (NEW Implementation) ---
+            
+            // NEW: Generates the initial placement of grass blades
             generateGrassField() {
-                const field = document.getElementById('grass-field');
-                field.innerHTML = '';
-                this.grassTufts = [];
-                const grassTypes = ['^^', '^^^', '/\\/\\', '-^-', 'vV'];
-                const grassColors = ['#228B22', '#3CB371', '#6B8E23', '#556B2F'];
+                // If blades already exist (e.g., loaded from save), don't regenerate, just flag redraw
+                if (this.grassBlades.length > 0) {
+                    this.needsGrassRedraw = true;
+                    return;
+                }
 
-                for (let i = 0; i < Config.GRASS_TUFT_COUNT; i++) {
-                    const tuftEl = document.createElement('span');
-                    
-                    // Use pixel coordinates directly based on the current container dimensions
+                this.grassBlades = [];
+                const grassImageCount = this.assetManager.images.grass.length;
+
+                if (grassImageCount === 0) {
+                    console.warn("No grass assets loaded. Skipping grass generation.");
+                    return;
+                }
+
+                for (let i = 0; i < Config.GRASS_BLADE_COUNT; i++) {
                     const xPx = Math.random() * this.width;
                     const yPx = Math.random() * this.height;
-
-                    tuftEl.classList.add('grass-tuft');
-                    tuftEl.textContent = Utils.randomChoice(grassTypes);
-                    tuftEl.style.color = Utils.randomChoice(grassColors);
-                    // Position using pixels since the container is now sized by JS
-                    tuftEl.style.left = `${xPx}px`;
-                    tuftEl.style.top = `${yPx}px`;
-                    tuftEl.style.fontSize = `${Math.random() * 0.8 + 0.5}rem`;
-                    tuftEl.style.opacity = Math.random() * 0.5 + 0.4;
-                    field.appendChild(tuftEl);
                     
-                    const tuftData = { element: tuftEl, x: xPx, y: yPx, visible: true };
-                    this.grassTufts.push(tuftData);
+                    const blade = {
+                        x: xPx,
+                        y: yPx,
+                        imageIndex: Math.floor(Math.random() * grassImageCount),
+                        scale: Utils.randomRange(2.0, 4.0), // Randomize size (pixel art scaled up)
+                        health: 1.0, // Full health (100% opacity)
+                        offsetX: 0, // For slide animation
+                        offsetY: 0, // For slide animation
+                        angle: 0    // For bend animation (radians)
+                    };
+                    
+                    this.grassBlades.push(blade);
+                }
+                this.needsGrassRedraw = true;
+            }
 
-                    const gridX = Math.floor(xPx / Config.GRID_CELL_SIZE);
-                    const gridY = Math.floor(yPx / Config.GRID_CELL_SIZE);
+            // NEW: Handles interaction (sliding, bending, and wear) for grass blades
+            interactWithGrass(impactX, impactY, radius, wearAmount) {
+                let interactionOccurred = false;
+                const radiusSq = radius * radius;
 
-                    if (this.isValidCell(gridX, gridY)) {
-                        this.grassGrid[gridX][gridY].push(tuftData);
+                for (let i = this.grassBlades.length - 1; i >= 0; i--) {
+                    const blade = this.grassBlades[i];
+                    const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
+
+                    if (distSq < radiusSq) {
+                        interactionOccurred = true;
                         
-                        if (this.pathGrid[gridX][gridY].wear > Config.GRASS_REMOVAL_THRESHOLD) {
-                            this.hideTuft(tuftData);
+                        // 1. Apply Wear
+                        blade.health -= wearAmount;
+
+                        // 2. Check for Death
+                        if (blade.health <= Config.GRASS_DEATH_THRESHOLD) {
+                            this.grassBlades.splice(i, 1);
+                            continue; 
+                        }
+
+                        // 3. Apply Slide and Bend Animation
+                        const distance = Math.sqrt(distSq);
+                        if (distance > 0.1) {
+                            // Calculate vector from impact point to the blade
+                            const dx = blade.x - impactX;
+                            const dy = blade.y - impactY;
+                            
+                            // Normalize the vector
+                            const nx = dx / distance;
+                            const ny = dy / distance;
+
+                            // Calculate intensity (stronger when closer)
+                            const intensity = (1 - (distance / radius));
+                            
+                            // Slide
+                            const slideAmount = intensity * Config.GRASS_SLIDE_DISTANCE;
+                            blade.offsetX = nx * slideAmount;
+                            blade.offsetY = ny * slideAmount;
+
+                            // Bend (Rotation based primarily on horizontal displacement direction)
+                            // We use the normalized X direction (nx) to determine the bend direction and magnitude
+                            blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
                         }
                     }
                 }
+
+                if (interactionOccurred) {
+                    this.needsGrassRedraw = true;
+                }
             }
 
-            updateGrassInCell(gridX, gridY) {
-                const tufts = this.grassGrid[gridX]?.[gridY];
-                if (!tufts) return;
+            // NEW: Update loop for grass (handles animation decay)
+            updateGrass(deltaTime) {
+                let animationActive = false;
+                const decayRate = 5; // How quickly the grass springs back (higher is faster)
 
-                tufts.forEach(tuft => {
-                    if (tuft.visible) {
-                        this.hideTuft(tuft);
+                for (const blade of this.grassBlades) {
+                    const needsUpdate = Math.abs(blade.offsetX) > 0.1 || Math.abs(blade.offsetY) > 0.1 || Math.abs(blade.angle) > 0.01;
+                    
+                    if (needsUpdate) {
+                        animationActive = true;
+                        // Lerp offsets and angle back towards 0
+                        blade.offsetX = Utils.lerp(blade.offsetX, 0, decayRate * deltaTime);
+                        blade.offsetY = Utils.lerp(blade.offsetY, 0, decayRate * deltaTime);
+                        blade.angle = Utils.lerp(blade.angle, 0, decayRate * deltaTime);
+                    } else if (blade.offsetX !== 0 || blade.offsetY !== 0 || blade.angle !== 0) {
+                        // Snap to 0 when very close
+                        blade.offsetX = 0;
+                        blade.offsetY = 0;
+                        blade.angle = 0;
+                        animationActive = true; // Need one last redraw to show the snapped position
                     }
-                });
+                }
+
+                if (animationActive) {
+                    this.needsGrassRedraw = true;
+                }
             }
 
-            hideTuft(tuftData) {
-                tuftData.element.style.display = 'none';
-                tuftData.visible = false;
-            }
+            // NEW: Renders the grass blades onto the grassCanvas
+            drawGrass() {
+                if (!this.needsGrassRedraw) return;
 
-            wiggleNearbyGrass(x, y) {
-                const WIGGLE_RADIUS = 70;
-                this.grassTufts.forEach(tuft => {
-                    if (tuft.visible && Utils.distance(tuft.x, tuft.y, x, y) < WIGGLE_RADIUS) {
-                        tuft.element.style.animation = 'wiggle 0.5s ease-out';
-                        tuft.element.addEventListener('animationend', () => {
-                            tuft.element.style.animation = '';
-                        }, { once: true });
+                this.grassCtx.clearRect(0, 0, this.width, this.height);
+                const grassImages = this.assetManager.images.grass;
+
+                for (const blade of this.grassBlades) {
+                    const img = grassImages[blade.imageIndex];
+                    if (!img || !img.complete) continue; // Ensure image is valid and loaded
+
+                    const width = img.width * blade.scale;
+                    const height = img.height * blade.scale;
+                    
+                    // Calculate the position of the base of the blade (pivot point)
+                    const baseX = blade.x + blade.offsetX;
+                    const baseY = blade.y + blade.offsetY;
+
+                    // Set opacity based on health
+                    this.grassCtx.globalAlpha = Math.max(0, blade.health);
+
+                    // Apply rotation around the base of the blade
+                    if (blade.angle !== 0) {
+                        this.grassCtx.save();
+                        this.grassCtx.translate(baseX, baseY);
+                        this.grassCtx.rotate(blade.angle);
+                        // Draw the image relative to the translated/rotated origin
+                        // We draw it offset by (-width/2, -height) so the origin is the bottom center
+                        this.grassCtx.drawImage(img, -width / 2, -height, width, height);
+                        this.grassCtx.restore();
+                    } else {
+                        // Optimized drawing for non-rotated blades
+                        const drawX = baseX - width / 2;
+                        const drawY = baseY - height;
+                        this.grassCtx.drawImage(img, drawX, drawY, width, height);
                     }
-                });
+                }
+
+                this.grassCtx.globalAlpha = 1.0; // Reset alpha
+                this.needsGrassRedraw = false;
             }
 
-            // --- WEAR AND TEAR ---
-             // (Implementation remains unchanged)
+
+            // --- WEAR AND TEAR (Dirt Paths) ---
+            // UPDATED: Now also calls grass interaction logic
             applyMovementWear(startX, startY, endX, endY, buffManager) {
                 const distance = Utils.distance(startX, startY, endX, endY);
-                const steps = Math.ceil(distance / (Config.GRID_CELL_SIZE / 2));
+                // Use smaller steps for smoother interaction detection
+                const steps = Math.ceil(distance / 5); 
                 if (steps === 0) return;
 
                 const buffs = buffManager.getActiveBuffs();
-                let wearMultiplier = Config.WEAR_PER_PIXEL;
+                let dirtWearMultiplier = Config.WEAR_PER_PIXEL;
+                let grassWearAmount = Config.GRASS_WEAR_PER_INTERACTION;
                 
-                // Coffee increases wear rate
+                // Buff multipliers
                 if (buffs.coffee) {
-                    wearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
+                    dirtWearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
+                    grassWearAmount *= 1.5;
                 }
-                // Mushroom increases wear rate (100% increase)
                 if (buffs.mushroom) {
-                    wearMultiplier *= (1 + 1.0 * buffs.mushroom.potency);
+                    dirtWearMultiplier *= (1 + 1.0 * buffs.mushroom.potency);
+                    grassWearAmount *= 2.0;
                 }
 
                 // Determine wear radius based on size buffs
-                let wearRadius = 1;
+                let dirtWearRadius = 1;
                 if (buffs.pizza || buffs.mushroom) {
-                    wearRadius = 2;
+                    dirtWearRadius = 2;
                 }
-                // Stacking check
                 if (buffs.pizza && buffs.mushroom) {
-                    wearRadius = 3;
+                    dirtWearRadius = 3;
                 }
 
-                // Destruction check
                 const isHeavy = buffs.pizza || buffs.mushroom;
                 const currentDotRadius = Game.instance.wanderDot.radius;
-
 
                 for (let i = 0; i <= steps; i++) {
                     const t = i / steps;
                     const currentX = Utils.lerp(startX, endX, t);
                     const currentY = Utils.lerp(startY, endY, t);
                     
-                    this.applyWearToArea(currentX, currentY, wearRadius, (distance/steps) * wearMultiplier);
+                    // 1. Apply Wear to Dirt Path
+                    this.applyWearToArea(currentX, currentY, dirtWearRadius, (distance/steps) * dirtWearMultiplier);
 
-                    // Entity Destruction while rolling
+                    // 2. Interact with Grass (NEW)
+                    this.interactWithGrass(currentX, currentY, Config.GRASS_INTERACTION_RADIUS, grassWearAmount);
+
+                    // 3. Entity Destruction while rolling
                     if (isHeavy) {
                         this.entityManager.removeDynamicEntitiesInArea(currentX, currentY, currentDotRadius);
                     }
                 }
             }
 
+            // UPDATED: Now also calls grass interaction logic
             applyLandingImpact(x, y, moodState, buffManager) {
                 let impactWear = Config.BASE_IMPACT_WEAR;
+                let grassImpactWear = Config.GRASS_WEAR_PER_LANDING;
+
                 const buffs = buffManager.getActiveBuffs();
                 const isHeavy = buffs.pizza || buffs.mushroom;
 
+                // Buff multipliers
                 if (buffs.coffee) {
                     impactWear *= (1 + 1.0 * buffs.coffee.potency);
+                    grassImpactWear *= 1.5;
                 }
                 if (buffs.kangaroo) {
                     impactWear *= (1 + 0.3 * buffs.kangaroo.potency);
+                    // Kangaroo buff inherently increases landing impact on grass
                 }
-                // Mushroom increases impact wear (100% increase)
                 if (buffs.mushroom) {
                     impactWear *= (1 + 1.0 * buffs.mushroom.potency);
+                    grassImpactWear *= 2.0;
                 }
 
                 if (moodState === 'mad') {
                     impactWear *= 1.7;
-                    this.wiggleNearbyGrass(x, y);
+                    grassImpactWear *= 1.7;
                     Game.instance.particleManager.spawnLandingParticles(x, y);
                 }
 
                 const impactRadius = 2.5;
+                
+                // 1. Apply Wear to Dirt Path
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
                 
-                // Entity Destruction on impact
+                // 2. Interact with Grass (NEW)
+                this.interactWithGrass(x, y, Config.GRASS_LANDING_RADIUS, grassImpactWear);
+
+                // 3. Entity Destruction on impact
                 this.entityManager.removeMushroomInArea(x, y, Config.BASE_RADIUS * 2);
 
-                // Destroy flowers/brown mushrooms if heavy
                 if (isHeavy) {
                     const currentDotRadius = Game.instance.wanderDot.radius;
                     this.entityManager.removeDynamicEntitiesInArea(x, y, currentDotRadius);
                 }
             }
 
+            // (applyWearToArea remains unchanged, only affects the dirt pathGrid)
             applyWearToArea(x, y, radius, wearAmount, useFalloff = false) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -918,10 +1104,6 @@
                             if (Math.floor(cell.wear) > Math.floor(oldWear)) {
                                 this.drawPathCell(gridX, gridY);
                                 this.trySpawnEntity(gridX, gridY, cell);
-
-                                if (cell.wear > Config.GRASS_REMOVAL_THRESHOLD && oldWear <= Config.GRASS_REMOVAL_THRESHOLD) {
-                                    this.updateGrassInCell(gridX, gridY);
-                                }
                             }
                         }
                     }
@@ -1037,6 +1219,7 @@
                         if (this.isValidCell(gridX, gridY)) {
                             const cell = this.pathGrid[gridX][gridY];
                             
+                            // Terrain type determination relies on the underlying dirt path wear
                             const isGrass = cell.wear < Config.GRASS_REMOVAL_THRESHOLD;
                             const targetType = isGrass ? TerrainType.ALIEN_BLUE : TerrainType.ALIEN_CLAY;
 
@@ -1068,8 +1251,8 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
+        // (Implementation remains unchanged from V7, as the interaction logic is handled within WorldManager calls)
         class WanderDot {
-            // (Constructor and Mood Logic Unchanged)
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
@@ -1326,6 +1509,7 @@
                 } else {
                     this.verticalOffset = 0; 
                     if (movementAllowed) {
+                         // This now handles both dirt wear AND grass interaction/wear
                          worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
                     }
                 }
@@ -1336,7 +1520,6 @@
                 }
             }
 
-            // UPDATED: Includes dynamic timer display during eating
             handleEatingBehavior(entityManager, buffManager) {
                 const uiManager = Game.instance.uiManager;
 
@@ -1452,6 +1635,7 @@
             }
 
             land(buffManager, worldManager) {
+                // This now handles both dirt impact AND grass interaction/wear
                 worldManager.applyLandingImpact(this.x, this.y, this.currentMoodState, buffManager);
                 
                 this.jiggleEndTime = Date.now();
@@ -1491,7 +1675,6 @@
             }
 
             // --- RENDERING ---
-            // UPDATED: New eating animation (wiggle mushroom instead of dot)
             draw(ctx) {
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
@@ -1522,8 +1705,6 @@
                 
                 let drawY = this.y - this.verticalOffset;
                 
-                // The previous eating animation (wiggling the dot) is removed. The dot stays still.
-
                 ctx.translate(this.x, drawY);
 
                 // Landing Jiggle Effect
@@ -1574,7 +1755,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (Implementation remains unchanged)
+        // (Implementation remains unchanged from V7)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -1777,7 +1958,7 @@
         }
 
         class ItemManager {
-            // (Implementation remains unchanged)
+            // (Implementation remains unchanged from V7)
             constructor(buffManager) {
                 this.buffManager = buffManager;
                 this.items = {};
@@ -1889,7 +2070,7 @@
         // 5. PARTICLE SYSTEM & UFO
         // ====================================================================
 
-        // (Implementation remains unchanged)
+        // (Implementation remains unchanged from V7)
         class ParticleSystem {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -2008,7 +2189,7 @@
         // ====================================================================
 
         class UIManager {
-            // (Constructor and EventListeners unchanged)
+            // (Implementation remains unchanged from V7)
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
                 this.thoughtBubble = document.getElementById('thought-bubble');
@@ -2062,7 +2243,6 @@
                 this.timerContainer.classList.toggle('active');
             }
 
-            // UPDATED: Returns the base emoji, stripping timer text if present.
             getCurrentThought() {
                 if (this.thoughtBubble.style.display === 'block') {
                     const span = this.thoughtBubble.querySelector('span');
@@ -2077,8 +2257,6 @@
                 return null;
             }
 
-            // NEW: Update the content of the thought bubble without resetting timers or animations.
-            // Used for dynamic content like the eating timer.
             updateThoughtContent(content, isCompact = false) {
                 if (this.thoughtBubble.style.display === 'block') {
                     const span = this.thoughtBubble.querySelector('span');
@@ -2184,7 +2362,6 @@
                 this.worldTimerElement.textContent = timerText;
             }
 
-            // UPDATED: Ensure font size is reset to default
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
 
@@ -2323,8 +2500,10 @@
                 if (Game.instance) return Game.instance;
                 Game.instance = this;
 
+                this.assetManager = new AssetManager(); // NEW
+                this.isInitialized = false; // NEW: Flag to ensure initialization happens after loading
+
                 this.initializeCanvases();
-                // Bounds are initialized based on the actual innerWidth/Height set in resizeCanvases
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
 
                 this.worldCreationTime = Date.now();
@@ -2332,40 +2511,53 @@
                 this.lastClickTime = 0;
                 this.lastSaveTime = 0;
 
-                this.initializeGameObjects();
-                this.loadGame();
-                this.finalizeInitialization();
-                this.setupEventListeners();
+                // Load assets first, then proceed with initialization
+                this.assetManager.loadAll(() => this.initializeAfterLoading());
             }
 
+            // UPDATED: Initialize the new grassCanvas
             initializeCanvases() {
-                this.worldContainer = document.getElementById('world-container'); // Get the main container
+                this.worldContainer = document.getElementById('world-container');
                 this.mainCanvas = document.getElementById('mainCanvas');
                 this.ctx = this.mainCanvas.getContext('2d');
                 this.pathCanvas = document.getElementById('pathCanvas');
                 this.pathCtx = this.pathCanvas.getContext('2d');
                 this.entityCanvas = document.getElementById('entityCanvas');
                 this.entityCtx = this.entityCanvas.getContext('2d');
-                this.resizeCanvases(); // Initial sizing
+                // NEW: Grass Canvas
+                this.grassCanvas = document.getElementById('grassCanvas');
+                this.grassCtx = this.grassCanvas.getContext('2d');
+
+                this.resizeCanvases();
             }
 
-            // UPDATED: Explicitly size the world container for mobile compatibility
+            // UPDATED: Resize the new grassCanvas
             resizeCanvases() {
                 const width = window.innerWidth;
                 const height = window.innerHeight;
 
-                // Explicitly set the container size to match the actual viewport dimensions.
-                // This prevents issues on mobile where 100vh might include the browser UI.
                 this.worldContainer.style.width = `${width}px`;
                 this.worldContainer.style.height = `${height}px`;
 
-                this.mainCanvas.width = this.pathCanvas.width = this.entityCanvas.width = width;
-                this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = height;
+                this.mainCanvas.width = this.pathCanvas.width = this.entityCanvas.width = this.grassCanvas.width = width;
+                this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = this.grassCanvas.height = height;
             }
 
+            // NEW: Initialization steps that depend on loaded assets
+            initializeAfterLoading() {
+                this.initializeGameObjects();
+                this.loadGame(); // Load game state (including grass positions)
+                this.finalizeInitialization();
+                this.setupEventListeners();
+                this.isInitialized = true;
+                this.start(); // Start the animation loop
+            }
+
+            // UPDATED: Pass assetManager and grassCtx to WorldManager
             initializeGameObjects() {
                 this.entityManager = new EntityManager(this.entityCtx);
-                this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.entityManager);
+                // Pass the new contexts and asset manager
+                this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.grassCtx, this.entityManager, this.assetManager);
                 this.wanderDot = new WanderDot(this.bounds.width / 2, this.bounds.height / 2);
                 this.uiManager = new UIManager(this.wanderDot);
                 this.buffManager = new BuffManager(this.entityManager);
@@ -2379,7 +2571,8 @@
                 this.buffManager.initializeUI();
                 this.itemManager.initializeUI();
                 
-                this.worldManager.generateGrassField();
+                // Generate grass if not loaded from save
+                this.worldManager.generateGrassField(); 
                 this.worldManager.redrawWorld();
 
                 this.wanderDot.x = Utils.clamp(this.wanderDot.x, Config.BASE_RADIUS, this.bounds.width - Config.BASE_RADIUS);
@@ -2388,15 +2581,17 @@
                 this.wanderDot.previousY = this.wanderDot.y;
             }
 
-            // --- PERSISTENCE (Unchanged) ---
+            // --- PERSISTENCE ---
+            // UPDATED: Include world manager save data (which now includes grass)
             saveGame() {
+                if (!this.isInitialized) return;
                 // Prevent saving during the transient eating state (chewing phase)
                 if (this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0) return;
 
                 const saveData = {
-                    version: 7, // Updated version
+                    version: 8, // Updated version
                     worldCreationTime: this.worldCreationTime,
-                    world: this.worldManager.saveState(),
+                    world: this.worldManager.saveState(), // Now includes grassBlades
                     entities: this.entityManager.saveState(),
                     wanderDot: this.wanderDot.saveState(),
                     items: this.itemManager.saveState(),
@@ -2411,8 +2606,17 @@
                 }
             }
 
+            // UPDATED: Load world manager data (which now includes grass)
             loadGame() {
-                const saveDataRaw = localStorage.getItem(Config.SAVE_KEY);
+                 // Try loading the latest version first
+                let saveDataRaw = localStorage.getItem(Config.SAVE_KEY);
+                
+                // If V8 doesn't exist, try loading V7 for backward compatibility during transition
+                // This allows users who played V7 to keep their paths/items when upgrading to V8 (though grass will regenerate if not present in save)
+                if (!saveDataRaw) {
+                    saveDataRaw = localStorage.getItem('WanderDot_Refactored_V7_Save');
+                }
+
                 if (!saveDataRaw) return;
 
                 try {
@@ -2420,18 +2624,13 @@
                     
                     this.worldCreationTime = saveData.worldCreationTime ?? Date.now();
                     
+                    // Load World State (Paths and Grass)
                     if (saveData.world) this.worldManager.loadState(saveData.world);
                     
                     // Handle legacy loading structures if necessary
                     if (saveData.entities) {
                         this.entityManager.loadState(saveData.entities);
-                    } else if (saveData.world && saveData.version < 3) {
-                         this.entityManager.loadState({
-                            pebbles: saveData.world.pebbles, 
-                            mushrooms: saveData.world.mushrooms,
-                            dynamicEntities: saveData.world.dynamicObjects
-                        });
-                    }
+                    } 
                     
                     this.wanderDot.loadState(saveData.wanderDot);
                     
@@ -2456,8 +2655,9 @@
                 window.addEventListener('beforeunload', () => this.saveGame());
             }
 
-            // UPDATED: Reflects changes in resizeCanvases
             handleResize() {
+                 if (!this.isInitialized) return;
+
                 // Resize canvases and the world container based on new window size
                 this.resizeCanvases();
                 
@@ -2542,9 +2742,12 @@
                 this.uiManager.scheduleNextIdleThought();
             }
 
-            // Main game loop (Unchanged)
+            // Main game loop
+            // UPDATED: Ensures initialization check and handles deltaTime spikes
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
+
+                if (!this.isInitialized) return; // Wait until assets are loaded
 
                 if (!this.lastFrameTime) {
                     this.lastFrameTime = currentTime;
@@ -2575,6 +2778,7 @@
                 this.uiManager.update(this.worldCreationTime);
             }
 
+            // UPDATED: Includes grass update logic
             update(deltaTime) {
                 // Update WanderDot
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
@@ -2588,11 +2792,18 @@
 
                 this.updateTimeBasedSystems();
 
+                // NEW: Update grass animations (springing back)
+                this.worldManager.updateGrass(deltaTime);
+
                 // Update UFO
                 this.ufo.update(deltaTime, this.particleManager, this.worldManager);
             }
 
+            // UPDATED: Includes grass drawing logic
             draw(deltaTime) {
+                // Draw Grass (happens first, on its own canvas)
+                this.worldManager.drawGrass();
+
                 // Clear main canvas
                 this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
 
@@ -2608,8 +2819,9 @@
             }
 
             start() {
+                // Start is now called after assets load in initializeAfterLoading
                 this.uiManager.scheduleNextIdleThought();
-                requestAnimationFrame((time) => this.animate(time));
+                // Animation loop already started in initializeAfterLoading
             }
         }
 
@@ -2617,14 +2829,15 @@
         // 8. STARTUP
         // ====================================================================
         document.addEventListener('DOMContentLoaded', () => {
-            // NEW: Check for Brown Mushroom emoji support before initializing the game
+            // Check for Brown Mushroom emoji support before initializing the game
             if (!Utils.checkEmojiSupport(Config.Emojis.BROWN_MUSHROOM)) {
                 // If the OS cannot display the brown mushroom (🍄‍🟫) as one emoji, fallback to Wilted Flower (🥀)
                 Config.Emojis.BROWN_MUSHROOM = '🥀';
             }
 
+            // Initialization starts here. The Game constructor handles asset loading before starting the simulation.
             const game = new Game();
-            game.start();
+            // game.start() is called internally after assets load.
         });
 
     </script>
