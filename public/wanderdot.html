@@ -295,7 +295,8 @@
             WEAR_PER_PIXEL: 0.05, // Wear applied to the dirt path
             
             // Grass Configuration
-            GRASS_BLADE_COUNT: 15000, // Increased count for dense coverage with small sprites
+            // FIX: Reduced count from 15000 to 10000 for better density.
+            GRASS_BLADE_COUNT: 10000, 
             GRASS_INTERACTION_RADIUS: 35, // How far away grass reacts to movement
             GRASS_LANDING_RADIUS: 60, // How far away grass reacts to landing
             GRASS_WEAR_PER_INTERACTION: 0.04, // Health reduction per movement step
@@ -463,6 +464,7 @@
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
         
+        // (EntityManager implementation remains unchanged)
         class EntityManager {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -675,7 +677,7 @@
                 this.initializeGrid();
             }
 
-            // UPDATED: Simplified initialization as persistence is removed.
+            // (initializeGrid remains unchanged)
             initializeGrid() {
                 const gridWidth = Math.ceil(this.width / Config.GRID_CELL_SIZE);
                 const gridHeight = Math.ceil(this.height / Config.GRID_CELL_SIZE);
@@ -703,7 +705,6 @@
                 this.height = height;
                 this.initializeGrid();
                 // Regenerate grass field on resize to fill the new area correctly.
-                // We must clear the old blades and regenerate, otherwise blades might be offscreen or poorly distributed.
                 this.grassBlades = []; 
                 this.generateGrassField(); 
                 this.redrawWorld();
@@ -724,10 +725,31 @@
                 this.needsGrassRedraw = true;
             }
 
-            // --- Utility Functions (Unchanged) ---
+            // --- Utility Functions ---
             isValidCell(gridX, gridY) {
                 return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && gridY < this.pathGrid[0].length;
             }
+
+            // NEW: Helper to remove grass blades in a specific world area (e.g., during terraforming)
+            removeGrassInArea(centerX, centerY, radius) {
+                let removed = false;
+                const radiusSq = radius * radius;
+
+                for (let i = this.grassBlades.length - 1; i >= 0; i--) {
+                    const blade = this.grassBlades[i];
+                    const distSq = (blade.x - centerX)**2 + (blade.y - centerY)**2;
+
+                    if (distSq < radiusSq) {
+                        this.grassBlades.splice(i, 1);
+                        removed = true;
+                    }
+                }
+
+                if (removed) {
+                    this.needsGrassRedraw = true;
+                }
+            }
+
 
             getTerrainInfoAtPoint(x, y) {
                 const gridX = Math.floor(x / Config.GRID_CELL_SIZE);
@@ -765,7 +787,8 @@
                         x: xPx,
                         y: yPx,
                         imageIndex: Math.floor(Math.random() * grassImageCount),
-                        scale: Utils.randomRange(2.0, 4.0), // Randomize size (pixel art scaled up)
+                        // FIX: Reduced scale significantly (was 2.0 to 4.0).
+                        scale: Utils.randomRange(0.8, 1.6), 
                         health: 1.0, // Full health (100% opacity)
                         offsetX: 0, // For slide animation
                         offsetY: 0, // For slide animation
@@ -784,6 +807,7 @@
 
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
+                    // Interaction correctly calculated based on the BASE of the grass (blade.x/y)
                     const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
 
                     if (distSq < radiusSq) {
@@ -818,7 +842,6 @@
                             blade.offsetY = ny * slideAmount;
 
                             // Bend (Rotation based primarily on horizontal displacement direction)
-                            // We use the normalized X direction (nx) to determine the bend direction and magnitude
                             blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
                         }
                     }
@@ -901,6 +924,7 @@
 
 
             // --- WEAR AND TEAR (Dirt Paths) ---
+            // (applyMovementWear, applyLandingImpact remain unchanged, correctly utilizing both dirt and grass systems)
             applyMovementWear(startX, startY, endX, endY, buffManager) {
                 const distance = Utils.distance(startX, startY, endX, endY);
                 // Use smaller steps for smoother interaction detection
@@ -938,10 +962,10 @@
                     const currentX = Utils.lerp(startX, endX, t);
                     const currentY = Utils.lerp(startY, endY, t);
                     
-                    // 1. Apply Wear to Dirt Path
+                    // 1. Apply Wear to Dirt Path (Preserved logic)
                     this.applyWearToArea(currentX, currentY, dirtWearRadius, (distance/steps) * dirtWearMultiplier);
 
-                    // 2. Interact with Grass
+                    // 2. Interact with Grass (New logic)
                     this.interactWithGrass(currentX, currentY, Config.GRASS_INTERACTION_RADIUS, grassWearAmount);
 
                     // 3. Entity Destruction while rolling
@@ -980,10 +1004,10 @@
 
                 const impactRadius = 2.5;
                 
-                // 1. Apply Wear to Dirt Path
+                // 1. Apply Wear to Dirt Path (Preserved logic)
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
                 
-                // 2. Interact with Grass
+                // 2. Interact with Grass (New logic)
                 this.interactWithGrass(x, y, Config.GRASS_LANDING_RADIUS, grassImpactWear);
 
                 // 3. Entity Destruction on impact
@@ -1035,6 +1059,7 @@
             }
 
             // --- RENDERING & SPAWNING (Unchanged) ---
+            // (drawPathCell, trySpawnEntity, spawnPebble, spawnMushroom remain unchanged)
             drawPathCell(gridX, gridY) {
                 const cell = this.pathGrid[gridX][gridY];
                 const wearRatio = cell.wear / Config.MAX_WEAR;
@@ -1126,11 +1151,17 @@
                 return this.entityManager.addMushroom(mushroom);
             }
 
-            // --- UFO/ALIEN TERRAFORMING (Unchanged) ---
+            // --- UFO/ALIEN TERRAFORMING ---
+            // UPDATED: Now removes grass in the affected area.
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
                 const alterRadius = 3;
+
+                // FIX: Remove existing grass blades in the alteration zone, as the UFO destroys/changes it.
+                const alterationPixelRadius = alterRadius * Config.GRID_CELL_SIZE;
+                this.removeGrassInArea(x, y, alterationPixelRadius);
+
 
                 for(let i = -alterRadius; i <= alterRadius; i++) {
                     for (let j = -alterRadius; j <= alterRadius; j++) {
@@ -1175,6 +1206,7 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
+        // (WanderDot implementation remains entirely unchanged)
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -1664,6 +1696,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
+        // (BuffManager and ItemManager implementations remain unchanged)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -1709,14 +1742,12 @@
                 });
             }
 
-            // UPDATED: Added check for buff.indicator existence
             update() {
                 const currentTime = Date.now();
                 Object.entries(this.buffs).forEach(([name, buff]) => {
                     if (buff.endTime > currentTime) {
                         this.updateTimerDisplay(buff, currentTime);
                     } else if (buff.indicator && buff.indicator.style.display === 'flex' && !buff.isEnding) {
-                        // Check buff.indicator exists before accessing style
                         this.deactivateBuff(name);
                     }
                 });
@@ -1748,9 +1779,8 @@
                 this.setupBlinkTimer(buff);
             }
 
-            // UPDATED: Added safety check
             setupBuffIndicator(buff) {
-                if (!buff.indicator) return; // Safety check
+                if (!buff.indicator) return;
                 buff.indicator.style.display = 'flex';
                 buff.indicator.classList.remove('blinking', 'blip-out');
                 if (buff.isEureka) {
@@ -1758,7 +1788,6 @@
                 }
             }
 
-            // UPDATED: Added safety checks for buff.indicator
             setupBlinkTimer(buff) {
                 clearTimeout(buff.blinkTimer);
                 const remainingTime = buff.endTime - Date.now();
@@ -1775,7 +1804,6 @@
                 }
             }
 
-            // UPDATED: Added safety checks for buff.indicator
             deactivateBuff(name, force = false) {
                 const buff = this.buffs[name];
                 
@@ -1836,7 +1864,6 @@
                 });
             }
 
-            // UPDATED: Added safety check for buff.indicator
             applyEureka() {
                 Object.entries(this.buffs).forEach(([name, buff]) => {
                     if (name !== 'mushroom' && buff.endTime > Date.now()) {
@@ -1921,7 +1948,6 @@
                 button.addEventListener('animationend', () => button.classList.remove('clicked'), { once: true });
             }
 
-            // UPDATED: Added safety checks for item.button and itemBar
             updateItemBar() {
                 const itemBar = document.getElementById('item-bar');
                 let totalItems = 0;
@@ -1948,6 +1974,7 @@
         // 5. PARTICLE SYSTEM & UFO
         // ====================================================================
 
+        // (ParticleSystem and UFO implementations remain unchanged)
         class ParticleSystem {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -2042,6 +2069,7 @@
                 particleManager.spawnUFOMist(this.x, this.y);
                 
                 if(Math.random() < 0.1) {
+                    // This now also removes grass blades via the updated alterGround function.
                     worldManager.alterGround(this.x + (Math.random() - 0.5) * 50, this.y + (Math.random() - 0.5) * 50);
                 }
 
@@ -2065,6 +2093,7 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
+        // (UIManager implementation remains unchanged)
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
@@ -2369,6 +2398,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
+        // (Game implementation remains unchanged)
         class Game {
             static instance = null;
 
@@ -2416,7 +2446,6 @@
                 this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = this.grassCanvas.height = height;
             }
 
-            // UPDATED: Simplified initialization flow (removed loadGame)
             initializeAfterLoading() {
                 this.initializeGameObjects();
                 
@@ -2457,7 +2486,6 @@
             }
 
             // --- EVENTS ---
-            // UPDATED: Removed beforeunload listener (no saving)
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
                 // Use pointerdown for better responsiveness on all devices
@@ -2552,7 +2580,6 @@
             }
 
             // Main game loop
-            // UPDATED: Removed auto-save logic
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
 
@@ -2621,11 +2648,9 @@
                 this.particleManager.updateAndDraw(deltaTime);
             }
 
-            // UPDATED: Restored requestAnimationFrame call.
             start() {
                 // Start is called after assets load in initializeAfterLoading
                 this.uiManager.scheduleNextIdleThought();
-                // CRITICAL FIX: Start the animation loop.
                 requestAnimationFrame((time) => this.animate(time));
             }
         }
