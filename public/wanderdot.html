@@ -272,9 +272,6 @@
         // ====================================================================
 
         const Config = {
-            SAVE_KEY: 'WanderDot_Refactored_V8_Save',
-            SAVE_INTERVAL: 10000, // ms
-
             // Mood Thresholds
             WARNING_ANNOYANCE_THRESHOLD: 25,
             ANNOYANCE_THRESHOLD: 40,
@@ -473,21 +470,6 @@
                 this.mushrooms = [];
                 this.dynamicEntities = [];
                 this.needsRedraw = true;
-            }
-
-            loadState(saveData) {
-                this.pebbles = saveData.pebbles ?? [];
-                this.mushrooms = saveData.mushrooms ?? [];
-                this.dynamicEntities = saveData.dynamicEntities ?? [];
-                this.needsRedraw = true;
-            }
-
-            saveState() {
-                return {
-                    pebbles: this.pebbles,
-                    mushrooms: this.mushrooms,
-                    dynamicEntities: this.dynamicEntities,
-                };
             }
 
             // --- Dynamic Entities ---
@@ -693,19 +675,22 @@
                 this.initializeGrid();
             }
 
+            // UPDATED: Simplified initialization as persistence is removed.
             initializeGrid() {
                 const gridWidth = Math.ceil(this.width / Config.GRID_CELL_SIZE);
                 const gridHeight = Math.ceil(this.height / Config.GRID_CELL_SIZE);
 
                 const newPathGrid = [];
 
-                // This logic correctly preserves data during resize
+                // Initialize fresh grid or handle resize (preserving existing data if resizing)
                 for (let i = 0; i < gridWidth; i++) {
                     newPathGrid[i] = [];
                     for (let j = 0; j < gridHeight; j++) {
+                        // Check if cell already exists (from previous size during a resize event)
                         if (this.pathGrid[i] && this.pathGrid[i][j]) {
-                            newPathGrid[i][j] = this.pathGrid[i][j];
+                             newPathGrid[i][j] = this.pathGrid[i][j];
                         } else {
+                            // Initialize new cell
                             newPathGrid[i][j] = { wear: 0, hasPebble: false, terrainType: TerrainType.NORMAL, mistOpacity: 0 };
                         }
                     }
@@ -713,66 +698,12 @@
                 this.pathGrid = newPathGrid;
             }
 
-            // --- Persistence & Setup ---
-            loadState(saveData) {
-                // Load Path Grid (Unchanged)
-                const loadedGrid = saveData.pathGrid;
-                if (loadedGrid && loadedGrid.length > 0) {
-                    const gridWidth = this.pathGrid.length;
-                    const gridHeight = this.pathGrid[0].length;
-                    const loadedWidth = loadedGrid.length;
-                    const loadedHeight = loadedGrid[0]?.length || 0;
-
-                    for (let i = 0; i < Math.min(gridWidth, loadedWidth); i++) {
-                        for (let j = 0; j < Math.min(gridHeight, loadedHeight); j++) {
-                            if (loadedGrid[i] && loadedGrid[i][j]) {
-                                if (loadedGrid[i][j].terrainType === 'alien') {
-                                    loadedGrid[i][j].terrainType = TerrainType.ALIEN_BLUE; 
-                                }
-                                this.pathGrid[i][j] = loadedGrid[i][j];
-                            }
-                        }
-                    }
-                }
-
-                // Load Grass Blades
-                // This relies on the asset manager already being initialized.
-                const loadedBlades = saveData.grassBlades;
-                if (loadedBlades && loadedBlades.length > 0) {
-                    this.grassBlades = loadedBlades.map(blade => ({
-                        ...blade,
-                        // Ensure transient animation properties are reset on load
-                        offsetX: 0,
-                        offsetY: 0,
-                        angle: 0
-                    }));
-                }
-            }
-
-            saveState() {
-                const clonedPathGrid = this.pathGrid.map(row => row.map(cell => ({...cell})));
-                
-                // Save grass blades, filtering out transient animation data (offsetX/Y/angle)
-                const savedBlades = this.grassBlades.map(blade => ({
-                    x: blade.x,
-                    y: blade.y,
-                    imageIndex: blade.imageIndex,
-                    scale: blade.scale,
-                    health: blade.health
-                }));
-
-                return {
-                    pathGrid: clonedPathGrid,
-                    grassBlades: savedBlades,
-                };
-            }
-
             handleResize(width, height) {
                 this.width = width;
                 this.height = height;
                 this.initializeGrid();
                 // Regenerate grass field on resize to fill the new area correctly.
-                // A more complex approach could try to preserve existing blades, but this is simpler.
+                // We must clear the old blades and regenerate, otherwise blades might be offscreen or poorly distributed.
                 this.grassBlades = []; 
                 this.generateGrassField(); 
                 this.redrawWorld();
@@ -812,7 +743,7 @@
             
             // Generates the initial placement of grass blades
             generateGrassField() {
-                // If blades already exist (e.g., loaded from save), don't regenerate, just flag redraw
+                // If blades already exist (e.g. during initialization phase), don't regenerate yet.
                 if (this.grassBlades.length > 0) {
                     this.needsGrassRedraw = true;
                     return;
@@ -1277,20 +1208,6 @@
                 this.distanceTraveledOnCurrentBounce = 0;
                 this.jiggleEndTime = 0;
                 this.verticalOffset = 0;
-            }
-
-            loadState(saveData) {
-                this.annoyance = saveData.annoyance ?? 0;
-                this.isHangry = saveData.isHangry ?? false;
-            }
-
-            saveState() {
-                return {
-                    annoyance: this.annoyance,
-                    x: this.x,
-                    y: this.y,
-                    isHangry: this.isHangry
-                };
             }
 
             setTarget(x, y) {
@@ -1792,35 +1709,6 @@
                 });
             }
 
-            loadState(saveData) {
-                const now = Date.now();
-                const loadedBuffs = saveData.buffs;
-                if (!loadedBuffs) return;
-
-                Object.entries(loadedBuffs).forEach(([name, data]) => {
-                    if (this.buffs[name] && data.remainingTime > 0) {
-                        this.buffs[name].endTime = now + data.remainingTime;
-                        this.buffs[name].isEureka = data.isEureka;
-                        this.setupBuffIndicator(this.buffs[name]);
-                        this.setupBlinkTimer(this.buffs[name]);
-                    }
-                });
-            }
-
-            saveState() {
-                const savedBuffs = {};
-                const now = Date.now();
-                Object.entries(this.buffs).forEach(([name, buff]) => {
-                    if (buff.endTime > now) {
-                        savedBuffs[name] = {
-                            remainingTime: buff.endTime - now,
-                            isEureka: buff.isEureka
-                        };
-                    }
-                });
-                return savedBuffs;
-            }
-
             // UPDATED: Added check for buff.indicator existence
             update() {
                 const currentTime = Date.now();
@@ -2000,26 +1888,6 @@
                 this.updateItemBar();
             }
 
-            loadState(saveData) {
-                const loadedItems = saveData.items;
-                if (!loadedItems) return;
-
-                Object.entries(loadedItems).forEach(([name, count]) => {
-                    if (this.items[name]) {
-                        this.items[name].count = count;
-                    }
-                });
-                this.updateItemBar();
-            }
-
-            saveState() {
-                const savedItems = {};
-                Object.entries(this.items).forEach(([name, item]) => {
-                    savedItems[name] = item.count;
-                });
-                return savedItems;
-            }
-
             addItem(emoji) {
                 const itemName = Object.keys(this.items).find(name => this.items[name].emoji === emoji);
                 if (itemName) {
@@ -2058,7 +1926,7 @@
                 const itemBar = document.getElementById('item-bar');
                 let totalItems = 0;
                 Object.values(this.items).forEach(item => {
-                    // FIX: Ensure item.button exists before trying to access it.
+                    // Ensure item.button exists before trying to access it.
                     if (item.button) {
                         if (item.count > 0) {
                             item.button.classList.add('visible');
@@ -2498,7 +2366,7 @@
         }
 
         // ====================================================================
-        // 7. GAME (Main Loop, Initialization, Persistence)
+        // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
         class Game {
@@ -2517,7 +2385,6 @@
                 this.worldCreationTime = Date.now();
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
-                this.lastSaveTime = 0;
 
                 // Load assets first, then proceed with initialization
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
@@ -2549,15 +2416,16 @@
                 this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = this.grassCanvas.height = height;
             }
 
-            // UPDATED: Initialization sequence fixed to initialize UI before loading state.
+            // UPDATED: Simplified initialization flow (removed loadGame)
             initializeAfterLoading() {
                 this.initializeGameObjects();
                 
-                // FIX: Initialize UIs here, so DOM elements exist before loadGame() tries to update them.
+                // Initialize UIs
                 this.buffManager.initializeUI();
                 this.itemManager.initializeUI();
 
-                this.loadGame(); // Load game state (including grass positions and item counts)
+                // Persistence (loadGame) removed.
+
                 this.finalizeInitialization();
                 this.setupEventListeners();
                 this.isInitialized = true;
@@ -2577,9 +2445,8 @@
                 this.ufo = new UFO(this.ctx, this.bounds);
             }
 
-            // UPDATED: Removed UI initialization calls as they were moved to initializeAfterLoading
             finalizeInitialization() {
-                // Generate grass if not loaded from save
+                // Generate the world fresh
                 this.worldManager.generateGrassField(); 
                 this.worldManager.redrawWorld();
 
@@ -2589,76 +2456,12 @@
                 this.wanderDot.previousY = this.wanderDot.y;
             }
 
-            // --- PERSISTENCE ---
-            saveGame() {
-                if (!this.isInitialized) return;
-                // Prevent saving during the transient eating state (chewing phase)
-                if (this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0) return;
-
-                const saveData = {
-                    version: 8,
-                    worldCreationTime: this.worldCreationTime,
-                    world: this.worldManager.saveState(), // Now includes grassBlades
-                    entities: this.entityManager.saveState(),
-                    wanderDot: this.wanderDot.saveState(),
-                    items: this.itemManager.saveState(),
-                    buffs: this.buffManager.saveState(),
-                };
-
-                try {
-                    localStorage.setItem(Config.SAVE_KEY, JSON.stringify(saveData));
-                    this.lastSaveTime = Date.now();
-                } catch (e) {
-                    console.error("Error saving game (localStorage might be full):", e);
-                }
-            }
-
-            loadGame() {
-                 // Try loading the latest version first
-                let saveDataRaw = localStorage.getItem(Config.SAVE_KEY);
-                
-                // If V8 doesn't exist, try loading V7 for backward compatibility during transition
-                if (!saveDataRaw) {
-                    saveDataRaw = localStorage.getItem('WanderDot_Refactored_V7_Save');
-                }
-
-                if (!saveDataRaw) return;
-
-                try {
-                    const saveData = JSON.parse(saveDataRaw);
-                    
-                    this.worldCreationTime = saveData.worldCreationTime ?? Date.now();
-                    
-                    // Load World State (Paths and Grass)
-                    if (saveData.world) this.worldManager.loadState(saveData.world);
-                    
-                    // Handle legacy loading structures if necessary
-                    if (saveData.entities) {
-                        this.entityManager.loadState(saveData.entities);
-                    } 
-                    
-                    this.wanderDot.loadState(saveData.wanderDot);
-                    
-                    if (saveData.wanderDot.x && saveData.wanderDot.y) {
-                        this.wanderDot.x = saveData.wanderDot.x;
-                        this.wanderDot.y = saveData.wanderDot.y;
-                    }
-
-                    // These now correctly update the UI because initializeUI ran first
-                    this.itemManager.loadState(saveData);
-                    this.buffManager.loadState(saveData);
-
-                } catch (e) {
-                    console.error("Error loading game (data might be corrupted):", e);
-                }
-            }
-
             // --- EVENTS ---
+            // UPDATED: Removed beforeunload listener (no saving)
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
                 // Use pointerdown for better responsiveness on all devices
                 this.mainCanvas.addEventListener('pointerdown', (event) => this.handleClick(event));
-                window.addEventListener('beforeunload', () => this.saveGame());
             }
 
             handleResize() {
@@ -2749,6 +2552,7 @@
             }
 
             // Main game loop
+            // UPDATED: Removed auto-save logic
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
 
@@ -2771,10 +2575,6 @@
 
                 this.update(deltaTime);
                 this.draw(deltaTime);
-
-                if (Date.now() - this.lastSaveTime > Config.SAVE_INTERVAL) {
-                    this.saveGame();
-                }
             }
 
             updateTimeBasedSystems() {
@@ -2821,10 +2621,12 @@
                 this.particleManager.updateAndDraw(deltaTime);
             }
 
+            // UPDATED: Restored requestAnimationFrame call.
             start() {
-                // Start is now called after assets load in initializeAfterLoading
+                // Start is called after assets load in initializeAfterLoading
                 this.uiManager.scheduleNextIdleThought();
-                // Animation loop already started in initializeAfterLoading
+                // CRITICAL FIX: Start the animation loop.
+                requestAnimationFrame((time) => this.animate(time));
             }
         }
 
