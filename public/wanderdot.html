@@ -48,11 +48,12 @@
             top: 0; left: 0;
         }
 
-        /* Z-Index layering */
-        #grassCanvas { z-index: 0; } /* Grass layer at the bottom */
-        #pathCanvas { z-index: 1; }
-        #entityCanvas { z-index: 2; } 
-        #mainCanvas { z-index: 3; }
+        /* Z-Index layering UPDATED: Grass is now above entities and the WanderDot */
+        #pathCanvas { z-index: 0; } /* Dirt paths at the bottom */
+        #entityCanvas { z-index: 1; } 
+        #mainCanvas { z-index: 2; } /* WanderDot, UFO, and Particles */
+        #grassCanvas { z-index: 3; } /* Grass layer on top */
+
 
         /* --- 3. UI ELEMENTS --- */
 
@@ -252,10 +253,10 @@
 </head>
 <body>
     <div id="world-container">
-        <canvas id="grassCanvas"></canvas>
         <canvas id="pathCanvas"></canvas>
         <canvas id="entityCanvas"></canvas>
         <canvas id="mainCanvas"></canvas>
+        <canvas id="grassCanvas"></canvas>
         
         <div id="thought-bubble"></div>
         <div id="timer-container">
@@ -288,6 +289,8 @@
             COLOR_DIRT: { r: 101, g: 67, b: 33 },
             COLOR_ALIEN_BLUE: { r: 100, g: 149, b: 237 }, 
             COLOR_ALIEN_CLAY: { r: 205, g: 133, b: 63 },
+            // NEW: Color used to tint grass on the alien biome
+            COLOR_ALIEN_TINT: 'rgba(100, 149, 237, 0.5)', 
 
             // World Grid
             GRID_CELL_SIZE: 10,
@@ -295,13 +298,22 @@
             WEAR_PER_PIXEL: 0.05, // Wear applied to the dirt path
             
             // Grass Configuration
-            // FIX: Reduced count from 15000 to 10000 for better density.
-            GRASS_BLADE_COUNT: 10000, 
-            GRASS_INTERACTION_RADIUS: 35, // How far away grass reacts to movement
+            // UPDATED: Switched from BLADE_COUNT to CLUMP_COUNT.
+            GRASS_CLUMP_COUNT: 800, 
+            // NEW: Defines the range of blades per clump (3 to 6)
+            GRASS_CLUMP_MIN_SIZE: 3,
+            GRASS_CLUMP_MAX_SIZE: 6,
+            // NEW: How tightly packed the blades are in a clump
+            GRASS_CLUMP_RADIUS: 12,
+
+            GRASS_INTERACTION_RADIUS: 25, // How far away grass reacts to movement (from the south edge)
             GRASS_LANDING_RADIUS: 60, // How far away grass reacts to landing
-            GRASS_WEAR_PER_INTERACTION: 0.04, // Health reduction per movement step
-            GRASS_WEAR_PER_LANDING: 0.3, // Health reduction per landing
-            GRASS_DEATH_THRESHOLD: 0.1, // Remove grass below 10% health/opacity
+            
+            // NEW: Base opacity (50%)
+            GRASS_BASE_OPACITY: 0.5,
+            // NEW: The wear level on the dirt path where grass starts to fade significantly
+            GRASS_WEAR_FADE_THRESHOLD: 30, 
+
             GRASS_SLIDE_DISTANCE: 10, // Max distance grass slides aside
             GRASS_BEND_ANGLE: 45 * (Math.PI / 180), // Max bend angle (in radians)
 
@@ -428,6 +440,9 @@
                 };
                 this.loadedCount = 0;
                 this.totalCount = 0;
+                // NEW: Buffer canvas for tinting effects
+                this.tintBuffer = document.createElement('canvas');
+                this.tintBufferCtx = this.tintBuffer.getContext('2d');
             }
 
             loadAll(onComplete) {
@@ -457,6 +472,34 @@
                         }
                     }
                 });
+            }
+
+            // NEW: Helper function to draw a tinted version of an image using the buffer
+            drawTinted(ctx, image, x, y, width, height, tintColor) {
+                if (!this.tintBufferCtx) {
+                    // Fallback if buffer context fails
+                    ctx.drawImage(image, x, y, width, height);
+                    return;
+                }
+
+                // Setup buffer dimensions
+                this.tintBuffer.width = width;
+                this.tintBuffer.height = height;
+
+                // 1. Draw the original image onto the buffer
+                this.tintBufferCtx.drawImage(image, 0, 0, width, height);
+
+                // 2. Apply the tint color using 'source-atop' composite operation
+                // This colors the opaque pixels of the image with the tint color.
+                this.tintBufferCtx.globalCompositeOperation = 'source-atop';
+                this.tintBufferCtx.fillStyle = tintColor;
+                this.tintBufferCtx.fillRect(0, 0, width, height);
+                
+                // Reset composite operation
+                this.tintBufferCtx.globalCompositeOperation = 'source-over';
+
+                // 3. Draw the tinted buffer onto the main context
+                ctx.drawImage(this.tintBuffer, x, y, width, height);
             }
         }
 
@@ -677,7 +720,7 @@
                 this.initializeGrid();
             }
 
-            // (initializeGrid remains unchanged)
+            // (initializeGrid, handleResize, redrawWorld remain unchanged)
             initializeGrid() {
                 const gridWidth = Math.ceil(this.width / Config.GRID_CELL_SIZE);
                 const gridHeight = Math.ceil(this.height / Config.GRID_CELL_SIZE);
@@ -730,27 +773,6 @@
                 return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && gridY < this.pathGrid[0].length;
             }
 
-            // NEW: Helper to remove grass blades in a specific world area (e.g., during terraforming)
-            removeGrassInArea(centerX, centerY, radius) {
-                let removed = false;
-                const radiusSq = radius * radius;
-
-                for (let i = this.grassBlades.length - 1; i >= 0; i--) {
-                    const blade = this.grassBlades[i];
-                    const distSq = (blade.x - centerX)**2 + (blade.y - centerY)**2;
-
-                    if (distSq < radiusSq) {
-                        this.grassBlades.splice(i, 1);
-                        removed = true;
-                    }
-                }
-
-                if (removed) {
-                    this.needsGrassRedraw = true;
-                }
-            }
-
-
             getTerrainInfoAtPoint(x, y) {
                 const gridX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const gridY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -763,9 +785,9 @@
 
             // --- GRASS MANAGEMENT ---
             
-            // Generates the initial placement of grass blades
+            // UPDATED: Generates grass in random clumps.
             generateGrassField() {
-                // If blades already exist (e.g. during initialization phase), don't regenerate yet.
+                // If blades already exist, don't regenerate yet.
                 if (this.grassBlades.length > 0) {
                     this.needsGrassRedraw = true;
                     return;
@@ -779,52 +801,68 @@
                     return;
                 }
 
-                for (let i = 0; i < Config.GRASS_BLADE_COUNT; i++) {
-                    const xPx = Math.random() * this.width;
-                    const yPx = Math.random() * this.height;
+                // Iterate to create the desired number of clumps
+                for (let i = 0; i < Config.GRASS_CLUMP_COUNT; i++) {
+                    // Find a center point for the clump
+                    const centerX = Math.random() * this.width;
+                    const centerY = Math.random() * this.height;
                     
-                    const blade = {
-                        x: xPx,
-                        y: yPx,
-                        imageIndex: Math.floor(Math.random() * grassImageCount),
-                        // FIX: Reduced scale significantly (was 2.0 to 4.0).
-                        scale: Utils.randomRange(0.8, 1.6), 
-                        health: 1.0, // Full health (100% opacity)
-                        offsetX: 0, // For slide animation
-                        offsetY: 0, // For slide animation
-                        angle: 0    // For bend animation (radians)
-                    };
-                    
-                    this.grassBlades.push(blade);
+                    // Determine the number of blades in this clump
+                    const clumpSize = Math.floor(Utils.randomRange(Config.GRASS_CLUMP_MIN_SIZE, Config.GRASS_CLUMP_MAX_SIZE + 1));
+
+                    for (let j = 0; j < clumpSize; j++) {
+                        // Calculate blade position within the clump radius using polar coordinates
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = Math.random() * Config.GRASS_CLUMP_RADIUS;
+                        const xPx = centerX + Math.cos(angle) * radius;
+                        const yPx = centerY + Math.sin(angle) * radius;
+
+                        // Ensure the blade is within world bounds
+                        if (xPx < 0 || xPx >= this.width || yPx < 0 || yPx >= this.height) continue;
+
+                        // Determine the grid cell (needed for terrain/wear lookup later)
+                        const gridX = Math.floor(xPx / Config.GRID_CELL_SIZE);
+                        const gridY = Math.floor(yPx / Config.GRID_CELL_SIZE);
+
+                        // Safety check for valid grid cell
+                        if (!this.isValidCell(gridX, gridY)) continue;
+
+                        const blade = {
+                            x: xPx,
+                            y: yPx,
+                            gridX: gridX, // NEW: Store grid coordinates for efficient lookup
+                            gridY: gridY,
+                            imageIndex: Math.floor(Math.random() * grassImageCount),
+                            // UPDATED: Reduced scale by half (was 0.8 to 1.6 previously).
+                            scale: Utils.randomRange(0.4, 0.8), 
+                            // Opacity/Health is now determined dynamically in drawGrass.
+                            offsetX: 0, 
+                            offsetY: 0, 
+                            angle: 0    
+                        };
+                        
+                        this.grassBlades.push(blade);
+                    }
                 }
                 this.needsGrassRedraw = true;
             }
 
-            // Handles interaction (sliding, bending, and wear) for grass blades
-            interactWithGrass(impactX, impactY, radius, wearAmount) {
+            // UPDATED: Handles interaction (sliding, bending). Wear is no longer applied here.
+            interactWithGrass(impactX, impactY, radius) {
                 let interactionOccurred = false;
                 const radiusSq = radius * radius;
 
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
-                    // Interaction correctly calculated based on the BASE of the grass (blade.x/y)
                     const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
 
                     if (distSq < radiusSq) {
-                        interactionOccurred = true;
                         
-                        // 1. Apply Wear
-                        blade.health -= wearAmount;
-
-                        // 2. Check for Death
-                        if (blade.health <= Config.GRASS_DEATH_THRESHOLD) {
-                            this.grassBlades.splice(i, 1);
-                            continue; 
-                        }
-
-                        // 3. Apply Slide and Bend Animation
+                        // Apply Slide and Bend Animation
                         const distance = Math.sqrt(distSq);
                         if (distance > 0.1) {
+                            interactionOccurred = true;
+
                             // Calculate vector from impact point to the blade
                             const dx = blade.x - impactX;
                             const dy = blade.y - impactY;
@@ -841,7 +879,7 @@
                             blade.offsetX = nx * slideAmount;
                             blade.offsetY = ny * slideAmount;
 
-                            // Bend (Rotation based primarily on horizontal displacement direction)
+                            // Bend
                             blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
                         }
                     }
@@ -852,7 +890,7 @@
                 }
             }
 
-            // Update loop for grass (handles animation decay)
+            // (updateGrass remains unchanged - handles animation decay)
             updateGrass(deltaTime) {
                 let animationActive = false;
                 const decayRate = 5; // How quickly the grass springs back (higher is faster)
@@ -880,7 +918,7 @@
                 }
             }
 
-            // Renders the grass blades onto the grassCanvas
+            // UPDATED: Renders grass with dynamic opacity based on dirt wear, and tints alien grass.
             drawGrass() {
                 if (!this.needsGrassRedraw) return;
 
@@ -889,32 +927,59 @@
 
                 for (const blade of this.grassBlades) {
                     const img = grassImages[blade.imageIndex];
-                    if (!img || !img.complete) continue; // Ensure image is valid and loaded
+                    if (!img || !img.complete) continue;
 
+                    // 1. Determine Terrain and Wear
+                    // Use the stored grid coordinates for lookup
+                    const cell = this.pathGrid[blade.gridX][blade.gridY];
+                    const wear = cell.wear;
+                    const terrainType = cell.terrainType;
+
+                    // 2. Calculate Opacity based on Wear
+                    // Opacity fades as wear increases past the threshold.
+                    let opacity = Config.GRASS_BASE_OPACITY;
+                    if (wear > Config.GRASS_WEAR_FADE_THRESHOLD) {
+                        // Calculate how far past the threshold we are, relative to the max wear
+                        const fadeProgress = (wear - Config.GRASS_WEAR_FADE_THRESHOLD) / (Config.MAX_WEAR - Config.GRASS_WEAR_FADE_THRESHOLD);
+                        // Lerp from base opacity down to 0
+                        opacity = Utils.lerp(Config.GRASS_BASE_OPACITY, 0, fadeProgress);
+                    }
+
+                    if (opacity < 0.05) continue; // Skip drawing if nearly invisible
+
+                    this.grassCtx.globalAlpha = opacity;
+
+                    // 3. Setup drawing parameters
                     const width = img.width * blade.scale;
                     const height = img.height * blade.scale;
                     
-                    // Calculate the position of the base of the blade (pivot point)
                     const baseX = blade.x + blade.offsetX;
                     const baseY = blade.y + blade.offsetY;
 
-                    // Set opacity based on health
-                    this.grassCtx.globalAlpha = Math.max(0, blade.health);
+                    // 4. Draw (handling rotation and tinting)
+                    const isTinted = terrainType === TerrainType.ALIEN_BLUE;
 
-                    // Apply rotation around the base of the blade
                     if (blade.angle !== 0) {
                         this.grassCtx.save();
                         this.grassCtx.translate(baseX, baseY);
                         this.grassCtx.rotate(blade.angle);
-                        // Draw the image relative to the translated/rotated origin
-                        // We draw it offset by (-width/2, -height) so the origin is the bottom center
-                        this.grassCtx.drawImage(img, -width / 2, -height, width, height);
+                        
+                        if (isTinted) {
+                            this.assetManager.drawTinted(this.grassCtx, img, -width / 2, -height, width, height, Config.COLOR_ALIEN_TINT);
+                        } else {
+                            this.grassCtx.drawImage(img, -width / 2, -height, width, height);
+                        }
                         this.grassCtx.restore();
                     } else {
                         // Optimized drawing for non-rotated blades
                         const drawX = baseX - width / 2;
                         const drawY = baseY - height;
-                        this.grassCtx.drawImage(img, drawX, drawY, width, height);
+
+                        if (isTinted) {
+                            this.assetManager.drawTinted(this.grassCtx, img, drawX, drawY, width, height, Config.COLOR_ALIEN_TINT);
+                        } else {
+                            this.grassCtx.drawImage(img, drawX, drawY, width, height);
+                        }
                     }
                 }
 
@@ -924,8 +989,9 @@
 
 
             // --- WEAR AND TEAR (Dirt Paths) ---
-            // (applyMovementWear, applyLandingImpact remain unchanged, correctly utilizing both dirt and grass systems)
-            applyMovementWear(startX, startY, endX, endY, buffManager) {
+
+            // UPDATED: Interaction point is now passed through. Grass wear is removed.
+            applyMovementWear(startX, startY, endX, endY, buffManager, interactionPointX, interactionPointY) {
                 const distance = Utils.distance(startX, startY, endX, endY);
                 // Use smaller steps for smoother interaction detection
                 const steps = Math.ceil(distance / 5); 
@@ -933,16 +999,13 @@
 
                 const buffs = buffManager.getActiveBuffs();
                 let dirtWearMultiplier = Config.WEAR_PER_PIXEL;
-                let grassWearAmount = Config.GRASS_WEAR_PER_INTERACTION;
                 
-                // Buff multipliers
+                // Buff multipliers (Grass wear is no longer calculated here)
                 if (buffs.coffee) {
                     dirtWearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
-                    grassWearAmount *= 1.5;
                 }
                 if (buffs.mushroom) {
                     dirtWearMultiplier *= (1 + 1.0 * buffs.mushroom.potency);
-                    grassWearAmount *= 2.0;
                 }
 
                 // Determine wear radius based on size buffs
@@ -962,22 +1025,23 @@
                     const currentX = Utils.lerp(startX, endX, t);
                     const currentY = Utils.lerp(startY, endY, t);
                     
-                    // 1. Apply Wear to Dirt Path (Preserved logic)
+                    // 1. Apply Wear to Dirt Path
                     this.applyWearToArea(currentX, currentY, dirtWearRadius, (distance/steps) * dirtWearMultiplier);
-
-                    // 2. Interact with Grass (New logic)
-                    this.interactWithGrass(currentX, currentY, Config.GRASS_INTERACTION_RADIUS, grassWearAmount);
 
                     // 3. Entity Destruction while rolling
                     if (isHeavy) {
                         this.entityManager.removeDynamicEntitiesInArea(currentX, currentY, currentDotRadius);
                     }
                 }
+
+                // 2. Interact with Grass (Visual movement only, using the specific interaction point)
+                // This is done once per frame using the designated interaction point (south edge), rather than interpolated steps.
+                this.interactWithGrass(interactionPointX, interactionPointY, Config.GRASS_INTERACTION_RADIUS);
             }
 
+            // UPDATED: Grass wear is removed.
             applyLandingImpact(x, y, moodState, buffManager) {
                 let impactWear = Config.BASE_IMPACT_WEAR;
-                let grassImpactWear = Config.GRASS_WEAR_PER_LANDING;
 
                 const buffs = buffManager.getActiveBuffs();
                 const isHeavy = buffs.pizza || buffs.mushroom;
@@ -985,30 +1049,26 @@
                 // Buff multipliers
                 if (buffs.coffee) {
                     impactWear *= (1 + 1.0 * buffs.coffee.potency);
-                    grassImpactWear *= 1.5;
                 }
                 if (buffs.kangaroo) {
                     impactWear *= (1 + 0.3 * buffs.kangaroo.potency);
-                    // Kangaroo buff inherently increases landing impact on grass
                 }
                 if (buffs.mushroom) {
                     impactWear *= (1 + 1.0 * buffs.mushroom.potency);
-                    grassImpactWear *= 2.0;
                 }
 
                 if (moodState === 'mad') {
                     impactWear *= 1.7;
-                    grassImpactWear *= 1.7;
                     Game.instance.particleManager.spawnLandingParticles(x, y);
                 }
 
                 const impactRadius = 2.5;
                 
-                // 1. Apply Wear to Dirt Path (Preserved logic)
+                // 1. Apply Wear to Dirt Path
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
                 
-                // 2. Interact with Grass (New logic)
-                this.interactWithGrass(x, y, Config.GRASS_LANDING_RADIUS, grassImpactWear);
+                // 2. Interact with Grass (Visual movement only)
+                this.interactWithGrass(x, y, Config.GRASS_LANDING_RADIUS);
 
                 // 3. Entity Destruction on impact
                 this.entityManager.removeMushroomInArea(x, y, Config.BASE_RADIUS * 2);
@@ -1019,11 +1079,13 @@
                 }
             }
 
-            // (applyWearToArea remains unchanged, only affects the dirt pathGrid)
+            // UPDATED: Must trigger grass redraw when dirt path changes.
             applyWearToArea(x, y, radius, wearAmount, useFalloff = false) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
                 const radiusSq = radius * radius;
+
+                let pathChanged = false; // NEW: Track if the path actually changed
 
                 for (let i = -Math.ceil(radius); i <= Math.ceil(radius); i++) {
                     for (let j = -Math.ceil(radius); j <= Math.ceil(radius); j++) {
@@ -1050,11 +1112,17 @@
                             cell.wear = Math.min(Config.MAX_WEAR, cell.wear + effectiveWear);
 
                             if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                                pathChanged = true; // NEW
                                 this.drawPathCell(gridX, gridY);
                                 this.trySpawnEntity(gridX, gridY, cell);
                             }
                         }
                     }
+                }
+
+                // NEW: If the path changed, the overlying grass needs to be redrawn to update its opacity.
+                if (pathChanged) {
+                    this.needsGrassRedraw = true;
                 }
             }
 
@@ -1152,16 +1220,13 @@
             }
 
             // --- UFO/ALIEN TERRAFORMING ---
-            // UPDATED: Now removes grass in the affected area.
+            // UPDATED: Must trigger grass redraw when terrain type changes.
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
                 const alterRadius = 3;
 
-                // FIX: Remove existing grass blades in the alteration zone, as the UFO destroys/changes it.
-                const alterationPixelRadius = alterRadius * Config.GRID_CELL_SIZE;
-                this.removeGrassInArea(x, y, alterationPixelRadius);
-
+                let terrainChanged = false; // NEW: Track terrain changes
 
                 for(let i = -alterRadius; i <= alterRadius; i++) {
                     for (let j = -alterRadius; j <= alterRadius; j++) {
@@ -1188,6 +1253,7 @@
 
                             if (cell.terrainType !== targetType) {
                                 cell.terrainType = targetType;
+                                terrainChanged = true; // NEW
                             }
                             
                             this.drawPathCell(gridX, gridY);
@@ -1199,6 +1265,11 @@
                         }
                     }
                 }
+
+                // NEW: If terrain changed, grass must redraw to update its tint.
+                if (terrainChanged) {
+                    this.needsGrassRedraw = true;
+                }
             }
         }
 
@@ -1206,8 +1277,8 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // (WanderDot implementation remains entirely unchanged)
         class WanderDot {
+            // (Constructor and Mood Logic remain unchanged)
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
@@ -1394,26 +1465,25 @@
             }
 
             // --- MOVEMENT & BEHAVIOR LOGIC ---
+            // UPDATED: Calculates the interaction point for grass movement.
             updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager) {
                 this.previousX = this.x;
                 this.previousY = this.y;
 
-                // 1. Determine behavior and direction
+                // 1. Determine behavior and direction (Unchanged)
                 let movementAllowed = true;
                 
-                // Check if eating target still exists (if it was destroyed before reaching it)
+                // Check if eating target still exists
                 if (this.isEating && this.eatingStartTime === 0 && this.eatingTarget && !entityManager.mushrooms.includes(this.eatingTarget)) {
                     this.eatingTarget = null;
                     this.isEating = false;
                     this.clearTarget();
-                    // Hide the seeking thought if it was active
                     if (Game.instance.uiManager.getCurrentThought() === Config.Emojis.EATING_SEEKING) {
                         Game.instance.uiManager.hideThought();
                     }
                 }
 
                 if (this.isEating) {
-                    // handleEatingBehavior returns true if movement is allowed (seeking), false if stationary (chewing)
                     movementAllowed = this.handleEatingBehavior(entityManager, buffManager);
                 } 
                 
@@ -1430,7 +1500,7 @@
                 }
 
 
-                // 2. Calculate movement distance
+                // 2. Calculate movement distance (Unchanged)
                 const buffs = buffManager.getActiveBuffs();
                 let effectiveSpeed = this.speed * this.currentSpeedMultiplier;
                 
@@ -1440,7 +1510,7 @@
                 
                 const distanceMoved = effectiveSpeed * deltaTime;
 
-                // 3. Apply movement
+                // 3. Apply movement (Unchanged)
                 this.x += this.dx * distanceMoved;
                 this.y += this.dy * distanceMoved;
 
@@ -1450,17 +1520,23 @@
                 } else {
                     this.verticalOffset = 0; 
                     if (movementAllowed) {
-                         // This now handles both dirt wear AND grass interaction/wear
-                         worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
+                        // NEW: Calculate the interaction point (South edge of the WanderDot)
+                        // This is the point where the grass should react to the movement.
+                        const interactionX = this.x;
+                        const interactionY = this.y + this.radius;
+
+                         // Pass the interaction point to the world manager
+                         worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager, interactionX, interactionY);
                     }
                 }
 
-                // 5. Boundary Collision
+                // 5. Boundary Collision (Unchanged)
                 if (movementAllowed) {
                     this.handleBoundaries(bounds);
                 }
             }
 
+            // (handleEatingBehavior, moveToTarget, wander remain unchanged)
             handleEatingBehavior(entityManager, buffManager) {
                 const uiManager = Game.instance.uiManager;
 
@@ -1576,7 +1652,7 @@
             }
 
             land(buffManager, worldManager) {
-                // This now handles both dirt impact AND grass interaction/wear
+                // Landing impact uses the center point (x, y) as it's a stomp, not a rolling movement.
                 worldManager.applyLandingImpact(this.x, this.y, this.currentMoodState, buffManager);
                 
                 this.jiggleEndTime = Date.now();
@@ -1616,6 +1692,7 @@
             }
 
             // --- RENDERING ---
+            // (Draw implementation remains unchanged)
             draw(ctx) {
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
@@ -2069,7 +2146,7 @@
                 particleManager.spawnUFOMist(this.x, this.y);
                 
                 if(Math.random() < 0.1) {
-                    // This now also removes grass blades via the updated alterGround function.
+                    // This now triggers grass redraw via the updated alterGround function if terrain changes.
                     worldManager.alterGround(this.x + (Math.random() - 0.5) * 50, this.y + (Math.random() - 0.5) * 50);
                 }
 
@@ -2398,7 +2475,6 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // (Game implementation remains unchanged)
         class Game {
             static instance = null;
 
@@ -2420,14 +2496,18 @@
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
             }
 
+            // UPDATED: Initialize canvases (HTML order matches Z-Index)
             initializeCanvases() {
                 this.worldContainer = document.getElementById('world-container');
-                this.mainCanvas = document.getElementById('mainCanvas');
-                this.ctx = this.mainCanvas.getContext('2d');
+                
                 this.pathCanvas = document.getElementById('pathCanvas');
                 this.pathCtx = this.pathCanvas.getContext('2d');
                 this.entityCanvas = document.getElementById('entityCanvas');
                 this.entityCtx = this.entityCanvas.getContext('2d');
+                
+                this.mainCanvas = document.getElementById('mainCanvas');
+                this.ctx = this.mainCanvas.getContext('2d');
+
                 // Grass Canvas
                 this.grassCanvas = document.getElementById('grassCanvas');
                 this.grassCtx = this.grassCanvas.getContext('2d');
@@ -2446,6 +2526,7 @@
                 this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = this.grassCanvas.height = height;
             }
 
+            // (initializeAfterLoading, initializeGameObjects, finalizeInitialization remain unchanged)
             initializeAfterLoading() {
                 this.initializeGameObjects();
                 
@@ -2486,6 +2567,7 @@
             }
 
             // --- EVENTS ---
+            // (setupEventListeners, handleResize, handleClick remain unchanged)
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
                 // Use pointerdown for better responsiveness on all devices
@@ -2580,6 +2662,7 @@
             }
 
             // Main game loop
+            // (animate, updateTimeBasedSystems, update remain unchanged)
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
 
@@ -2630,22 +2713,27 @@
                 this.ufo.update(deltaTime, this.particleManager, this.worldManager);
             }
 
+            // UPDATED: Draw order reflects the new Z-Index (Grass drawn last)
             draw(deltaTime) {
-                // Draw Grass (happens first, on its own canvas)
-                this.worldManager.drawGrass();
+                // Note: The visual layering is primarily determined by the Canvas Z-Index set in CSS.
 
-                // Clear main canvas
-                this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
+                // Draw/Update (Path layer is updated during applyWearToArea)
 
-                // Draw environment/entities
+                // Draw/Update environment/entities (Entity layer)
                 this.entityManager.draw(this.bounds);
                 
-                // Draw main actors
+                // Clear main canvas (WanderDot/UFO/Particle layer)
+                this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
+
+                // Draw main actors (Main layer)
                 this.wanderDot.draw(this.ctx);
                 this.ufo.draw();
 
-                // Draw particles
+                // Draw particles (Main layer)
                 this.particleManager.updateAndDraw(deltaTime);
+
+                // Draw Grass (Grass layer - visually on top)
+                this.worldManager.drawGrass();
             }
 
             start() {
