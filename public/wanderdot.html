@@ -30,7 +30,7 @@
             font-family: var(--font-main);
             cursor: default;
             user-select: none; 
-            /* NEW: Ensure pixel art scales cleanly */
+            /* Ensure pixel art scales cleanly */
             image-rendering: pixelated;
             image-rendering: crisp-edges;
         }
@@ -42,16 +42,14 @@
             overflow: hidden;
         }
 
-        /* REMOVED: #grass-field div is no longer used, replaced by grassCanvas */
-
         canvas {
             display: block;
             position: absolute;
             top: 0; left: 0;
         }
 
-        /* UPDATED: Z-Index layering */
-        #grassCanvas { z-index: 0; } /* NEW: Grass layer at the bottom */
+        /* Z-Index layering */
+        #grassCanvas { z-index: 0; } /* Grass layer at the bottom */
         #pathCanvas { z-index: 1; }
         #entityCanvas { z-index: 2; } 
         #mainCanvas { z-index: 3; }
@@ -274,7 +272,7 @@
         // ====================================================================
 
         const Config = {
-            SAVE_KEY: 'WanderDot_Refactored_V8_Save', // Updated save key version
+            SAVE_KEY: 'WanderDot_Refactored_V8_Save',
             SAVE_INTERVAL: 10000, // ms
 
             // Mood Thresholds
@@ -299,7 +297,7 @@
             MAX_WEAR: 100,
             WEAR_PER_PIXEL: 0.05, // Wear applied to the dirt path
             
-            // Grass Configuration (NEW)
+            // Grass Configuration
             GRASS_BLADE_COUNT: 15000, // Increased count for dense coverage with small sprites
             GRASS_INTERACTION_RADIUS: 35, // How far away grass reacts to movement
             GRASS_LANDING_RADIUS: 60, // How far away grass reacts to landing
@@ -361,6 +359,7 @@
                 DIAMOND: '🔸',
             },
 
+            // Asset Paths
             Assets: {
                 grass: [
                     '../images/grass/grass_blade_01.png',
@@ -421,7 +420,7 @@
         };
 
         // ====================================================================
-        // 0.5. ASSET MANAGER (NEW)
+        // 0.5. ASSET MANAGER
         // ====================================================================
         
         class AssetManager {
@@ -467,7 +466,6 @@
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
         
-        // (Implementation mostly unchanged from previous version)
         class EntityManager {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -678,18 +676,17 @@
         // ====================================================================
 
         class WorldManager {
-            // UPDATED: Added grassCtx, assetManager, and new grass structures
             constructor(width, height, pathCtx, grassCtx, entityManager, assetManager) {
                 this.width = width;
                 this.height = height;
                 this.pathCtx = pathCtx;
-                this.grassCtx = grassCtx; // NEW
+                this.grassCtx = grassCtx;
                 this.entityManager = entityManager;
-                this.assetManager = assetManager; // NEW
+                this.assetManager = assetManager;
 
                 this.pathGrid = [];
                 
-                // Grass structures (NEW)
+                // Grass structures
                 this.grassBlades = [];
                 this.needsGrassRedraw = true;
                 
@@ -717,7 +714,6 @@
             }
 
             // --- Persistence & Setup ---
-            // UPDATED: Load grass blade data
             loadState(saveData) {
                 // Load Path Grid (Unchanged)
                 const loadedGrid = saveData.pathGrid;
@@ -739,7 +735,7 @@
                     }
                 }
 
-                // Load Grass Blades (NEW)
+                // Load Grass Blades
                 // This relies on the asset manager already being initialized.
                 const loadedBlades = saveData.grassBlades;
                 if (loadedBlades && loadedBlades.length > 0) {
@@ -753,11 +749,10 @@
                 }
             }
 
-            // UPDATED: Save grass blade data
             saveState() {
                 const clonedPathGrid = this.pathGrid.map(row => row.map(cell => ({...cell})));
                 
-                // NEW: Save grass blades, filtering out transient animation data (offsetX/Y/angle)
+                // Save grass blades, filtering out transient animation data (offsetX/Y/angle)
                 const savedBlades = this.grassBlades.map(blade => ({
                     x: blade.x,
                     y: blade.y,
@@ -813,9 +808,9 @@
                 return { type: TerrainType.NORMAL, wear: 0 };
             }
 
-            // --- GRASS MANAGEMENT (NEW Implementation) ---
+            // --- GRASS MANAGEMENT ---
             
-            // NEW: Generates the initial placement of grass blades
+            // Generates the initial placement of grass blades
             generateGrassField() {
                 // If blades already exist (e.g., loaded from save), don't regenerate, just flag redraw
                 if (this.grassBlades.length > 0) {
@@ -851,7 +846,7 @@
                 this.needsGrassRedraw = true;
             }
 
-            // NEW: Handles interaction (sliding, bending, and wear) for grass blades
+            // Handles interaction (sliding, bending, and wear) for grass blades
             interactWithGrass(impactX, impactY, radius, wearAmount) {
                 let interactionOccurred = false;
                 const radiusSq = radius * radius;
@@ -903,7 +898,7 @@
                 }
             }
 
-            // NEW: Update loop for grass (handles animation decay)
+            // Update loop for grass (handles animation decay)
             updateGrass(deltaTime) {
                 let animationActive = false;
                 const decayRate = 5; // How quickly the grass springs back (higher is faster)
@@ -931,7 +926,7 @@
                 }
             }
 
-            // NEW: Renders the grass blades onto the grassCanvas
+            // Renders the grass blades onto the grassCanvas
             drawGrass() {
                 if (!this.needsGrassRedraw) return;
 
@@ -975,7 +970,6 @@
 
 
             // --- WEAR AND TEAR (Dirt Paths) ---
-            // UPDATED: Now also calls grass interaction logic
             applyMovementWear(startX, startY, endX, endY, buffManager) {
                 const distance = Utils.distance(startX, startY, endX, endY);
                 // Use smaller steps for smoother interaction detection
@@ -1016,7 +1010,7 @@
                     // 1. Apply Wear to Dirt Path
                     this.applyWearToArea(currentX, currentY, dirtWearRadius, (distance/steps) * dirtWearMultiplier);
 
-                    // 2. Interact with Grass (NEW)
+                    // 2. Interact with Grass
                     this.interactWithGrass(currentX, currentY, Config.GRASS_INTERACTION_RADIUS, grassWearAmount);
 
                     // 3. Entity Destruction while rolling
@@ -1026,7 +1020,6 @@
                 }
             }
 
-            // UPDATED: Now also calls grass interaction logic
             applyLandingImpact(x, y, moodState, buffManager) {
                 let impactWear = Config.BASE_IMPACT_WEAR;
                 let grassImpactWear = Config.GRASS_WEAR_PER_LANDING;
@@ -1059,7 +1052,7 @@
                 // 1. Apply Wear to Dirt Path
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
                 
-                // 2. Interact with Grass (NEW)
+                // 2. Interact with Grass
                 this.interactWithGrass(x, y, Config.GRASS_LANDING_RADIUS, grassImpactWear);
 
                 // 3. Entity Destruction on impact
@@ -1251,7 +1244,6 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // (Implementation remains unchanged from V7, as the interaction logic is handled within WorldManager calls)
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -1755,7 +1747,6 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (Implementation remains unchanged from V7)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -1830,19 +1821,21 @@
                 return savedBuffs;
             }
 
+            // UPDATED: Added check for buff.indicator existence
             update() {
                 const currentTime = Date.now();
                 Object.entries(this.buffs).forEach(([name, buff]) => {
                     if (buff.endTime > currentTime) {
                         this.updateTimerDisplay(buff, currentTime);
-                    } else if (buff.indicator.style.display === 'flex' && !buff.isEnding) {
+                    } else if (buff.indicator && buff.indicator.style.display === 'flex' && !buff.isEnding) {
+                        // Check buff.indicator exists before accessing style
                         this.deactivateBuff(name);
                     }
                 });
             }
 
             updateTimerDisplay(buff, currentTime) {
-                if (buff.hideTimer) return;
+                if (buff.hideTimer || !buff.indicator) return;
 
                 const remainingSeconds = Math.ceil((buff.endTime - currentTime) / 1000);
                 const minutes = Math.floor(remainingSeconds / 60);
@@ -1867,7 +1860,9 @@
                 this.setupBlinkTimer(buff);
             }
 
+            // UPDATED: Added safety check
             setupBuffIndicator(buff) {
+                if (!buff.indicator) return; // Safety check
                 buff.indicator.style.display = 'flex';
                 buff.indicator.classList.remove('blinking', 'blip-out');
                 if (buff.isEureka) {
@@ -1875,6 +1870,7 @@
                 }
             }
 
+            // UPDATED: Added safety checks for buff.indicator
             setupBlinkTimer(buff) {
                 clearTimeout(buff.blinkTimer);
                 const remainingTime = buff.endTime - Date.now();
@@ -1882,15 +1878,16 @@
 
                 if (remainingTime > BLINK_THRESHOLD) {
                     buff.blinkTimer = setTimeout(() => {
-                        if (buff.endTime > Date.now()) {
+                        if (buff.endTime > Date.now() && buff.indicator) {
                             buff.indicator.classList.add('blinking');
                         }
                     }, remainingTime - BLINK_THRESHOLD);
-                } else if (remainingTime > 0) {
+                } else if (remainingTime > 0 && buff.indicator) {
                     buff.indicator.classList.add('blinking');
                 }
             }
 
+            // UPDATED: Added safety checks for buff.indicator
             deactivateBuff(name, force = false) {
                 const buff = this.buffs[name];
                 
@@ -1914,11 +1911,15 @@
                 buff.isEnding = false;
                 clearTimeout(buff.blinkTimer);
 
-                buff.indicator.classList.add('blip-out');
-                buff.indicator.addEventListener('animationend', () => {
-                    buff.indicator.style.display = 'none';
-                    buff.indicator.className = 'buff-indicator';
-                }, { once: true });
+                if (buff.indicator) {
+                    buff.indicator.classList.add('blip-out');
+                    buff.indicator.addEventListener('animationend', () => {
+                        if (buff.indicator) {
+                            buff.indicator.style.display = 'none';
+                            buff.indicator.className = 'buff-indicator';
+                        }
+                    }, { once: true });
+                }
             }
 
             getActiveBuffs() {
@@ -1947,18 +1948,20 @@
                 });
             }
 
+            // UPDATED: Added safety check for buff.indicator
             applyEureka() {
                 Object.entries(this.buffs).forEach(([name, buff]) => {
                     if (name !== 'mushroom' && buff.endTime > Date.now()) {
                         buff.isEureka = true;
-                        buff.indicator.classList.add('eureka-state');
+                        if (buff.indicator) {
+                            buff.indicator.classList.add('eureka-state');
+                        }
                     }
                 });
             }
         }
 
         class ItemManager {
-            // (Implementation remains unchanged from V7)
             constructor(buffManager) {
                 this.buffManager = buffManager;
                 this.items = {};
@@ -2045,24 +2048,31 @@
             }
 
             animateButton(button) {
+                if (!button) return;
                 button.classList.add('clicked');
                 button.addEventListener('animationend', () => button.classList.remove('clicked'), { once: true });
             }
 
+            // UPDATED: Added safety checks for item.button and itemBar
             updateItemBar() {
                 const itemBar = document.getElementById('item-bar');
                 let totalItems = 0;
                 Object.values(this.items).forEach(item => {
-                    if (item.count > 0) {
-                        item.button.classList.add('visible');
-                        item.button.textContent = `${item.emoji}x${item.count}`;
-                        totalItems++;
-                    } else {
-                        item.button.classList.remove('visible');
+                    // FIX: Ensure item.button exists before trying to access it.
+                    if (item.button) {
+                        if (item.count > 0) {
+                            item.button.classList.add('visible');
+                            item.button.textContent = `${item.emoji}x${item.count}`;
+                            totalItems++;
+                        } else {
+                            item.button.classList.remove('visible');
+                        }
                     }
                 });
 
-                itemBar.classList.toggle('visible', totalItems > 0);
+                if (itemBar) {
+                   itemBar.classList.toggle('visible', totalItems > 0);
+                }
             }
         }
         
@@ -2070,7 +2080,6 @@
         // 5. PARTICLE SYSTEM & UFO
         // ====================================================================
 
-        // (Implementation remains unchanged from V7)
         class ParticleSystem {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -2189,7 +2198,6 @@
         // ====================================================================
 
         class UIManager {
-            // (Implementation remains unchanged from V7)
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
                 this.thoughtBubble = document.getElementById('thought-bubble');
@@ -2500,8 +2508,8 @@
                 if (Game.instance) return Game.instance;
                 Game.instance = this;
 
-                this.assetManager = new AssetManager(); // NEW
-                this.isInitialized = false; // NEW: Flag to ensure initialization happens after loading
+                this.assetManager = new AssetManager();
+                this.isInitialized = false; // Flag to ensure initialization happens after loading
 
                 this.initializeCanvases();
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
@@ -2515,7 +2523,6 @@
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
             }
 
-            // UPDATED: Initialize the new grassCanvas
             initializeCanvases() {
                 this.worldContainer = document.getElementById('world-container');
                 this.mainCanvas = document.getElementById('mainCanvas');
@@ -2524,14 +2531,13 @@
                 this.pathCtx = this.pathCanvas.getContext('2d');
                 this.entityCanvas = document.getElementById('entityCanvas');
                 this.entityCtx = this.entityCanvas.getContext('2d');
-                // NEW: Grass Canvas
+                // Grass Canvas
                 this.grassCanvas = document.getElementById('grassCanvas');
                 this.grassCtx = this.grassCanvas.getContext('2d');
 
                 this.resizeCanvases();
             }
 
-            // UPDATED: Resize the new grassCanvas
             resizeCanvases() {
                 const width = window.innerWidth;
                 const height = window.innerHeight;
@@ -2543,17 +2549,21 @@
                 this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = this.grassCanvas.height = height;
             }
 
-            // NEW: Initialization steps that depend on loaded assets
+            // UPDATED: Initialization sequence fixed to initialize UI before loading state.
             initializeAfterLoading() {
                 this.initializeGameObjects();
-                this.loadGame(); // Load game state (including grass positions)
+                
+                // FIX: Initialize UIs here, so DOM elements exist before loadGame() tries to update them.
+                this.buffManager.initializeUI();
+                this.itemManager.initializeUI();
+
+                this.loadGame(); // Load game state (including grass positions and item counts)
                 this.finalizeInitialization();
                 this.setupEventListeners();
                 this.isInitialized = true;
                 this.start(); // Start the animation loop
             }
 
-            // UPDATED: Pass assetManager and grassCtx to WorldManager
             initializeGameObjects() {
                 this.entityManager = new EntityManager(this.entityCtx);
                 // Pass the new contexts and asset manager
@@ -2567,10 +2577,8 @@
                 this.ufo = new UFO(this.ctx, this.bounds);
             }
 
+            // UPDATED: Removed UI initialization calls as they were moved to initializeAfterLoading
             finalizeInitialization() {
-                this.buffManager.initializeUI();
-                this.itemManager.initializeUI();
-                
                 // Generate grass if not loaded from save
                 this.worldManager.generateGrassField(); 
                 this.worldManager.redrawWorld();
@@ -2582,14 +2590,13 @@
             }
 
             // --- PERSISTENCE ---
-            // UPDATED: Include world manager save data (which now includes grass)
             saveGame() {
                 if (!this.isInitialized) return;
                 // Prevent saving during the transient eating state (chewing phase)
                 if (this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0) return;
 
                 const saveData = {
-                    version: 8, // Updated version
+                    version: 8,
                     worldCreationTime: this.worldCreationTime,
                     world: this.worldManager.saveState(), // Now includes grassBlades
                     entities: this.entityManager.saveState(),
@@ -2606,13 +2613,11 @@
                 }
             }
 
-            // UPDATED: Load world manager data (which now includes grass)
             loadGame() {
                  // Try loading the latest version first
                 let saveDataRaw = localStorage.getItem(Config.SAVE_KEY);
                 
                 // If V8 doesn't exist, try loading V7 for backward compatibility during transition
-                // This allows users who played V7 to keep their paths/items when upgrading to V8 (though grass will regenerate if not present in save)
                 if (!saveDataRaw) {
                     saveDataRaw = localStorage.getItem('WanderDot_Refactored_V7_Save');
                 }
@@ -2639,6 +2644,7 @@
                         this.wanderDot.y = saveData.wanderDot.y;
                     }
 
+                    // These now correctly update the UI because initializeUI ran first
                     this.itemManager.loadState(saveData);
                     this.buffManager.loadState(saveData);
 
@@ -2743,7 +2749,6 @@
             }
 
             // Main game loop
-            // UPDATED: Ensures initialization check and handles deltaTime spikes
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
 
@@ -2778,7 +2783,6 @@
                 this.uiManager.update(this.worldCreationTime);
             }
 
-            // UPDATED: Includes grass update logic
             update(deltaTime) {
                 // Update WanderDot
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
@@ -2792,14 +2796,13 @@
 
                 this.updateTimeBasedSystems();
 
-                // NEW: Update grass animations (springing back)
+                // Update grass animations (springing back)
                 this.worldManager.updateGrass(deltaTime);
 
                 // Update UFO
                 this.ufo.update(deltaTime, this.particleManager, this.worldManager);
             }
 
-            // UPDATED: Includes grass drawing logic
             draw(deltaTime) {
                 // Draw Grass (happens first, on its own canvas)
                 this.worldManager.drawGrass();
