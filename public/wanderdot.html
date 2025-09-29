@@ -76,8 +76,8 @@
             border: 2px solid var(--color-ui-border);
         }
         #pause-modal h2 {
-              font-size: 1.5rem;
-              margin-bottom: 15px;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
         }
 
         #resume-button {
@@ -506,8 +506,8 @@
             MOOD_DECAY_PER_SECOND: 0.3,     // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
             MOOD_BOOST_FLOWER_RADIUS: 100,     // Radius to gain mood boost from flowers
             MOOD_BOOST_FLOWER_RATE: 3.5,     // Annoyance decrease per second near a flower
-            MOOD_BOOST_CLICK_THOUGHT: 15,    // Annoyance decrease when a positive thought is clicked
-
+            MOOD_BOOST_IDLE_THOUGHT: 10,       // Annoyance decrease when a positive thought is clicked
+            MOOD_BOOST_KANGAROO_RATE: 2.5,   // Annoyance decrease per second while bouncing
 
             // Colors
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
@@ -606,7 +606,7 @@
                     '../images/grass/grass_blade_06.png',
                 ],
                 alienGrass: [
-                       // Assuming these paths exist for blue grass visualization
+                    // Assuming these paths exist for blue grass visualization
                     '../images/grass/alien_grass_blade_01.png',
                     '../images/grass/alien_grass_blade_02.png',
                     '../images/grass/alien_grass_blade_03.png',
@@ -1595,7 +1595,7 @@
                     this.isInterruptedHangry = true;
                 }
 
-                 // If triggered by low hunger, annoyance might not be high yet.
+                // If triggered by low hunger, annoyance might not be high yet.
                 if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !causedByInterruption) {
                     // Ensure annoyance is high enough to look significantly annoyed/mad.
                     this.annoyance = Math.max(this.annoyance, Config.ANNOYANCE_THRESHOLD + 5);
@@ -1689,12 +1689,12 @@
                 }
             }
 
-            // UPDATED: Includes natural decay and flower restoration.
+            // UPDATED: Includes natural decay and flower/kangaroo restoration.
             updateMood(deltaTime, buffManager, entityManager) {
                 // 1. Hunger decay
                 this.updateHunger(deltaTime);
 
-                // 2. Natural Mood Decay (Annoyance Increase) (NEW)
+                // 2. Natural Mood Decay (Annoyance Increase)
                 // Mood decays unless the dot is currently eating (chewing phase)
                 if (!(this.isEating && this.eatingStartTime > 0)) {
                      this.annoyance = Math.min(100, this.annoyance + Config.MOOD_DECAY_PER_SECOND * deltaTime);
@@ -1703,18 +1703,22 @@
                 // 3. Mood Restoration (Annoyance Decrease)
                 let restorationRate = 0;
 
-                // 3a. Check for nearby flowers (NEW)
+                // 3a. Check for nearby flowers
                 const nearbyFlowers = entityManager.getNearbyDynamicEntities('flower', this.x, this.y, Config.MOOD_BOOST_FLOWER_RADIUS);
                 if (nearbyFlowers.length > 0) {
-                    // Apply boost based on the rate
                     restorationRate += Config.MOOD_BOOST_FLOWER_RATE;
+                }
+                
+                // 3b. Check for Kangaroo Buff
+                if (buffManager.getActiveBuffs().kangaroo) {
+                    restorationRate += Config.MOOD_BOOST_KANGAROO_RATE;
                 }
 
                 // Apply the calculated restoration rate
                 if (restorationRate > 0) {
                     // Apply hunger penalty to restoration rate
                     if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
-                         restorationRate *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
+                        restorationRate *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
                     }
                     this.annoyance = Math.max(0, this.annoyance - restorationRate * deltaTime);
                 }
@@ -1736,14 +1740,14 @@
                         }
 
                     } else if (previousState === 'annoyed' && this.currentMoodState === 'normal') {
-                         this.isCalm = true;
-                         transitionEmoji = Config.Emojis.cooldownToNormal[0];
+                        this.isCalm = true;
+                        transitionEmoji = Config.Emojis.cooldownToNormal[0];
 
-                         // Exit Hangry state if returning to normal (should be covered above but safe check)
-                         if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
-                             this.isHangry = false;
-                             this.isInterruptedHangry = false; // Clear interruption flag
-                         }
+                        // Exit Hangry state if returning to normal (should be covered above but safe check)
+                        if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
+                            this.isHangry = false;
+                            this.isInterruptedHangry = false; // Clear interruption flag
+                        }
                     }
                 }
 
@@ -1865,8 +1869,8 @@
                 } else {
                     this.verticalOffset = 0;
                     if (movementAllowed) {
-                         // This uses the centralized strength stat now
-                         worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
+                        // This uses the centralized strength stat now
+                        worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
                     }
                 }
 
@@ -2016,7 +2020,7 @@
 
                 if (hitBoundary && this.targetX !== null) {
                     this.clearTarget();
-                     // If boundary collision interrupted eating seeking, cancel it without penalty
+                    // If boundary collision interrupted eating seeking, cancel it without penalty
                     if (this.isEating && this.eatingStartTime === 0) {
                         this.isEating = false;
                         this.eatingTarget = null;
@@ -2520,7 +2524,7 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
-        // UPDATED: Handles mood boosts from specific thoughts.
+        // UPDATED: Handles mood boosts from specific thoughts on click.
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
@@ -2540,7 +2544,6 @@
 
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
-                this.kangarooThoughtTimer = null; // NEW: Timer for kangaroo mood
                 this.thoughtTimeout = null;
                 this.fadeTimeout = null;
                 this.idleEmojiHistory = [];
@@ -2624,7 +2627,7 @@
                     }, 300);
                 }
             }
-             getNextIdleEmoji() {
+              getNextIdleEmoji() {
                 const candidateEmojis = Config.Emojis.idle.filter(e => !this.idleEmojiHistory.includes(e));
                 const emojiPool = candidateEmojis.length > 0 ? candidateEmojis : Config.Emojis.idle;
                 const nextEmoji = Utils.randomChoice(emojiPool);
@@ -2653,40 +2656,24 @@
                 this.madThoughtTimer = null;
             }
 
-            // NEW: Methods to manage Kangaroo mood timer
-            startKangarooTimer() {
-                this.stopKangarooTimer(); // Ensure no duplicates
-                this.kangarooThoughtTimer = setInterval(() => {
-                    // Check if the buff is still active
-                    if (Game.instance.buffManager.getActiveBuffs().kangaroo) {
-                        this.showThought('🤩', 2500); // Show an excited thought
-                    } else {
-                        this.stopKangarooTimer(); // Stop if buff ended unexpectedly
-                    }
-                }, 5000); // Every 5 seconds
-            }
-
-            stopKangarooTimer() {
-                clearInterval(this.kangarooThoughtTimer);
-                this.kangarooThoughtTimer = null;
-            }
-
-            // UPDATED: Logic moved here from showThought
             handleThoughtClick() {
                 const emoji = this.getCurrentThought();
-                if (!emoji) return;
 
-                // Check for special, non-collectible thought clicks first
-                if (emoji === '🎮' || emoji === '🎥') {
-                    this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_CLICK_THOUGHT);
-                } else if (emoji === '👽') {
-                    Game.instance.ufo.activate();
+                // Check for clickable mood boost emojis
+                if (emoji === '🎮' || emoji === '📽️') {
+                    Game.instance.wanderDot.applyMoodBoost(Config.MOOD_BOOST_IDLE_THOUGHT);
                 } else {
-                    // Default behavior: try to collect as an item
-                    Game.instance.itemManager.addItem(emoji);
+                    // Try to collect as an item
+                    const collected = Game.instance.itemManager.addItem(emoji);
+
+                    if (!collected) {
+                        // Handle other special clicks like the UFO
+                        if (emoji === '👽') {
+                            Game.instance.ufo.activate();
+                        }
+                    }
                 }
 
-                // Hide bubble after any successful click
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
                 this.thoughtBubble.style.display = 'none';
@@ -2705,32 +2692,19 @@
                 this.isMouseOverBubble = false;
                 this.thoughtTimeout = setTimeout(() => this.hideThought(), Math.max(500, this.thoughtTimeoutRemaining));
             }
-            
-            // NEW: Manages the kangaroo mood timer based on buff state
-            updateKangarooMood() {
-                const isKangarooActive = !!Game.instance.buffManager.getActiveBuffs().kangaroo;
-                if (isKangarooActive && !this.kangarooThoughtTimer) {
-                     // Buff is active, but timer isn't running. Start it.
-                     this.startKangarooTimer();
-                } else if (!isKangarooActive && this.kangarooThoughtTimer) {
-                    // Buff is inactive, but timer is running. Stop it.
-                    this.stopKangarooTimer();
-                }
-            }
 
             update(worldCreationTime) {
                 this.updateTimer(worldCreationTime);
                 this.updateStats();
                 this.updateBarGraphs();
-                this.updateKangarooMood(); // NEW
                 if (this.thoughtBubble.style.display === 'block') {
                     this.updateBubblePosition();
                 }
             }
-            
-            // UPDATED: Now accounts for paused time
+
             updateTimer(worldCreationTime) {
-                const elapsedTime = (Date.now() - worldCreationTime) - Game.instance.totalPausedTime;
+                const totalPausedTime = Game.instance.totalPausedTime || 0;
+                const elapsedTime = (Date.now() - worldCreationTime) - totalPausedTime;
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
@@ -2778,7 +2752,7 @@
                 }
             }
 
-            // UPDATED: Mood boost logic removed from here
+            // UPDATED: No longer applies mood boost on show
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
 
@@ -2927,14 +2901,14 @@
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
                 
-                // NEW: Pause timing variables
-                this.totalPausedTime = 0;
-                this.pauseStartTime = 0;
-
                 // Game state
                 this.isRunning = false;
-                this.isPaused = false; // NEW: Differentiate between stopped (game over) and paused
+                this.isPaused = false;
                 this.animationFrameId = null;
+
+                // Timer state
+                this.totalPausedTime = 0;
+                this.pauseStartTime = 0;
 
                 // Load assets first, then proceed with initialization
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
@@ -3035,12 +3009,11 @@
                 if (document.hidden) {
                     this.pauseGame();
                 }
-                // We do not auto-resume, waiting for the button click.
             }
 
             // NEW: Pause Game
             pauseGame() {
-                if (this.isPaused || !this.isRunning) return;
+                if (this.isPaused) return;
                 this.isPaused = true;
                 this.pauseStartTime = Date.now(); // Record when pause starts
 
@@ -3052,8 +3025,8 @@
 
                 // Show the pause overlay
                 document.getElementById('pause-overlay').style.display = 'flex';
-                
-                // This prevents a large deltaTime jump when resuming.
+
+                // Reset lastFrameTime so deltaTime doesn't jump when resuming
                 this.lastFrameTime = 0;
             }
 
@@ -3061,13 +3034,14 @@
             resumeGame() {
                 if (!this.isPaused) return;
 
-                // Calculate paused duration and add to total
+                // Add the elapsed pause time to the total
                 if (this.pauseStartTime > 0) {
                     this.totalPausedTime += Date.now() - this.pauseStartTime;
+                    this.pauseStartTime = 0; // Reset for the next pause
                 }
-                this.pauseStartTime = 0; // Reset start time
+
                 this.isPaused = false;
-                
+
                 // Hide the pause overlay
                 document.getElementById('pause-overlay').style.display = 'none';
 
@@ -3096,7 +3070,7 @@
             }
 
             handleClick(event) {
-                // UPDATED: Prevent clicks if the game is over or paused
+                // Prevent clicks if the game is over or paused
                 if (!this.isRunning || this.isPaused) return;
 
                 // Prevent default browser behavior
@@ -3184,8 +3158,9 @@
                     this.animationFrameId = null;
                 }
 
-                // Calculate survival time, accounting for pauses
-                const elapsedTime = (Date.now() - this.worldCreationTime) - this.totalPausedTime;
+                // Calculate survival time, accounting for paused time
+                const totalPausedTime = this.totalPausedTime || 0;
+                const elapsedTime = (Date.now() - this.worldCreationTime) - totalPausedTime;
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
@@ -3205,12 +3180,13 @@
 
             // Main game loop
             animate(currentTime) {
-                // UPDATED: Check if running
+                // Check if running
                 if (!this.isRunning) return;
                 this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
 
-                // If paused, we skip the update/draw logic. The loop is cancelled in pauseGame.
-                
+                // If paused, we skip the update/draw logic.
+                // We rely on cancel/restart in pause/resume, so if we are here, we are not paused.
+
                 if (!this.isInitialized) return;
 
                 if (!this.lastFrameTime) {
@@ -3218,15 +3194,13 @@
                     return;
                 }
                 const deltaTime = (currentTime - this.lastFrameTime) / 1000;
-
-                // Handle large deltaTime spikes (often happens after resuming from a long pause)
-                if (deltaTime > 0.1) {
-                     this.lastFrameTime = currentTime;
-                     this.updateTimeBasedSystems();
-                     return;
-                }
-
                 this.lastFrameTime = currentTime;
+
+                // Skip a frame if deltaTime is huge to prevent physics jumps after a lag spike
+                // This does NOT handle the timer display, which is done separately.
+                if (deltaTime > 0.1) {
+                    return;
+                }
 
                 this.update(deltaTime);
                 this.draw(deltaTime);
