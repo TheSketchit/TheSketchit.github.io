@@ -76,8 +76,8 @@
             border: 2px solid var(--color-ui-border);
         }
         #pause-modal h2 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
+             font-size: 1.5rem;
+             margin-bottom: 15px;
         }
 
         #resume-button {
@@ -373,32 +373,32 @@
 
         /* --- 3.5. MOBILE RESPONSIVENESS (UPDATED) --- */
         @media (max-width: 768px) {
-              #bottom-bar {
-                  height: 110px; /* Taller on mobile */
-                  flex-wrap: wrap;
-                  padding: 5px 10px;
-              }
-             #stats-container {
-                 font-size: 0.9rem;
-                 gap: 15px;
-             }
-             #world-timer-display {
-                 font-size: 0.9rem;
-                 margin-right: 15px;
-             }
-             #bar-graphs-container {
-                 width: 100%;
-                 order: 2; /* Move graphs below stats/chest */
-                 margin: 5px 0 0 0;
-                 max-width: none;
-             }
-              .graph-label {
-                  font-size: 0.8rem;
-                  width: 50px;
-             }
-             .graph-bar {
-                 height: 18px;
-             }
+             #bottom-bar {
+                 height: 110px; /* Taller on mobile */
+                 flex-wrap: wrap;
+                 padding: 5px 10px;
+            }
+            #stats-container {
+                font-size: 0.9rem;
+                gap: 15px;
+            }
+            #world-timer-display {
+                font-size: 0.9rem;
+                margin-right: 15px;
+            }
+            #bar-graphs-container {
+                width: 100%;
+                order: 2; /* Move graphs below stats/chest */
+                margin: 5px 0 0 0;
+                max-width: none;
+            }
+             .graph-label {
+                 font-size: 0.8rem;
+                 width: 50px;
+            }
+            .graph-bar {
+                height: 18px;
+            }
         }
 
 
@@ -502,15 +502,17 @@
             MOOD_HUNGER_DRAIN_MULTIPLIER: 2.0, // Hunger drains 2x faster when mad/annoyed
             HUNGER_MOOD_DRAIN_MULTIPLIER: 0.5, // Mood restoration is 50% slower when hungry
 
-            // NEW: Mood Mechanics
+            // Mood Mechanics
             MOOD_DECAY_PER_SECOND: 0.3,     // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
-            MOOD_BOOST_FLOWER_RADIUS: 100,     // Radius to gain mood boost from flowers
+            MOOD_BOOST_FLOWER_RADIUS: 100,    // Radius to gain mood boost from flowers
             MOOD_BOOST_FLOWER_RATE: 3.5,     // Annoyance decrease per second near a flower
-            MOOD_BOOST_IDLE_THOUGHT: 10,       // Annoyance decrease when a positive thought is clicked
-            MOOD_BOOST_KANGAROO_RATE: 2.5,   // Annoyance decrease per second while bouncing
+            // MOOD_BOOST_IDLE_THOUGHT: 10,  // Removed: Replaced by click-based boost
+            MOOD_BOOST_CLICKABLE_THOUGHT: 5, // NEW: Annoyance decrease when a positive thought (🎮, 🎥) is clicked
+
 
             // Colors
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
+            COLOR_HAPPY: { r: 144, g: 238, b: 144 }, // NEW: LightGreen for happy/kangaroo mood
             COLOR_ANNOYED: { r: 255, g: 165, b: 0 },
             COLOR_MAD: { r: 152, g: 14, b: 11 },
             COLOR_HANGRY_GLOW: 'rgba(255, 100, 100, 0.7)',
@@ -577,6 +579,7 @@
 
             // Emojis
             Emojis: {
+                // Note: Using 🎥 (Film Frames) as it was in the original code list, matching the user request for 📽️ (Projector) functionality.
                 idle: ['💡', '😴', '🎮', '🎶', '☕', '⌚', '🍕', '👽', '🦘','🎥'],
                 commandReceived: ['🤔','👀'],
                 annoyed: ['😒', '🙄', '😑', '🤨'],
@@ -606,7 +609,7 @@
                     '../images/grass/grass_blade_06.png',
                 ],
                 alienGrass: [
-                    // Assuming these paths exist for blue grass visualization
+                     // Assuming these paths exist for blue grass visualization
                     '../images/grass/alien_grass_blade_01.png',
                     '../images/grass/alien_grass_blade_02.png',
                     '../images/grass/alien_grass_blade_03.png',
@@ -1514,7 +1517,7 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // UPDATED: Incorporates new mood mechanics (decay and restoration).
+        // UPDATED: Incorporates Kangaroo mood color.
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -1563,7 +1566,7 @@
                 return this.y - this.verticalOffset + this.radius;
             }
 
-            // NEW: Method to apply immediate mood boost
+            // Method to apply immediate mood boost
             applyMoodBoost(amount) {
                 // Amount is positive, representing a decrease in annoyance
                 this.annoyance = Math.max(0, this.annoyance - amount);
@@ -1595,7 +1598,7 @@
                     this.isInterruptedHangry = true;
                 }
 
-                // If triggered by low hunger, annoyance might not be high yet.
+                 // If triggered by low hunger, annoyance might not be high yet.
                 if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !causedByInterruption) {
                     // Ensure annoyance is high enough to look significantly annoyed/mad.
                     this.annoyance = Math.max(this.annoyance, Config.ANNOYANCE_THRESHOLD + 5);
@@ -1689,12 +1692,12 @@
                 }
             }
 
-            // UPDATED: Includes natural decay and flower/kangaroo restoration.
+            // UPDATED: Includes natural decay and flower restoration.
             updateMood(deltaTime, buffManager, entityManager) {
                 // 1. Hunger decay
                 this.updateHunger(deltaTime);
 
-                // 2. Natural Mood Decay (Annoyance Increase)
+                // 2. Natural Mood Decay (Annoyance Increase) (NEW)
                 // Mood decays unless the dot is currently eating (chewing phase)
                 if (!(this.isEating && this.eatingStartTime > 0)) {
                      this.annoyance = Math.min(100, this.annoyance + Config.MOOD_DECAY_PER_SECOND * deltaTime);
@@ -1703,22 +1706,18 @@
                 // 3. Mood Restoration (Annoyance Decrease)
                 let restorationRate = 0;
 
-                // 3a. Check for nearby flowers
+                // 3a. Check for nearby flowers (NEW)
                 const nearbyFlowers = entityManager.getNearbyDynamicEntities('flower', this.x, this.y, Config.MOOD_BOOST_FLOWER_RADIUS);
                 if (nearbyFlowers.length > 0) {
+                    // Apply boost based on the rate
                     restorationRate += Config.MOOD_BOOST_FLOWER_RATE;
-                }
-                
-                // 3b. Check for Kangaroo Buff
-                if (buffManager.getActiveBuffs().kangaroo) {
-                    restorationRate += Config.MOOD_BOOST_KANGAROO_RATE;
                 }
 
                 // Apply the calculated restoration rate
                 if (restorationRate > 0) {
                     // Apply hunger penalty to restoration rate
                     if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
-                        restorationRate *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
+                         restorationRate *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
                     }
                     this.annoyance = Math.max(0, this.annoyance - restorationRate * deltaTime);
                 }
@@ -1740,11 +1739,11 @@
                         }
 
                     } else if (previousState === 'annoyed' && this.currentMoodState === 'normal') {
-                        this.isCalm = true;
-                        transitionEmoji = Config.Emojis.cooldownToNormal[0];
+                         this.isCalm = true;
+                         transitionEmoji = Config.Emojis.cooldownToNormal[0];
 
-                        // Exit Hangry state if returning to normal (should be covered above but safe check)
-                        if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
+                         // Exit Hangry state if returning to normal (should be covered above but safe check)
+                         if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
                             this.isHangry = false;
                             this.isInterruptedHangry = false; // Clear interruption flag
                         }
@@ -1763,7 +1762,7 @@
                 return transitionEmoji;
             }
 
-            // (updateAppearance remains unchanged)
+            // UPDATED: Added Kangaroo color override
             updateAppearance(buffManager) {
                 const buffs = buffManager.getActiveBuffs();
 
@@ -1801,9 +1800,18 @@
                     this.currentSpeedMultiplier = Utils.lerp(0.5, 0.3, t);
                     strength *= Utils.lerp(1.1, 1.7, t); // Annoyed slightly increases strength
                 } else {
+                    // Normal State
                     const t = this.annoyance / Config.ANNOYANCE_THRESHOLD;
-                    this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_ANNOYED, t);
+                    // this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_ANNOYED, t); // Old implementation
                     this.currentSpeedMultiplier = Utils.lerp(1.0, 0.5, t);
+
+                    // NEW: Kangaroo Happy Mood Override
+                    if (buffs.kangaroo) {
+                        // Use the HAPPY color as the base when kangaroo is active, still interpolating towards annoyed if annoyance rises.
+                        this.color = Utils.lerpColor(Config.COLOR_HAPPY, Config.COLOR_ANNOYED, t);
+                    } else {
+                        this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_ANNOYED, t);
+                    }
                 }
 
                  // Assign final stats
@@ -1869,8 +1877,8 @@
                 } else {
                     this.verticalOffset = 0;
                     if (movementAllowed) {
-                        // This uses the centralized strength stat now
-                        worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
+                         // This uses the centralized strength stat now
+                         worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
                     }
                 }
 
@@ -2020,7 +2028,7 @@
 
                 if (hitBoundary && this.targetX !== null) {
                     this.clearTarget();
-                    // If boundary collision interrupted eating seeking, cancel it without penalty
+                     // If boundary collision interrupted eating seeking, cancel it without penalty
                     if (this.isEating && this.eatingStartTime === 0) {
                         this.isEating = false;
                         this.eatingTarget = null;
@@ -2114,7 +2122,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (BuffManager and ItemManager implementations remain unchanged from the previous iteration)
+        // UPDATED: Handles pausing/resuming buff timers.
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -2134,8 +2142,40 @@
                             emoji: data.emoji,
                             indicator: null,
                             hideTimer: data.hideTimer || false,
-                            hungerRestore: data.hungerRestore || 0
+                            hungerRestore: data.hungerRestore || 0,
+                            remainingTimeOnPause: 0 // NEW: Store remaining time when paused
                         };
+                    }
+                });
+            }
+
+            // NEW: Pause all active buffs
+            pauseAllBuffs() {
+                const currentTime = Date.now();
+                Object.values(this.buffs).forEach(buff => {
+                    if (buff.endTime > currentTime) {
+                        // Calculate remaining time and store it
+                        buff.remainingTimeOnPause = buff.endTime - currentTime;
+                        // Set endTime to 0 to signify it's paused/inactive in the update loop
+                        buff.endTime = 0;
+                    } else {
+                         buff.remainingTimeOnPause = 0;
+                    }
+                    // Clear any running timeouts (like the blink timer)
+                    clearTimeout(buff.blinkTimer);
+                });
+            }
+
+            // NEW: Resume all paused buffs
+            resumeAllBuffs() {
+                const currentTime = Date.now();
+                Object.values(this.buffs).forEach(buff => {
+                    if (buff.remainingTimeOnPause > 0) {
+                        // Restore endTime based on the current time + stored remaining time
+                        buff.endTime = currentTime + buff.remainingTimeOnPause;
+                        buff.remainingTimeOnPause = 0;
+                        // Re-setup the blink timer for the new duration
+                        this.setupBlinkTimer(buff);
                     }
                 });
             }
@@ -2164,9 +2204,11 @@
             update() {
                 const currentTime = Date.now();
                 Object.entries(this.buffs).forEach(([name, buff]) => {
+                    // Check if endTime > currentTime (only true if active and not paused)
                     if (buff.endTime > currentTime) {
                         this.updateTimerDisplay(buff, currentTime);
-                    } else if (buff.indicator && buff.indicator.style.display === 'flex' && !buff.isEnding) {
+                    // Deactivate only if it expired naturally (remainingTimeOnPause is 0)
+                    } else if (buff.indicator && buff.indicator.style.display === 'flex' && !buff.isEnding && buff.remainingTimeOnPause === 0) {
                         this.deactivateBuff(name);
                     }
                 });
@@ -2186,24 +2228,40 @@
                 }
             }
 
-            // UPDATED: Applies hunger restoration and coffee mood boost.
+            // UPDATED: Handles adding time correctly even if a buff is paused.
             addBuffTime(name, duration) {
                 const buff = this.buffs[name];
                 if (!buff) return;
 
                 const wanderDot = Game.instance.wanderDot; // Get reference early
-                const isInitialActivation = buff.endTime <= Date.now();
-                const baseTime = Math.max(Date.now(), buff.endTime);
-                buff.endTime = baseTime + duration;
+                const currentTime = Date.now();
+
+                // Determine if this is the first activation or a stack/refresh
+                // A buff is considered inactive if endTime is past AND it was NOT paused (remainingTimeOnPause is 0)
+                const isCurrentlyInactive = buff.endTime <= currentTime && buff.remainingTimeOnPause === 0;
+
+                // Calculate new end time
+                // If paused, add duration to the remaining time
+                if (buff.remainingTimeOnPause > 0) {
+                    buff.remainingTimeOnPause += duration;
+                    // If the game is running (which it must be to add a buff via click/eat), resume this specific buff
+                    buff.endTime = currentTime + buff.remainingTimeOnPause;
+                    buff.remainingTimeOnPause = 0;
+                } else {
+                    // If active or expired, calculate base time normally
+                    const baseTime = Math.max(currentTime, buff.endTime);
+                    buff.endTime = baseTime + duration;
+                }
+
                 buff.isEnding = false;
 
-                if (isInitialActivation) {
-                    // Apply hunger restoration
+                if (isCurrentlyInactive) {
+                    // Apply hunger restoration (only on initial activation)
                     if (buff.hungerRestore > 0 && wanderDot) {
                          wanderDot.hunger = Math.min(Config.MAX_HUNGER, wanderDot.hunger + buff.hungerRestore);
                     }
 
-                    // Apply Coffee mood boost
+                    // Apply Coffee mood boost (only on initial activation)
                     if (name === 'coffee' && wanderDot) {
                         // Reduce annoyance significantly when coffee is used
                         wanderDot.applyMoodBoost(30);
@@ -2231,6 +2289,7 @@
 
                 if (remainingTime > BLINK_THRESHOLD) {
                     buff.blinkTimer = setTimeout(() => {
+                        // Check again before blinking, ensuring it's still active (endTime > Date.now()) and not paused
                         if (buff.endTime > Date.now() && buff.indicator) {
                             buff.indicator.classList.add('blinking');
                         }
@@ -2243,6 +2302,7 @@
             deactivateBuff(name, force = false) {
                 const buff = this.buffs[name];
 
+                // Check if already inactive (endTime is 0 and not currently ending)
                 if ((buff.endTime === 0 && !buff.isEnding)) return;
 
                 if (name === 'kangaroo' && !force) {
@@ -2261,6 +2321,7 @@
                 buff.endTime = 0;
                 buff.isEureka = false;
                 buff.isEnding = false;
+                buff.remainingTimeOnPause = 0; // Ensure pause time is cleared
                 clearTimeout(buff.blinkTimer);
 
                 if (buff.indicator) {
@@ -2278,7 +2339,9 @@
                 const currentTime = Date.now();
                 const active = {};
                 Object.entries(this.buffs).forEach(([name, buff]) => {
-                    if (buff.endTime > currentTime || buff.isEnding) {
+                    // A buff is active if endTime is in the future OR if it's currently ending (like kangaroo landing)
+                    // If the game is paused, buffs might have remainingTimeOnPause > 0, but we still consider them "active" conceptually for game logic
+                    if (buff.endTime > currentTime || buff.isEnding || buff.remainingTimeOnPause > 0) {
                         active[name] = {
                             isEureka: buff.isEureka,
                             potency: buff.isEureka ? 2.0 : 1.0
@@ -2294,7 +2357,8 @@
 
             applyWatchExtension() {
                 Object.keys(this.buffs).forEach(name => {
-                    if (name !== 'mushroom' && this.buffs[name].endTime > Date.now()) {
+                     // Check if the buff is active (endTime > now OR paused with remaining time)
+                    if (name !== 'mushroom' && (this.buffs[name].endTime > Date.now() || this.buffs[name].remainingTimeOnPause > 0)) {
                         this.addBuffTime(name, Config.WATCH_TIME_EXTENSION);
                     }
                 });
@@ -2302,7 +2366,8 @@
 
             applyEureka() {
                 Object.entries(this.buffs).forEach(([name, buff]) => {
-                    if (name !== 'mushroom' && buff.endTime > Date.now()) {
+                     // Check if the buff is active (endTime > now OR paused with remaining time)
+                    if (name !== 'mushroom' && (buff.endTime > Date.now() || buff.remainingTimeOnPause > 0)) {
                         buff.isEureka = true;
                         if (buff.indicator) {
                             buff.indicator.classList.add('eureka-state');
@@ -2524,7 +2589,7 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
-        // UPDATED: Handles mood boosts from specific thoughts on click.
+        // UPDATED: Handles mood boosts on click, and uses accumulated game time for the timer.
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
@@ -2627,7 +2692,7 @@
                     }, 300);
                 }
             }
-              getNextIdleEmoji() {
+             getNextIdleEmoji() {
                 const candidateEmojis = Config.Emojis.idle.filter(e => !this.idleEmojiHistory.includes(e));
                 const emojiPool = candidateEmojis.length > 0 ? candidateEmojis : Config.Emojis.idle;
                 const nextEmoji = Utils.randomChoice(emojiPool);
@@ -2656,21 +2721,20 @@
                 this.madThoughtTimer = null;
             }
 
+            // UPDATED: Apply mood boost on click for specific thoughts.
             handleThoughtClick() {
                 const emoji = this.getCurrentThought();
 
-                // Check for clickable mood boost emojis
-                if (emoji === '🎮' || emoji === '📽️') {
-                    Game.instance.wanderDot.applyMoodBoost(Config.MOOD_BOOST_IDLE_THOUGHT);
-                } else {
-                    // Try to collect as an item
-                    const collected = Game.instance.itemManager.addItem(emoji);
+                // NEW: Check for clickable mood boosting emojis (🎮, 🎥)
+                if (emoji === '🎮' || emoji === '🎥') {
+                   this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_CLICKABLE_THOUGHT);
+                }
 
-                    if (!collected) {
-                        // Handle other special clicks like the UFO
-                        if (emoji === '👽') {
-                            Game.instance.ufo.activate();
-                        }
+                const collected = Game.instance.itemManager.addItem(emoji);
+
+                if (!collected) {
+                    if (emoji === '👽') {
+                        Game.instance.ufo.activate();
                     }
                 }
 
@@ -2693,8 +2757,9 @@
                 this.thoughtTimeout = setTimeout(() => this.hideThought(), Math.max(500, this.thoughtTimeoutRemaining));
             }
 
-            update(worldCreationTime) {
-                this.updateTimer(worldCreationTime);
+            // UPDATED: Accepts accumulatedGameTime instead of worldCreationTime
+            update(accumulatedGameTime) {
+                this.updateTimer(accumulatedGameTime);
                 this.updateStats();
                 this.updateBarGraphs();
                 if (this.thoughtBubble.style.display === 'block') {
@@ -2702,9 +2767,10 @@
                 }
             }
 
-            updateTimer(worldCreationTime) {
-                const totalPausedTime = Game.instance.totalPausedTime || 0;
-                const elapsedTime = (Date.now() - worldCreationTime) - totalPausedTime;
+            // UPDATED: Uses the provided elapsedTime (from accumulatedGameTime)
+            updateTimer(elapsedTime) {
+                // const elapsedTime = Date.now() - worldCreationTime; // Old implementation
+                // elapsedTime is provided in milliseconds
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
@@ -2752,9 +2818,11 @@
                 }
             }
 
-            // UPDATED: No longer applies mood boost on show
+            // UPDATED: Removed automatic mood boost application.
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
+
+                // Mood boosts (🎮, 🎥) are now handled in handleThoughtClick()
 
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
@@ -2883,7 +2951,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // UPDATED: Handles resizing, Game Over, and Pause/Resume logic.
+        // UPDATED: Handles accumulated game time and pause/resume integration with BuffManager.
         class Game {
             static instance = null;
 
@@ -2898,17 +2966,13 @@
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
 
                 this.worldCreationTime = Date.now();
+                this.accumulatedGameTime = 0; // NEW: Tracks actual time the game has been active (in ms)
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
-                
                 // Game state
                 this.isRunning = false;
-                this.isPaused = false;
+                this.isPaused = false; // Differentiate between stopped (game over) and paused
                 this.animationFrameId = null;
-
-                // Timer state
-                this.totalPausedTime = 0;
-                this.pauseStartTime = 0;
 
                 // Load assets first, then proceed with initialization
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
@@ -2994,7 +3058,7 @@
                     restartButton.addEventListener('click', () => this.restartGame());
                 }
 
-                // NEW: Pause/Resume listeners
+                // Pause/Resume listeners
                 document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
                 const resumeButton = document.getElementById('resume-button');
                 if (resumeButton) {
@@ -3002,20 +3066,23 @@
                 }
             }
 
-            // NEW: Handle Visibility Change
+            // Handle Visibility Change
             handleVisibilityChange() {
                 if (!this.isInitialized || !this.isRunning) return;
 
                 if (document.hidden) {
                     this.pauseGame();
                 }
+                // We do not auto-resume, waiting for the button click.
             }
 
-            // NEW: Pause Game
+            // UPDATED: Pause Game (includes pausing buffs)
             pauseGame() {
                 if (this.isPaused) return;
                 this.isPaused = true;
-                this.pauseStartTime = Date.now(); // Record when pause starts
+
+                // NEW: Pause Buff timers
+                this.buffManager.pauseAllBuffs();
 
                 // Stop the animation loop
                 if (this.animationFrameId) {
@@ -3026,21 +3093,17 @@
                 // Show the pause overlay
                 document.getElementById('pause-overlay').style.display = 'flex';
 
-                // Reset lastFrameTime so deltaTime doesn't jump when resuming
+                // Crucial: Reset lastFrameTime so deltaTime doesn't jump when resuming
                 this.lastFrameTime = 0;
             }
 
-            // NEW: Resume Game
+            // UPDATED: Resume Game (includes resuming buffs)
             resumeGame() {
                 if (!this.isPaused) return;
-
-                // Add the elapsed pause time to the total
-                if (this.pauseStartTime > 0) {
-                    this.totalPausedTime += Date.now() - this.pauseStartTime;
-                    this.pauseStartTime = 0; // Reset for the next pause
-                }
-
                 this.isPaused = false;
+
+                // NEW: Resume Buff timers
+                this.buffManager.resumeAllBuffs();
 
                 // Hide the pause overlay
                 document.getElementById('pause-overlay').style.display = 'none';
@@ -3070,7 +3133,7 @@
             }
 
             handleClick(event) {
-                // Prevent clicks if the game is over or paused
+                // UPDATED: Prevent clicks if the game is over or paused
                 if (!this.isRunning || this.isPaused) return;
 
                 // Prevent default browser behavior
@@ -3150,6 +3213,7 @@
                 }
             }
 
+            // UPDATED: Use accumulatedGameTime for the final score.
             gameOver() {
                 this.isRunning = false;
                 this.isPaused = false; // Ensure pause state is cleared
@@ -3158,9 +3222,9 @@
                     this.animationFrameId = null;
                 }
 
-                // Calculate survival time, accounting for paused time
-                const totalPausedTime = this.totalPausedTime || 0;
-                const elapsedTime = (Date.now() - this.worldCreationTime) - totalPausedTime;
+                // Calculate survival time using the accumulated active game time
+                const elapsedTime = this.accumulatedGameTime;
+                // const elapsedTime = Date.now() - this.worldCreationTime; // Old implementation
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
@@ -3180,12 +3244,12 @@
 
             // Main game loop
             animate(currentTime) {
-                // Check if running
+                // UPDATED: Check if running
                 if (!this.isRunning) return;
                 this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
 
-                // If paused, we skip the update/draw logic.
-                // We rely on cancel/restart in pause/resume, so if we are here, we are not paused.
+                // If paused, we skip the update/draw logic but keep the RAF loop going (or rely on cancel/restart in pause/resume)
+                // We rely on cancel/restart in pause/resume, so if we are here, we assume we are not paused.
 
                 if (!this.isInitialized) return;
 
@@ -3194,25 +3258,32 @@
                     return;
                 }
                 const deltaTime = (currentTime - this.lastFrameTime) / 1000;
-                this.lastFrameTime = currentTime;
 
-                // Skip a frame if deltaTime is huge to prevent physics jumps after a lag spike
-                // This does NOT handle the timer display, which is done separately.
+                // Handle large deltaTime spikes (often happens after resuming from a long pause)
                 if (deltaTime > 0.1) {
-                    return;
+                     this.lastFrameTime = currentTime;
+                     this.updateTimeBasedSystems();
+                     return;
                 }
+
+                this.lastFrameTime = currentTime;
 
                 this.update(deltaTime);
                 this.draw(deltaTime);
             }
 
+            // UPDATED: Pass accumulatedGameTime to UIManager
             updateTimeBasedSystems() {
                 this.entityManager.update(this.worldManager);
                 this.buffManager.update();
-                this.uiManager.update(this.worldCreationTime);
+                // Pass the accumulated game time instead of worldCreationTime
+                this.uiManager.update(this.accumulatedGameTime);
             }
 
             update(deltaTime) {
+                // NEW: Accumulate active game time
+                this.accumulatedGameTime += deltaTime * 1000; // deltaTime is in seconds, store in ms
+
                 // Update WanderDot
                 // Pass entityManager to WanderDot update for flower detection
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
