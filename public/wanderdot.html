@@ -38,7 +38,7 @@
         /* --- 2. WORLD CONTAINERS & LAYERS --- */
         #world-container {
             position: relative;
-            /* Dimensions are set explicitly by JS (Game.resizeCanvases) for mobile compatibility */
+            /* Dimensions are set explicitly by JS (Game.resizeCanvases) */
             overflow: hidden;
         }
 
@@ -49,7 +49,6 @@
         }
 
         /* Z-Index layering */
-        /* grassCanvas removed as grass is now dynamically sorted on mainCanvas */
         #pathCanvas { z-index: 1; }
         #entityCanvas { z-index: 2; }
         #mainCanvas { z-index: 3; } /* Handles Grass, WanderDot, UFO, Particles */
@@ -114,25 +113,142 @@
             margin-top: 2px;
         }
 
-        /* Item Bar */
+        /* Bottom Bar (NEW) */
+        #bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            /* Define a height for the bar */
+            height: 80px;
+            background-color: rgba(30, 30, 30, 0.9);
+            border-top: 2px solid var(--color-ui-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-sizing: border-box;
+            z-index: 10; /* Highest Z-index */
+        }
+
+        /* Stats Container (NEW) */
+        #stats-container {
+            display: flex;
+            gap: 25px;
+            color: var(--color-text);
+            font-size: 1.1rem;
+        }
+
+        .stat-item {
+            white-space: nowrap;
+        }
+
+        /* Bar Graphs (NEW) */
+        #bar-graphs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+            max-width: 350px;
+            margin: 0 30px;
+        }
+
+        .graph-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .graph-label {
+            color: var(--color-text);
+            font-size: 0.9rem;
+            width: 60px;
+            text-align: right;
+        }
+
+        .graph-bar {
+            flex-grow: 1;
+            height: 22px;
+            background-color: #444;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .graph-bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
+        }
+
+        .graph-bar-text {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+
+        /* World Timer Display (NEW) */
+        #world-timer-display {
+            color: var(--color-text);
+            font-size: 1.1rem;
+            margin-right: 25px;
+        }
+
+        /* Chest Container & Button (NEW) */
+        #chest-container {
+            position: relative; /* Anchor point for the item bar */
+        }
+
+        #chest-button {
+            width: 64px;
+            height: 64px;
+            /* Background image set by AssetManager */
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: contain;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.1s ease-out;
+        }
+
+        #chest-button:active {
+            transform: scale(0.9);
+        }
+
+        /* Item Bar (UPDATED) */
         #item-bar {
             position: absolute;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--color-ui-bg);
+            /* Repositioned to align vertically above the chest */
+            bottom: 75px; /* Above the chest button */
+            right: 0;
+            transform: none; /* Removed translateX */
+            background-color: rgba(30, 30, 30, 0.85);
             border: 2px solid var(--color-ui-border);
             border-bottom: none;
             border-radius: 10px 10px 0 0;
             padding: 5px;
             display: flex;
+            flex-direction: column-reverse; /* Items stack upwards */
             gap: 5px;
             z-index: 5;
-            transition: bottom 0.4s ease-in-out;
+            /* Updated transition for sliding up */
+            transition: max-height 0.4s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
         }
 
         #item-bar.visible {
-            bottom: 0;
+            /* Set a max-height large enough for several items */
+            max-height: 500px;
+            opacity: 1;
         }
 
         .item-button {
@@ -156,65 +272,33 @@
             animation: use-item-anim 0.2s ease-out;
         }
 
-        /* World Timer (Top Left) */
-        #timer-container {
-            position: absolute;
-            top: 10px; left: 10px;
-            z-index: 5;
-            display: flex;
-            align-items: flex-start;
-        }
-
-        #timer-icon {
-            font-size: 1.2rem;
-            background-color: var(--color-ui-bg);
-            border: 2px solid rgba(204, 204, 204, 0.5);
-            padding: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 1.8rem; height: 1.8rem;
-        }
-
-        #world-timer {
-            margin-left: 10px;
-            font-size: 0.9rem;
-            color: var(--color-text);
-            text-shadow: 0 0 5px black;
-            background-color: rgba(128, 128, 128, 0.3);
-            border-radius: 5px;
-            white-space: nowrap; /* Default for desktop rollout */
-            pointer-events: none;
-
-            /* Rollout transition setup */
-            opacity: 0;
-            max-width: 0;
-            padding: 8px 0px; /* Vertical padding only */
-            overflow: hidden;
-            transition: opacity 0.3s ease-in-out, max-width 0.5s ease-in-out, padding 0.5s ease-in-out;
-        }
-
-        /* Active states for rollout (Hover or Clicked) */
-        #timer-container:hover #world-timer,
-        #timer-container.active #world-timer {
-            opacity: 1;
-            max-width: 600px; /* Ample space for the text */
-            padding: 8px 12px; /* Restore horizontal padding */
-        }
-
-        /* --- 3.5. MOBILE RESPONSIVENESS --- */
+        /* --- 3.5. MOBILE RESPONSIVENESS (UPDATED) --- */
         @media (max-width: 768px) {
-            #world-timer {
-                white-space: normal; /* Allow wrapping on mobile */
+             #bottom-bar {
+                height: 110px; /* Taller on mobile */
+                flex-wrap: wrap;
+                padding: 5px 10px;
             }
-
-            /* Active states on mobile */
-            #timer-container:hover #world-timer,
-            #timer-container.active #world-timer {
-                /* Constrain width to prevent overflow. */
-                max-width: calc(100vw - 70px);
+            #stats-container {
+                font-size: 0.9rem;
+                gap: 15px;
+            }
+            #world-timer-display {
+                font-size: 0.9rem;
+                margin-right: 15px;
+            }
+            #bar-graphs-container {
+                width: 100%;
+                order: 2; /* Move graphs below stats/chest */
+                margin: 5px 0 0 0;
+                max-width: none;
+            }
+             .graph-label {
+                font-size: 0.8rem;
+                width: 50px;
+            }
+            .graph-bar {
+                height: 18px;
             }
         }
 
@@ -257,12 +341,36 @@
         <canvas id="mainCanvas"></canvas>
 
         <div id="thought-bubble"></div>
-        <div id="timer-container">
-            <div id="timer-icon">🕰️</div>
-            <div id="world-timer"></div>
-        </div>
         <div id="buff-container"></div>
-        <div id="item-bar"></div>
+        </div>
+
+     <div id="bottom-bar">
+        <div id="stats-container">
+            <div class="stat-item" id="stat-strength">💪: <span></span></div>
+            <div class="stat-item" id="stat-radius">⭕: <span></span></div>
+            <div class="stat-item" id="stat-speed">🏁: <span></span></div>
+        </div>
+        <div id="bar-graphs-container">
+            <div class="graph-wrapper">
+                <div class="graph-label">Mood</div>
+                <div class="graph-bar" id="mood-bar-bg">
+                    <div class="graph-bar-fill" id="mood-bar-fill"></div>
+                    <span class="graph-bar-text">Mad</span>
+                </div>
+            </div>
+            <div class="graph-wrapper">
+                <div class="graph-label">Hunger</div>
+                <div class="graph-bar" id="hunger-bar-bg">
+                    <div class="graph-bar-fill" id="hunger-bar-fill"></div>
+                    <span class="graph-bar-text">Hangry</span>
+                </div>
+            </div>
+        </div>
+        <div id="world-timer-display">[00m:00s]</div>
+        <div id="chest-container">
+             <div id="item-bar"></div>
+             <button id="chest-button"></button>
+        </div>
     </div>
 
     <script>
@@ -294,18 +402,16 @@
             WEAR_PER_PIXEL: 0.05, // Wear applied to the dirt path
 
             // Grass Configuration
-            // UPDATED: Clump configuration replaces uniform distribution
-            GRASS_CLUMP_COUNT: 300, // Total number of clumps on the map
+            GRASS_CLUMP_COUNT: 300,
             GRASS_CLUMP_MIN_SIZE: 3,
             GRASS_CLUMP_MAX_SIZE: 6,
-            GRASS_CLUMP_RADIUS: 15, // How spread out a clump is
+            GRASS_CLUMP_RADIUS: 15,
 
-            // UPDATED: Wear is now indirect. Interaction radii moved to local variables in WorldManager.
-            GRASS_DEATH_THRESHOLD: 0.05, // Remove grass below 5% health/opacity
-            GRASS_SLIDE_DISTANCE: 10, // Max distance grass slides aside (for animation)
-            GRASS_BEND_ANGLE: 45 * (Math.PI / 180), // Max bend angle (for animation)
+            GRASS_DEATH_THRESHOLD: 0.05,
+            GRASS_SLIDE_DISTANCE: 10,
+            GRASS_BEND_ANGLE: 45 * (Math.PI / 180),
 
-            // Legacy thresholds (used for entity spawning/maturation on dirt)
+            // Legacy thresholds
             GRASS_REMOVAL_THRESHOLD: 50,
             PEBBLE_SPAWN_THRESHOLD: 70,
 
@@ -317,6 +423,13 @@
             EAT_MUSHROOM_CHANCE: 0.02,
             EAT_DETECTION_RADIUS: 100,
             EAT_DURATION: 4000,
+
+            // Hunger Mechanics (NEW)
+            MAX_HUNGER: 100,
+            HUNGER_DECAY_PER_SECOND: 0.5, // Takes 200 seconds to get very hungry
+            HANGRY_HUNGER_THRESHOLD: 20,
+            MUSHROOM_HUNGER_RESTORE: 50,
+            // PIZZA_HUNGER_RESTORE is defined in Buffs/Items
 
             // Kangaroo Mechanics
             BOUNCE_DISTANCE: 120,
@@ -331,7 +444,7 @@
             Items: {
                 watch: { emoji: '⌚', type: 'utility' },
                 coffee: { emoji: '☕', type: 'buff', duration: 20000 },
-                pizza: { emoji: '🍕', type: 'buff', duration: 30000 },
+                pizza: { emoji: '🍕', type: 'buff', duration: 30000, hungerRestore: 100 }, // NEW: Pizza restores hunger
                 kangaroo: { emoji: '🦘', type: 'buff', duration: 30000 },
                 lightbulb: { emoji: '💡', type: 'utility' },
                 mushroom: { emoji: '🍄', type: 'buff', hideTimer: true }
@@ -367,15 +480,16 @@
                     '../images/grass/grass_blade_05.png',
                     '../images/grass/grass_blade_06.png',
                 ],
-                // NEW: Assets for alien blue grass (assuming these exist)
                 alienGrass: [
+                     // Assuming these paths exist for blue grass visualization
                     '../images/grass/alien_grass_blade_01.png',
                     '../images/grass/alien_grass_blade_02.png',
                     '../images/grass/alien_grass_blade_03.png',
                     '../images/grass/alien_grass_blade_04.png',
                     '../images/grass/alien_grass_blade_05.png',
                     '../images/grass/alien_grass_blade_06.png',
-                ]
+                ],
+                chest: '../images/textures/chest.png' // NEW
             }
         };
 
@@ -430,12 +544,13 @@
         // 0.5. ASSET MANAGER
         // ====================================================================
 
-        // UPDATED: Loads both standard and alien grass assets.
+        // UPDATED: Loads chest asset and applies it to the button.
         class AssetManager {
             constructor() {
                 this.images = {
                     grass: [],
-                    alienGrass: [] // NEW
+                    alienGrass: [],
+                    chest: null // NEW
                 };
                 this.loadedCount = 0;
                 this.totalCount = 0;
@@ -444,8 +559,10 @@
             loadAll(onComplete) {
                 const grassPaths = Config.Assets.grass;
                 const alienGrassPaths = Config.Assets.alienGrass;
-                // Count total assets across all categories
-                this.totalCount = grassPaths.length + alienGrassPaths.length;
+                const chestPath = Config.Assets.chest;
+
+                // Count total assets
+                this.totalCount = grassPaths.length + alienGrassPaths.length + (chestPath ? 1 : 0);
 
                 if (this.totalCount === 0) {
                     onComplete();
@@ -464,6 +581,31 @@
                     console.error(`Failed to load asset: ${path}. Ensure the path is correct.`);
                     onLoad(); // Proceed even if an asset fails
                 };
+
+                 // Load Chest (NEW)
+                if (chestPath) {
+                    const img = new Image();
+                    img.src = chestPath;
+                    img.onload = () => {
+                        this.images.chest = img;
+                        // Apply the loaded image to the button background
+                        const chestButton = document.getElementById('chest-button');
+                        if (chestButton) {
+                            chestButton.style.backgroundImage = `url('${chestPath}')`;
+                        }
+                        onLoad();
+                    };
+                    img.onerror = () => {
+                         console.error(`Failed to load chest asset: ${chestPath}. Using fallback.`);
+                         // Fallback if image fails
+                         const chestButton = document.getElementById('chest-button');
+                         if (chestButton) {
+                            chestButton.textContent = '📦';
+                            chestButton.style.fontSize = '2.5rem';
+                         }
+                         onError(chestPath);
+                    };
+                }
 
                 // Load standard grass
                 grassPaths.forEach((path, index) => {
@@ -688,22 +830,16 @@
         // 2. WORLD MANAGER (Environment, Paths, Grass)
         // ====================================================================
 
-        // UPDATED: Major changes to grass generation, updates, and rendering architecture.
         class WorldManager {
-            // Removed grassCtx from constructor as grass is now drawn on the main canvas.
             constructor(width, height, pathCtx, entityManager, assetManager) {
                 this.width = width;
                 this.height = height;
                 this.pathCtx = pathCtx;
-                // this.grassCtx removed
                 this.entityManager = entityManager;
                 this.assetManager = assetManager;
 
                 this.pathGrid = [];
-
-                // Grass structures
                 this.grassBlades = [];
-                // needsGrassRedraw removed; grass is redrawn every frame for sorting.
 
                 this.initializeGrid();
             }
@@ -745,22 +881,19 @@
                 // Redraw Paths (Only paths are drawn here now)
                 this.pathCtx.clearRect(0, 0, this.width, this.height);
                 for (let i = 0; i < this.pathGrid.length; i++) {
-                    for (let j = 0; j < this.pathGrid[i].length; j++) {
+                    for (let j = 0; j < (this.pathGrid[i]?.length || 0); j++) {
                         const cell = this.pathGrid[i][j];
                         if (cell.wear > 0 || cell.terrainType !== TerrainType.NORMAL) {
                             this.drawPathCell(i, j);
                         }
                     }
                 }
-                // Grass redraw is handled in the main Game loop now.
             }
 
             // --- Utility Functions ---
             isValidCell(gridX, gridY) {
-                return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && gridY < this.pathGrid[0].length;
+                return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && this.pathGrid[0] && gridY < this.pathGrid[0].length;
             }
-
-            // removeGrassInArea is no longer needed as alterGround handles removal/transformation correctly now.
 
             getTerrainInfoAtPoint(x, y) {
                 const gridX = Math.floor(x / Config.GRID_CELL_SIZE);
@@ -774,9 +907,9 @@
 
             // --- GRASS MANAGEMENT ---
 
-            // REWRITTEN: Generates grass in clumps instead of uniformly.
+            // Generates grass in clumps.
             generateGrassField() {
-                // If blades already exist (e.g. during initialization phase), don't regenerate yet.
+                // If blades already exist, don't regenerate yet.
                 if (this.grassBlades.length > 0) {
                     return;
                 }
@@ -795,7 +928,7 @@
                     const centerX = Math.random() * this.width;
                     const centerY = Math.random() * this.height;
 
-                    // 2. Choose clump size (e.g., 3 to 6 blades)
+                    // 2. Choose clump size
                     const clumpSize = Math.floor(Utils.randomRange(Config.GRASS_CLUMP_MIN_SIZE, Config.GRASS_CLUMP_MAX_SIZE + 1));
 
                     // 3. Generate blades within the clump radius
@@ -812,14 +945,14 @@
                             x: xPx,
                             y: yPx,
                             imageIndex: Math.floor(Math.random() * grassImageCount),
-                            // UPDATED: Scale reduced by half (was 0.8 to 1.6)
+                            // Scale reduced by half
                             scale: Utils.randomRange(0.4, 0.8),
-                            // UPDATED: Initial health (opacity) set to 50%
+                            // Initial health (opacity) set to 50%
                             health: 0.5,
-                            offsetX: 0, // For slide animation
-                            offsetY: 0, // For slide animation
-                            angle: 0,   // For bend animation (radians)
-                            isAlien: false // NEW: Flag for alien grass type
+                            offsetX: 0,
+                            offsetY: 0,
+                            angle: 0,
+                            isAlien: false
                         };
 
                         this.grassBlades.push(blade);
@@ -827,21 +960,17 @@
                 }
             }
 
-            // UPDATED: Handles interaction (sliding, bending) for animation ONLY. Wear/Health impact removed.
+            // Handles interaction (sliding, bending) for animation ONLY.
             interactWithGrass(impactX, impactY, radius) {
                 const radiusSq = radius * radius;
 
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
-                    // Interaction correctly calculated based on the BASE of the grass (blade.x/y)
                     const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
 
                     if (distSq < radiusSq) {
 
-                        // 1. Apply Wear (REMOVED)
-                        // 2. Check for Death (REMOVED - handled in updateGrassHealthFromDirt)
-
-                        // 3. Apply Slide and Bend Animation (Kept)
+                        // Apply Slide and Bend Animation
                         const distance = Math.sqrt(distSq);
                         if (distance > 0.1) {
                             // Calculate vector from impact point to the blade
@@ -860,15 +989,14 @@
                             blade.offsetX = nx * slideAmount;
                             blade.offsetY = ny * slideAmount;
 
-                            // Bend (Rotation based primarily on horizontal displacement direction)
+                            // Bend
                             blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
                         }
                     }
                 }
-                // needsGrassRedraw logic removed.
             }
 
-            // NEW: Updates grass health based on the wear level of the dirt underneath.
+            // Updates grass health based on the wear level of the dirt underneath.
             updateGrassHealthFromDirt() {
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
@@ -882,11 +1010,9 @@
                         const wearRatio = cell.wear / Config.MAX_WEAR;
 
                         // Health = Base Opacity (0.5) * (1 - WearRatio)
-                        // If wear is 0, health is 0.5. If wear is 100, health is 0.
                         blade.health = 0.5 * (1 - wearRatio);
 
                     } else {
-                        // Fallback health if somehow off-grid
                         blade.health = 0.5;
                     }
 
@@ -904,7 +1030,7 @@
                 this.updateGrassHealthFromDirt();
 
                 // 2. Handle animation decay (springing back)
-                const decayRate = 5; // How quickly the grass springs back (higher is faster)
+                const decayRate = 5;
 
                 for (const blade of this.grassBlades) {
                     const needsUpdate = Math.abs(blade.offsetX) > 0.1 || Math.abs(blade.offsetY) > 0.1 || Math.abs(blade.angle) > 0.01;
@@ -921,15 +1047,14 @@
                         blade.angle = 0;
                     }
                 }
-                // needsGrassRedraw logic removed.
             }
 
-            // NEW/REFACTORED: Draws a single blade of grass. Called by the main Game loop during sorted rendering.
+            // Draws a single blade of grass. Called by the main Game loop during sorted rendering.
             drawBlade(ctx, blade) {
                 // Determine which asset set to use (Standard or Alien)
                 const assetSet = blade.isAlien ? this.assetManager.images.alienGrass : this.assetManager.images.grass;
 
-                // Ensure the index is valid for the selected set (important if sets have different lengths)
+                // Ensure the index is valid for the selected set
                 if (!assetSet || blade.imageIndex >= assetSet.length) return;
 
                 const img = assetSet[blade.imageIndex];
@@ -952,7 +1077,6 @@
                     ctx.translate(baseX, baseY);
                     ctx.rotate(blade.angle);
                     // Draw the image relative to the translated/rotated origin
-                    // We draw it offset by (-width/2, -height) so the origin is the bottom center
                     ctx.drawImage(img, -width / 2, -height, width, height);
                     ctx.restore();
                 } else {
@@ -968,26 +1092,20 @@
 
 
             // --- WEAR AND TEAR (Dirt Paths) ---
-            // UPDATED: Removed direct grass wear, kept grass interaction animation.
+            // UPDATED: Uses WanderDot's centralized strength stat.
             applyMovementWear(startX, startY, endX, endY, buffManager) {
                 const distance = Utils.distance(startX, startY, endX, endY);
-                // Use smaller steps for smoother interaction detection
                 const steps = Math.ceil(distance / 5);
                 if (steps === 0) return;
 
+                const wanderDot = Game.instance.wanderDot; // Get reference to the dot
+
+                // Use the dot's calculated strength multiplier
+                let dirtWearMultiplier = Config.WEAR_PER_PIXEL * wanderDot.currentStrengthMultiplier;
+
+
+                // Determine wear radius (this logic remains here as it's about the area of effect)
                 const buffs = buffManager.getActiveBuffs();
-                let dirtWearMultiplier = Config.WEAR_PER_PIXEL;
-                // grassWearAmount removed.
-
-                // Buff multipliers (Dirt only)
-                if (buffs.coffee) {
-                    dirtWearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
-                }
-                if (buffs.mushroom) {
-                    dirtWearMultiplier *= (1 + 1.0 * buffs.mushroom.potency);
-                }
-
-                // Determine wear radius based on size buffs
                 let dirtWearRadius = 1;
                 if (buffs.pizza || buffs.mushroom) {
                     dirtWearRadius = 2;
@@ -997,7 +1115,7 @@
                 }
 
                 const isHeavy = buffs.pizza || buffs.mushroom;
-                const currentDotRadius = Game.instance.wanderDot.radius;
+                const currentDotRadius = wanderDot.radius;
 
                 // Define interaction radius for the animation effect
                 const interactionRadius = 35;
@@ -1007,7 +1125,7 @@
                     const currentX = Utils.lerp(startX, endX, t);
                     const currentY = Utils.lerp(startY, endY, t);
 
-                    // 1. Apply Wear to Dirt Path (Preserved logic)
+                    // 1. Apply Wear to Dirt Path
                     this.applyWearToArea(currentX, currentY, dirtWearRadius, (distance/steps) * dirtWearMultiplier);
 
                     // 2. Interact with Grass (Animation only)
@@ -1020,33 +1138,26 @@
                 }
             }
 
-            // UPDATED: Removed direct grass wear, kept grass interaction animation.
+            // UPDATED: Uses WanderDot's centralized strength stat.
             applyLandingImpact(x, y, moodState, buffManager) {
-                let impactWear = Config.BASE_IMPACT_WEAR;
-                // grassImpactWear removed.
+                const wanderDot = Game.instance.wanderDot;
+
+                // Base impact wear multiplied by the dot's current strength (which includes mood/buffs)
+                let impactWear = Config.BASE_IMPACT_WEAR * wanderDot.currentStrengthMultiplier;
+
 
                 const buffs = buffManager.getActiveBuffs();
                 const isHeavy = buffs.pizza || buffs.mushroom;
 
-                // Buff multipliers (Dirt only)
-                if (buffs.coffee) {
-                    impactWear *= (1 + 1.0 * buffs.coffee.potency);
-                }
-                if (buffs.kangaroo) {
-                    impactWear *= (1 + 0.3 * buffs.kangaroo.potency);
-                }
-                if (buffs.mushroom) {
-                    impactWear *= (1 + 1.0 * buffs.mushroom.potency);
-                }
 
                 if (moodState === 'mad') {
-                    impactWear *= 1.7;
+                    // Strength already includes the mad multiplier, so we just spawn particles.
                     Game.instance.particleManager.spawnLandingParticles(x, y);
                 }
 
                 const impactRadius = 2.5;
 
-                // 1. Apply Wear to Dirt Path (Preserved logic)
+                // 1. Apply Wear to Dirt Path
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
 
                 // 2. Interact with Grass (Animation only)
@@ -1057,12 +1168,12 @@
                 this.entityManager.removeMushroomInArea(x, y, Config.BASE_RADIUS * 2);
 
                 if (isHeavy) {
-                    const currentDotRadius = Game.instance.wanderDot.radius;
+                    const currentDotRadius = wanderDot.radius;
                     this.entityManager.removeDynamicEntitiesInArea(x, y, currentDotRadius);
                 }
             }
 
-            // (applyWearToArea remains unchanged, only affects the dirt pathGrid)
+            // (applyWearToArea remains unchanged)
             applyWearToArea(x, y, radius, wearAmount, useFalloff = false) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -1195,14 +1306,14 @@
             }
 
             // --- UFO/ALIEN TERRAFORMING ---
-            // UPDATED: Now correctly transforms grass to alien type or removes it based on the new terrain.
+            // (alterGround remains unchanged from the previous version, correctly handling grass transformation)
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
                 const alterRadius = 3;
                 const alterationPixelRadius = alterRadius * Config.GRID_CELL_SIZE;
 
-                // 1. Update the underlying Path Grid (Logic unchanged)
+                // 1. Update the underlying Path Grid
                 for(let i = -alterRadius; i <= alterRadius; i++) {
                     for (let j = -alterRadius; j <= alterRadius; j++) {
                         const distSq = i*i + j*j;
@@ -1214,7 +1325,6 @@
                         if (this.isValidCell(gridX, gridY)) {
                             const cell = this.pathGrid[gridX][gridY];
 
-                            // Terrain type determination relies on the underlying dirt path wear
                             const isGrass = cell.wear < Config.GRASS_REMOVAL_THRESHOLD;
                             const targetType = isGrass ? TerrainType.ALIEN_BLUE : TerrainType.ALIEN_CLAY;
 
@@ -1232,7 +1342,7 @@
 
                             this.drawPathCell(gridX, gridY);
 
-                            // Spawn Mushrooms (using configured reduced chance)
+                            // Spawn Mushrooms
                             if(targetType === TerrainType.ALIEN_BLUE && Math.random() < Config.UFO_MUSHROOM_CHANCE) {
                                 this.spawnMushroom(gridX, gridY);
                             }
@@ -1254,10 +1364,9 @@
                             // Transform to alien grass
                             blade.isAlien = true;
                         } else if (terrainInfo.type === TerrainType.ALIEN_CLAY) {
-                            // Remove grass on clay (as it's barren)
+                            // Remove grass on clay
                             this.grassBlades.splice(i, 1);
                         }
-                        // If it's still NORMAL (unlikely in the center of the blast, but possible), do nothing.
                     }
                 }
             }
@@ -1267,7 +1376,7 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // UPDATED: Added getBaseY() for dynamic sorting.
+        // UPDATED: Added centralized stats (Strength) and Hunger mechanics.
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -1281,6 +1390,10 @@
                 this.speed = Config.BASE_SPEED;
                 this.currentSpeedMultiplier = 1.0;
 
+                // NEW Stats
+                this.baseStrength = 1.0; // Base wear multiplier
+                this.currentStrengthMultiplier = 1.0;
+
                 this.dx = (Math.random() - 0.5) * 2;
                 this.dy = (Math.random() - 0.5) * 2;
                 this.targetX = null;
@@ -1291,6 +1404,9 @@
                 this.currentMoodState = 'normal';
                 this.isCalm = false;
                 this.isHangry = false;
+
+                // Hunger state (NEW)
+                this.hunger = Config.MAX_HUNGER;
 
                 // Behavior state
                 this.isEating = false;
@@ -1303,9 +1419,8 @@
                 this.verticalOffset = 0;
             }
 
-            // NEW: Returns the Y coordinate of the bottom of the dot for sorting purposes.
+            // Returns the Y coordinate of the bottom of the dot for sorting purposes.
             getBaseY() {
-                // The base is the bottom edge of the visual circle (accounting for bounce)
                 return this.y - this.verticalOffset + this.radius;
             }
 
@@ -1325,9 +1440,19 @@
                 return true;
             }
 
+            // UPDATED: TriggerHangry logic now considers hunger levels.
             triggerHangry() {
                 this.isHangry = true;
-                this.annoyance = Math.max(this.annoyance, Config.MAD_THRESHOLD + 1);
+
+                 // If triggered by low hunger, annoyance might not be high yet.
+                if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
+                    // Ensure annoyance is high enough to look significantly annoyed/mad.
+                    this.annoyance = Math.max(this.annoyance, Config.ANNOYANCE_THRESHOLD + 5);
+                } else {
+                    // If triggered by interruption, ensure annoyance is very high (MAD)
+                    this.annoyance = Math.max(this.annoyance, Config.MAD_THRESHOLD + 1);
+                }
+
                 // Reset eating state
                 this.isEating = false;
                 this.eatingTarget = null;
@@ -1349,7 +1474,7 @@
                 this.updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager);
             }
 
-            // --- MOOD LOGIC (Unchanged) ---
+            // --- MOOD & HUNGER LOGIC ---
             getMoodState(annoyanceValue) {
                 if (annoyanceValue > Config.MAD_THRESHOLD) return 'mad';
                 if (annoyanceValue > Config.ANNOYANCE_THRESHOLD) return 'annoyed';
@@ -1394,14 +1519,30 @@
                 }
             }
 
+            // NEW
+            updateHunger(deltaTime) {
+                if (this.hunger > 0) {
+                    this.hunger = Math.max(0, this.hunger - Config.HUNGER_DECAY_PER_SECOND * deltaTime);
+                }
+
+                // Check if hunger triggers Hangry state
+                if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !this.isHangry) {
+                    this.triggerHangry();
+                }
+            }
+
+            // UPDATED: Integrates Hunger updates and checks for exiting Hangry state.
             updateMood(deltaTime, buffManager) {
-                // 1. Cooldown
+                // 1. Hunger decay (NEW)
+                this.updateHunger(deltaTime);
+
+                // 2. Annoyance Cooldown
                 if (this.annoyance > 0) {
                     const cooldownPerSecond = (this.annoyance > Config.MAD_THRESHOLD) ? 1.8 : 3.0;
                     this.annoyance = Math.max(0, this.annoyance - (cooldownPerSecond * deltaTime));
                 }
 
-                // 2. State Change Detection
+                // 3. State Change Detection
                 const previousState = this.currentMoodState;
                 this.currentMoodState = this.getMoodState(this.annoyance);
 
@@ -1409,55 +1550,82 @@
                 if (this.currentMoodState !== previousState) {
                     if (previousState === 'mad' && this.currentMoodState === 'annoyed') {
                         transitionEmoji = Config.Emojis.cooldownToAnnoyed[0];
-                        // Exit Hangry state when cooling down to annoyed
-                        if (this.isHangry) {
+
+                        // Exit Hangry state ONLY IF hunger is sufficient AND annoyance cooled down
+                        if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
                             this.isHangry = false;
                         }
+
                     } else if (previousState === 'annoyed' && this.currentMoodState === 'normal') {
                          this.isCalm = true;
                          transitionEmoji = Config.Emojis.cooldownToNormal[0];
+
+                          // Exit Hangry state if returning to normal (should be covered above but safe check)
+                         if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
+                            this.isHangry = false;
+                        }
                     }
                 }
 
-                // 3. Appearance and Speed Update
+                // 4. Ensure Hangry state persists if hunger is low, even if annoyance cools slightly
+                if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !this.isHangry) {
+                    this.triggerHangry();
+                }
+
+
+                // 5. Appearance and Speed Update
                 this.updateAppearance(buffManager);
 
                 return transitionEmoji;
             }
 
+            // UPDATED: Centralizes calculation of Speed, Radius, and Strength.
             updateAppearance(buffManager) {
                 const buffs = buffManager.getActiveBuffs();
 
                 let speed = Config.BASE_SPEED;
                 let radius = Config.BASE_RADIUS;
+                let strength = this.baseStrength; // Start with base strength
 
+                // --- Apply Buffs ---
                 if (buffs.coffee) {
                     speed *= (1 + 0.3 * buffs.coffee.potency);
+                    strength *= (1 + 1.0 * buffs.coffee.potency); // Coffee increases strength (wear)
                 }
 
-                // Pizza and Mushroom both increase size (0.3 factor each)
                 if (buffs.pizza) {
                     radius *= (1 + 0.3 * buffs.pizza.potency);
                 }
                 if (buffs.mushroom) {
                     radius *= (1 + 0.3 * buffs.mushroom.potency);
+                    strength *= (1 + 1.0 * buffs.mushroom.potency); // Mushroom increases strength (wear)
                 }
 
-                this.speed = speed;
-                this.radius = radius;
+                 if (buffs.kangaroo) {
+                    // Reflect the potential impact strength in the UI
+                    strength *= (1 + 0.3 * buffs.kangaroo.potency);
+                }
 
+                // --- Apply Mood/Color/Speed Multiplier ---
                  if (this.annoyance > Config.MAD_THRESHOLD) {
                     this.color = Utils.lerpColor(Config.COLOR_MAD, Config.COLOR_MAD, 0);
                     this.currentSpeedMultiplier = 0.3;
+                    strength *= 1.7; // Mad increases strength significantly
                 } else if (this.annoyance > Config.ANNOYANCE_THRESHOLD) {
                     const t = (this.annoyance - Config.ANNOYANCE_THRESHOLD) / (Config.MAD_THRESHOLD - Config.ANNOYANCE_THRESHOLD);
                     this.color = Utils.lerpColor(Config.COLOR_ANNOYED, Config.COLOR_MAD, t);
                     this.currentSpeedMultiplier = Utils.lerp(0.5, 0.3, t);
+                    strength *= Utils.lerp(1.1, 1.7, t); // Annoyed slightly increases strength
                 } else {
                     const t = this.annoyance / Config.ANNOYANCE_THRESHOLD;
                     this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_ANNOYED, t);
                     this.currentSpeedMultiplier = Utils.lerp(1.0, 0.5, t);
                 }
+
+                 // Assign final stats
+                this.speed = speed;
+                this.radius = radius;
+                this.currentStrengthMultiplier = strength;
             }
 
             // --- MOVEMENT & BEHAVIOR LOGIC ---
@@ -1468,7 +1636,7 @@
                 // 1. Determine behavior and direction
                 let movementAllowed = true;
 
-                // Check if eating target still exists (if it was destroyed before reaching it)
+                // Check if eating target still exists
                 if (this.isEating && this.eatingStartTime === 0 && this.eatingTarget && !entityManager.mushrooms.includes(this.eatingTarget)) {
                     this.eatingTarget = null;
                     this.isEating = false;
@@ -1480,7 +1648,6 @@
                 }
 
                 if (this.isEating) {
-                    // handleEatingBehavior returns true if movement is allowed (seeking), false if stationary (chewing)
                     movementAllowed = this.handleEatingBehavior(entityManager, buffManager);
                 }
 
@@ -1517,7 +1684,7 @@
                 } else {
                     this.verticalOffset = 0;
                     if (movementAllowed) {
-                         // This now handles both dirt wear AND grass interaction animation
+                         // This uses the centralized strength stat now
                          worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
                     }
                 }
@@ -1528,13 +1695,13 @@
                 }
             }
 
+            // UPDATED: Restores hunger upon completion.
             handleEatingBehavior(entityManager, buffManager) {
                 const uiManager = Game.instance.uiManager;
 
                 // Stage 1: Moving towards the mushroom (Seeking)
                 if (this.targetX !== null) {
                     if (uiManager.getCurrentThought() !== Config.Emojis.EATING_SEEKING) {
-                        // Show for a long duration, ensuring it stays up until consumption or interruption
                         uiManager.showThought(Config.Emojis.EATING_SEEKING, 60000);
                     }
                     return true; // Allow movement
@@ -1548,8 +1715,6 @@
                         entityManager.removeMushroomByObject(this.eatingTarget);
                         this.eatingTarget = null; // Target is now consumed/held
                     }
-                    // Show initial thought, will be updated dynamically.
-                    // Set a slightly longer duration as a fallback.
                     uiManager.showThought(Config.Emojis.EATING_CONSUMING, Config.EAT_DURATION + 500);
                 }
 
@@ -1561,19 +1726,20 @@
                     this.isEating = false;
                     this.eatingStartTime = 0;
 
-                    // Apply the buff (using the flat duration)
+                    // Restore Hunger (NEW)
+                    this.hunger = Math.min(Config.MAX_HUNGER, this.hunger + Config.MUSHROOM_HUNGER_RESTORE);
+
+                    // Apply the buff
                     buffManager.addBuffTime('mushroom', Config.MUSHROOM_BUFF_DURATION);
 
-                    // Show satisfied thought bubble (This overrides the eating timer thought)
+                    // Show satisfied thought bubble
                     uiManager.showThought(Config.Emojis.EATING_SATISFIED, 2000);
 
                     return true; // Allow movement again
                 }
 
                 // Update thought bubble with timer during chewing
-                // Use Math.ceil to show integer countdown (4, 3, 2, 1)
                 const remainingSeconds = Math.ceil(remaining / 1000);
-                // Use updateThoughtContent to change the content without resetting animation/timers, and use compact font size
                 uiManager.updateThoughtContent(`${Config.Emojis.EATING_CONSUMING} ${remainingSeconds}s`, true);
 
                 return false; // Prevent movement while chewing
@@ -1592,7 +1758,7 @@
 
                 if (distanceToTarget < stopDistance) {
                     this.clearTarget();
-                    // If not starting the eating process (or if eating is already finished), randomize direction
+                    // If not starting the eating process, randomize direction
                     if (!this.isEating || this.eatingStartTime > 0) {
                         this.dx = (Math.random() - 0.5) * 2;
                         this.dy = (Math.random() - 0.5) * 2;
@@ -1643,7 +1809,7 @@
             }
 
             land(buffManager, worldManager) {
-                // This now handles both dirt impact AND grass interaction animation
+                // This uses the centralized strength stat now
                 worldManager.applyLandingImpact(this.x, this.y, this.currentMoodState, buffManager);
 
                 this.jiggleEndTime = Date.now();
@@ -1683,7 +1849,6 @@
             }
 
             // --- RENDERING ---
-            // UPDATED: Shadow drawing logic updated slightly to ensure it always draws on the ground (Y) regardless of vertical offset.
             draw(ctx) {
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
@@ -1696,11 +1861,11 @@
                 const currentRadius = this.radius * scaleFactor;
 
                 // Draw Shadow
-                // Show shadow if moving or bouncing, hide only if stationary chewing (eatingStartTime > 0)
+                // Show shadow if moving or bouncing, hide only if stationary chewing
                 if (!(this.isEating && this.eatingStartTime > 0)) {
                     ctx.beginPath();
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-                    // Shadow Y is based on ground position (this.y), not the visual position (drawY)
+                    // Shadow Y is based on ground position (this.y)
                     const shadowY = this.y + this.radius;
                     const shadowScale = 1 - (this.verticalOffset / (Config.BOUNCE_HEIGHT * 3));
                     const shadowRadiusX = currentRadius * shadowScale;
@@ -1750,7 +1915,7 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    // Draw offset to the side (e.g., right side, 70% of radius) and near the "mouth" level (20% down)
+                    // Draw offset to the side
                     const mushroomX = this.radius * 0.7;
                     const mushroomY = this.radius * 0.2 + mushroomWiggleY;
 
@@ -1765,7 +1930,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (BuffManager and ItemManager implementations remain unchanged)
+        // (BuffManager implementation remains unchanged)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -1784,7 +1949,8 @@
                             isEnding: false,
                             emoji: data.emoji,
                             indicator: null,
-                            hideTimer: data.hideTimer || false
+                            hideTimer: data.hideTimer || false,
+                            hungerRestore: data.hungerRestore || 0 // NEW
                         };
                     }
                 });
@@ -1836,13 +2002,23 @@
                 }
             }
 
+            // UPDATED: Applies hunger restoration when a buff is added.
             addBuffTime(name, duration) {
                 const buff = this.buffs[name];
                 if (!buff) return;
 
+                const isInitialActivation = buff.endTime <= Date.now();
                 const baseTime = Math.max(Date.now(), buff.endTime);
                 buff.endTime = baseTime + duration;
                 buff.isEnding = false;
+
+                // Apply hunger restoration if this is the initial activation (not a time extension)
+                if (isInitialActivation && buff.hungerRestore > 0) {
+                    const wanderDot = Game.instance.wanderDot;
+                    if (wanderDot) {
+                        wanderDot.hunger = Math.min(Config.MAX_HUNGER, wanderDot.hunger + buff.hungerRestore);
+                    }
+                }
 
                 this.setupBuffIndicator(buff);
                 this.setupBlinkTimer(buff);
@@ -1967,6 +2143,7 @@
 
             initializeUI() {
                 const itemBar = document.getElementById('item-bar');
+                // Event listener handled by UIManager's chest button now, but we still need listeners on the buttons themselves
                 itemBar.addEventListener('click', (event) => {
                     const button = event.target.closest('.item-button');
                     if (button && button.dataset.itemName) {
@@ -2002,6 +2179,7 @@
                     this.animateButton(item.button);
 
                     if (item.type === 'buff') {
+                        // Pass the duration stored in the BuffManager definition
                         this.buffManager.addBuffTime(name, this.buffManager.buffs[name].duration);
                     } else if (name === 'watch') {
                         this.buffManager.applyWatchExtension();
@@ -2018,24 +2196,17 @@
             }
 
             updateItemBar() {
-                const itemBar = document.getElementById('item-bar');
-                let totalItems = 0;
+                // Removed logic to toggle the main item bar visibility here, handled by UIManager/Chest button
                 Object.values(this.items).forEach(item => {
-                    // Ensure item.button exists before trying to access it.
                     if (item.button) {
                         if (item.count > 0) {
                             item.button.classList.add('visible');
                             item.button.textContent = `${item.emoji}x${item.count}`;
-                            totalItems++;
                         } else {
                             item.button.classList.remove('visible');
                         }
                     }
                 });
-
-                if (itemBar) {
-                   itemBar.classList.toggle('visible', totalItems > 0);
-                }
             }
         }
 
@@ -2119,6 +2290,7 @@
             activate() {
                 if (this.active) return;
                 this.active = true;
+                // Ensure UFO stays within the visible bounds (accounting for new bottom bar)
                 this.y = Math.random() * (this.bounds.height * 0.6) + (this.bounds.height * 0.1);
 
                 if(Math.random() < 0.5) {
@@ -2138,7 +2310,6 @@
                 particleManager.spawnUFOMist(this.x, this.y);
 
                 if(Math.random() < 0.1) {
-                    // This now also transforms/removes grass blades via the updated alterGround function.
                     worldManager.alterGround(this.x + (Math.random() - 0.5) * 50, this.y + (Math.random() - 0.5) * 50);
                 }
 
@@ -2162,14 +2333,23 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
-        // (UIManager implementation remains unchanged)
+        // UPDATED: Manages the new Bottom Bar elements (Stats, Timer, Graphs, Chest).
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
                 this.thoughtBubble = document.getElementById('thought-bubble');
-                this.worldTimerElement = document.getElementById('world-timer');
-                this.timerContainer = document.getElementById('timer-container');
-                this.timerIcon = document.getElementById('timer-icon');
+                // UPDATED: New Timer Display ID
+                this.worldTimerElement = document.getElementById('world-timer-display');
+                // Old timer container/icon removed.
+
+                // NEW Stat Elements
+                this.statStrength = document.getElementById('stat-strength').querySelector('span');
+                this.statRadius = document.getElementById('stat-radius').querySelector('span');
+                this.statSpeed = document.getElementById('stat-speed').querySelector('span');
+
+                // NEW Bar Graphs
+                this.moodBarFill = document.getElementById('mood-bar-fill');
+                this.hungerBarFill = document.getElementById('hunger-bar-fill');
 
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
@@ -2205,25 +2385,27 @@
                 this.thoughtBubble.addEventListener('mouseenter', () => this.handleBubbleEnter());
                 this.thoughtBubble.addEventListener('mouseleave', () => this.handleBubbleLeave());
 
-                // Click listener for Timer toggle
-                // Using 'pointerdown' for responsiveness on both desktop and mobile
-                this.timerIcon.addEventListener('pointerdown', (event) => {
-                    event.stopPropagation();
-                    this.toggleTimerPin();
-                });
+                // NEW: Chest button listener
+                const chestButton = document.getElementById('chest-button');
+                if (chestButton) {
+                    chestButton.addEventListener('click', () => this.toggleItemBar());
+                }
             }
 
-            toggleTimerPin() {
-                this.timerContainer.classList.toggle('active');
+            // NEW
+            toggleItemBar() {
+                const itemBar = document.getElementById('item-bar');
+                if (itemBar) {
+                    itemBar.classList.toggle('visible');
+                }
             }
 
             getCurrentThought() {
                 if (this.thoughtBubble.style.display === 'block') {
                     const span = this.thoughtBubble.querySelector('span');
-                    // Return the base emoji if it's a timer thought (e.g., "🤤 3s" -> "🤤")
+                    // Return the base emoji if it's a timer thought
                     if (span) {
                         const text = span.textContent;
-                        // Use Unicode property escapes to robustly match the first emoji character
                         const match = text.match(/^(\p{Emoji})/u);
                         return match ? match[1] : text;
                     }
@@ -2238,7 +2420,7 @@
                          if (span.textContent !== content) {
                              span.textContent = content;
                         }
-                        // Adjust font size if needed for compact display (like timers)
+                        // Adjust font size if needed for compact display
                         const targetFontSize = isCompact ? '1.5rem' : '2.5rem';
                         if (this.thoughtBubble.style.fontSize !== targetFontSize) {
                              this.thoughtBubble.style.fontSize = targetFontSize;
@@ -2270,7 +2452,7 @@
             startMadTimer() {
                 this.stopMadTimer();
                 this.madThoughtTimer = setInterval(() => {
-                    // Don't show mad thoughts if Hangry (Hangry overrides standard mad behavior)
+                    // Don't show mad thoughts if Hangry
                     if (this.wanderDot.currentMoodState === 'mad' && !this.wanderDot.isHangry) {
                         this.showThought(Utils.randomChoice(Config.Emojis.madZone));
                     } else if (this.wanderDot.currentMoodState !== 'mad') {
@@ -2285,7 +2467,6 @@
             }
 
             handleThoughtClick() {
-                // Get the current thought emoji (handles timer text stripping)
                 const emoji = this.getCurrentThought();
 
                 const collected = Game.instance.itemManager.addItem(emoji);
@@ -2315,25 +2496,52 @@
                 this.thoughtTimeout = setTimeout(() => this.hideThought(), Math.max(500, this.thoughtTimeoutRemaining));
             }
 
+            // UPDATED: Includes updates for new UI elements.
             update(worldCreationTime) {
                 this.updateTimer(worldCreationTime);
+                this.updateStats(); // NEW
+                this.updateBarGraphs(); // NEW
                 if (this.thoughtBubble.style.display === 'block') {
                     this.updateBubblePosition();
                 }
             }
 
+            // UPDATED: Simplified format.
             updateTimer(worldCreationTime) {
                 const elapsedTime = Date.now() - worldCreationTime;
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
 
-                let timerText = `Your WanderDot's world has existed for `;
-                if (minutes > 0) {
-                    timerText += `${minutes} minute${minutes !== 1 ? 's' : ''} and `;
-                }
-                timerText += `${seconds} second${seconds !== 1 ? 's' : ''}.`;
+                const timerText = `[${minutes}m:${seconds.toString().padStart(2, '0')}s]`;
                 this.worldTimerElement.textContent = timerText;
+            }
+
+            // NEW
+            updateStats() {
+                // Strength is the multiplier
+                this.statStrength.textContent = this.wanderDot.currentStrengthMultiplier.toFixed(2) + 'x';
+                // Radius is the pixel radius
+                this.statRadius.textContent = this.wanderDot.radius.toFixed(1) + 'px';
+                // Speed is the base speed multiplied by the current speed multiplier (ignoring kangaroo boost for UI stability)
+                const effectiveSpeed = this.wanderDot.speed * this.wanderDot.currentSpeedMultiplier;
+                this.statSpeed.textContent = effectiveSpeed.toFixed(1);
+            }
+
+            // NEW
+            updateBarGraphs() {
+                // Mood Bar (Annoyance 0 = 100% Green, Annoyance 100 = 0% Red)
+                const moodRatio = 1 - (this.wanderDot.annoyance / 100);
+                this.moodBarFill.style.width = `${moodRatio * 100}%`;
+                // Lerp color from Red (0) to Green (1)
+                const moodColor = Utils.lerpColor({r: 220, g: 50, b: 40}, {r: 50, g: 205, b: 50}, moodRatio);
+                this.moodBarFill.style.backgroundColor = moodColor;
+
+                // Hunger Bar (Hunger 100 = 100% Green, Hunger 0 = 0% Red)
+                const hungerRatio = this.wanderDot.hunger / Config.MAX_HUNGER;
+                this.hungerBarFill.style.width = `${hungerRatio * 100}%`;
+                const hungerColor = Utils.lerpColor({r: 220, g: 50, b: 40}, {r: 154, g: 205, b: 50}, hungerRatio); // Different green for hunger
+                this.hungerBarFill.style.backgroundColor = hungerColor;
             }
 
             showThought(emoji, duration = 2000) {
@@ -2378,7 +2586,7 @@
 
                 clearTimeout(this.idleThoughtTimer);
                 this.idleThoughtTimer = setTimeout(() => {
-                    // Only show if idle (no target AND not eating) AND not annoyed AND not Hangry
+                    // Only show if idle AND not annoyed AND not Hangry
                     if (this.wanderDot.targetX === null &&
                         !this.wanderDot.isEating &&
                         !this.wanderDot.isHangry &&
@@ -2389,7 +2597,7 @@
 
                         this.scheduleNextIdleThought(IDLE_THOUGHT_DURATION + 300 + BREAK_DURATION);
                     } else {
-                        // If busy, eating, or annoyed/hangry, check again later
+                        // If busy, check again later
                         this.scheduleNextIdleThought(BREAK_DURATION);
                     }
                 }, delay);
@@ -2422,7 +2630,6 @@
 
             findBestBubbleAngle(radius, width, height) {
                 const SAFE_MARGIN = 10;
-                // Use Game.instance.bounds for accurate dimensions, especially after resize
                 const bounds = Game.instance.bounds;
                 const startAngle = -Math.PI / 2;
 
@@ -2467,7 +2674,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // UPDATED: Initialization adapted for new architecture. Draw loop rewritten for dynamic sorting.
+        // UPDATED: Handles resizing based on the new Bottom Bar height.
         class Game {
             static instance = null;
 
@@ -2476,8 +2683,10 @@
                 Game.instance = this;
 
                 this.assetManager = new AssetManager();
-                this.isInitialized = false; // Flag to ensure initialization happens after loading
+                this.isInitialized = false;
 
+                // Initialize Canvases must wait until the DOM is fully ready and the bottom bar height is known
+                // We initialize them here conceptually, but the resize logic handles the actual sizing.
                 this.initializeCanvases();
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
 
@@ -2497,41 +2706,46 @@
                 this.pathCtx = this.pathCanvas.getContext('2d');
                 this.entityCanvas = document.getElementById('entityCanvas');
                 this.entityCtx = this.entityCanvas.getContext('2d');
-                // Grass Canvas (grassCanvas/grassCtx) removed from initialization as it's no longer used.
 
                 this.resizeCanvases();
             }
 
+            // UPDATED: Calculates height based on the bottom bar.
             resizeCanvases() {
                 const width = window.innerWidth;
-                const height = window.innerHeight;
+
+                // Calculate height based on the bottom bar's actual rendered height
+                const bottomBar = document.getElementById('bottom-bar');
+                // Use offsetHeight to get the dynamic height (important for mobile responsiveness)
+                const bottomBarHeight = bottomBar ? bottomBar.offsetHeight : 80;
+                const height = window.innerHeight - bottomBarHeight;
 
                 this.worldContainer.style.width = `${width}px`;
                 this.worldContainer.style.height = `${height}px`;
 
-                // Removed grassCanvas from resize
                 this.mainCanvas.width = this.pathCanvas.width = this.entityCanvas.width = width;
                 this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = height;
             }
 
             initializeAfterLoading() {
+                // Ensure sizes are correct after assets might have affected layout (e.g., chest image loading)
+                this.resizeCanvases();
+                this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
+
                 this.initializeGameObjects();
 
                 // Initialize UIs
                 this.buffManager.initializeUI();
                 this.itemManager.initializeUI();
 
-                // Persistence (loadGame) removed.
-
                 this.finalizeInitialization();
                 this.setupEventListeners();
                 this.isInitialized = true;
-                this.start(); // Start the animation loop
+                this.start();
             }
 
             initializeGameObjects() {
                 this.entityManager = new EntityManager(this.entityCtx);
-                // Pass the updated arguments (removed grassCtx)
                 this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.entityManager, this.assetManager);
                 this.wanderDot = new WanderDot(this.bounds.width / 2, this.bounds.height / 2);
                 this.uiManager = new UIManager(this.wanderDot);
@@ -2547,6 +2761,7 @@
                 this.worldManager.generateGrassField();
                 this.worldManager.redrawWorld();
 
+                // Ensure WanderDot starts within the new boundaries
                 this.wanderDot.x = Utils.clamp(this.wanderDot.x, Config.BASE_RADIUS, this.bounds.width - Config.BASE_RADIUS);
                 this.wanderDot.y = Utils.clamp(this.wanderDot.y, Config.BASE_RADIUS, this.bounds.height - Config.BASE_RADIUS);
                 this.wanderDot.previousX = this.wanderDot.x;
@@ -2556,14 +2771,13 @@
             // --- EVENTS ---
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
-                // Use pointerdown for better responsiveness on all devices
                 this.mainCanvas.addEventListener('pointerdown', (event) => this.handleClick(event));
             }
 
             handleResize() {
                  if (!this.isInitialized) return;
 
-                // Resize canvases and the world container based on new window size
+                // Resize canvases and the world container
                 this.resizeCanvases();
 
                 // Update bounds based on the new canvas size
@@ -2573,16 +2787,18 @@
                 // Notify managers to adapt to the new size
                 this.worldManager.handleResize(this.bounds.width, this.bounds.height);
                 this.entityManager.needsRedraw = true;
+                // Update UFO bounds reference
+                this.ufo.bounds = this.bounds;
             }
 
             handleClick(event) {
-                // Prevent default browser behavior (like drag/select)
+                // Prevent default browser behavior
                 event.preventDefault();
 
                 const clickX = event.clientX;
                 const clickY = event.clientY;
 
-                // Check if click is on the thought bubble (prevents interaction behind it)
+                // Check if click is on the thought bubble
                 if (this.uiManager.thoughtBubble.style.display === 'block') {
                     const bubbleRect = this.uiManager.thoughtBubble.getBoundingClientRect();
                     if (clickX >= bubbleRect.left && clickX <= bubbleRect.right &&
@@ -2601,18 +2817,17 @@
 
                 // Try to issue command
                 if (!isDirectClick) {
-                   // Attempt to set target. If it returns false, the command was ignored (Hangry or interrupted eating)
                    commandAccepted = this.wanderDot.setTarget(clickX, clickY);
                 } else {
                     // Direct click always registers as interaction (unless Hangry)
                     commandAccepted = !this.wanderDot.isHangry;
                     if (commandAccepted) {
                         this.wanderDot.clearTarget();
-                        // Cancel eating on direct click. If chewing (eatingStartTime > 0), this causes Hangry.
+                        // Cancel eating on direct click.
                         if (this.wanderDot.isEating) {
                             if (this.wanderDot.eatingStartTime > 0) {
                                 this.wanderDot.triggerHangry();
-                                commandAccepted = false; // Hangry state overrides the initial acceptance
+                                commandAccepted = false;
                             } else {
                                 // Cancel seeking without penalty
                                 this.wanderDot.isEating = false;
@@ -2625,12 +2840,12 @@
                     }
                 }
 
-                // Calculate and apply annoyance if an interaction occurred OR if the dot is Hangry (to reinforce the anger)
+                // Calculate and apply annoyance
                 if (commandAccepted || this.wanderDot.isHangry) {
                     const annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff));
                     const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
 
-                    // Show reaction thought, unless the dot is currently chewing (to avoid overriding 🤤 timer)
+                    // Show reaction thought, unless chewing
                     if (!(this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0)) {
                          this.uiManager.showThought(reactionEmoji);
                     }
@@ -2643,7 +2858,6 @@
                 }
 
                 this.lastClickTime = currentTime;
-                // Always reschedule idle thoughts after a click attempt
                 this.uiManager.scheduleNextIdleThought();
             }
 
@@ -2651,7 +2865,7 @@
             animate(currentTime) {
                 requestAnimationFrame((time) => this.animate(time));
 
-                if (!this.isInitialized) return; // Wait until assets are loaded
+                if (!this.isInitialized) return;
 
                 if (!this.lastFrameTime) {
                     this.lastFrameTime = currentTime;
@@ -2659,7 +2873,7 @@
                 }
                 const deltaTime = (currentTime - this.lastFrameTime) / 1000;
 
-                // Handle large deltaTime spikes (e.g., tab inactive)
+                // Handle large deltaTime spikes
                 if (deltaTime > 0.1) {
                      this.lastFrameTime = currentTime;
                      this.updateTimeBasedSystems();
@@ -2698,10 +2912,8 @@
                 this.ufo.update(deltaTime, this.particleManager, this.worldManager);
             }
 
-            // REWRITTEN: Implements dynamic sorting (Painter's Algorithm) for grass and WanderDot.
+            // Implements dynamic sorting (Painter's Algorithm) for grass and WanderDot.
             draw(deltaTime) {
-                // Draw Grass (REMOVED - handled below)
-
                 // Clear main canvas
                 this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
 
@@ -2710,7 +2922,7 @@
 
                 // --- Dynamic Sorting (Z-sorting) ---
 
-                // 1. Create a list of all objects to be sorted (Grass and WanderDot)
+                // 1. Create a list of all objects to be sorted
                 const sortedDrawables = [];
 
                 // Add grass blades
@@ -2759,15 +2971,13 @@
         // 8. STARTUP
         // ====================================================================
         document.addEventListener('DOMContentLoaded', () => {
-            // Check for Brown Mushroom emoji support before initializing the game
+            // Check for Brown Mushroom emoji support
             if (!Utils.checkEmojiSupport(Config.Emojis.BROWN_MUSHROOM)) {
-                // If the OS cannot display the brown mushroom (🍄‍🟫) as one emoji, fallback to Wilted Flower (🥀)
                 Config.Emojis.BROWN_MUSHROOM = '🥀';
             }
 
-            // Initialization starts here. The Game constructor handles asset loading before starting the simulation.
+            // Initialization starts here.
             const game = new Game();
-            // game.start() is called internally after assets load.
         });
 
     </script>
