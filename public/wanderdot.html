@@ -55,6 +55,46 @@
 
         /* --- 3. UI ELEMENTS --- */
 
+        /* Pause Modal (NEW) */
+        #pause-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+            color: var(--color-text);
+            text-align: center;
+        }
+
+        #pause-modal {
+            background-color: rgba(30, 30, 30, 0.9);
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 2px solid var(--color-ui-border);
+        }
+        #pause-modal h2 {
+             font-size: 1.5rem;
+             margin-bottom: 15px;
+        }
+
+        #resume-button {
+            padding: 8px 16px;
+            font-size: 1rem;
+            background-color: #008CBA;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #resume-button:hover {
+            background-color: #007B9A;
+        }
+
+
         /* Game Over Modal (NEW) */
         #game-over-overlay {
             position: fixed;
@@ -403,6 +443,13 @@
         <div id="buff-container"></div>
     </div>
 
+    <div id="pause-overlay">
+        <div id="pause-modal">
+            <h2>Game Paused</h2>
+            <button id="resume-button">Resume</button>
+        </div>
+    </div>
+
     <div id="game-over-overlay">
         <div id="game-over-modal">
             <h1>GAME OVER</h1>
@@ -451,9 +498,16 @@
             ANNOYANCE_THRESHOLD: 40,
             MAD_THRESHOLD: 75,
 
-            // NEW: Mood/Hunger Interaction (Req 4 & 5)
+            // Mood/Hunger Interaction
             MOOD_HUNGER_DRAIN_MULTIPLIER: 2.0, // Hunger drains 2x faster when mad/annoyed
-            HUNGER_MOOD_DRAIN_MULTIPLIER: 0.5, // Mood cooldown is 50% slower when hungry
+            HUNGER_MOOD_DRAIN_MULTIPLIER: 0.5, // Mood restoration is 50% slower when hungry
+
+            // NEW: Mood Mechanics
+            MOOD_DECAY_PER_SECOND: 0.3,      // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
+            MOOD_BOOST_FLOWER_RADIUS: 60,    // Radius to gain mood boost from flowers
+            MOOD_BOOST_FLOWER_RATE: 1.5,     // Annoyance decrease per second near a flower
+            MOOD_BOOST_IDLE_THOUGHT: 10,     // Annoyance decrease when a positive thought appears
+
 
             // Colors
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
@@ -497,7 +551,7 @@
 
             // Hunger Mechanics (NEW)
             MAX_HUNGER: 100,
-            HUNGER_DECAY_PER_SECOND: 0.5, // Takes 200 seconds to get very hungry
+            HUNGER_DECAY_PER_SECOND: 0.5, // Takes 200 seconds (3.3 mins) to get very hungry
             HANGRY_HUNGER_THRESHOLD: 20,
             MUSHROOM_HUNGER_RESTORE: 50,
             // PIZZA_HUNGER_RESTORE is defined in Buffs/Items
@@ -615,13 +669,13 @@
         // 0.5. ASSET MANAGER
         // ====================================================================
 
-        // UPDATED: Loads chest asset and applies it to the button.
+        // (AssetManager implementation remains unchanged)
         class AssetManager {
             constructor() {
                 this.images = {
                     grass: [],
                     alienGrass: [],
-                    chest: null // NEW
+                    chest: null
                 };
                 this.loadedCount = 0;
                 this.totalCount = 0;
@@ -653,7 +707,7 @@
                     onLoad(); // Proceed even if an asset fails
                 };
 
-                 // Load Chest (NEW)
+                 // Load Chest
                 if (chestPath) {
                     const img = new Image();
                     img.src = chestPath;
@@ -706,7 +760,7 @@
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
 
-        // (EntityManager implementation remains unchanged)
+        // UPDATED: Added helper for finding nearby dynamic entities.
         class EntityManager {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -726,6 +780,22 @@
                 };
                 this.dynamicEntities.push(entity);
                 this.needsRedraw = true;
+            }
+
+            // NEW: Helper to find nearby dynamic entities of a specific type
+            getNearbyDynamicEntities(type, x, y, radius) {
+                const nearby = [];
+                const radiusSq = radius * radius;
+
+                for (const entity of this.dynamicEntities) {
+                    if (entity.type === type) {
+                        const distSq = (entity.x - x)**2 + (entity.y - y)**2;
+                        if (distSq < radiusSq) {
+                            nearby.push(entity);
+                        }
+                    }
+                }
+                return nearby;
             }
 
             removeDynamicEntitiesInArea(x, y, radius) {
@@ -901,6 +971,7 @@
         // 2. WORLD MANAGER (Environment, Paths, Grass)
         // ====================================================================
 
+        // (WorldManager implementation remains largely unchanged)
         class WorldManager {
             constructor(width, height, pathCtx, entityManager, assetManager) {
                 this.width = width;
@@ -915,7 +986,6 @@
                 this.initializeGrid();
             }
 
-            // (initializeGrid remains unchanged)
             initializeGrid() {
                 const gridWidth = Math.ceil(this.width / Config.GRID_CELL_SIZE);
                 const gridHeight = Math.ceil(this.height / Config.GRID_CELL_SIZE);
@@ -1163,7 +1233,6 @@
 
 
             // --- WEAR AND TEAR (Dirt Paths) ---
-            // UPDATED: Uses WanderDot's centralized strength stat.
             applyMovementWear(startX, startY, endX, endY, buffManager) {
                 const distance = Utils.distance(startX, startY, endX, endY);
                 const steps = Math.ceil(distance / 5);
@@ -1209,7 +1278,6 @@
                 }
             }
 
-            // UPDATED: Uses WanderDot's centralized strength stat.
             applyLandingImpact(x, y, moodState, buffManager) {
                 const wanderDot = Game.instance.wanderDot;
 
@@ -1377,7 +1445,6 @@
             }
 
             // --- UFO/ALIEN TERRAFORMING ---
-            // (alterGround remains unchanged from the previous version, correctly handling grass transformation)
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -1447,7 +1514,7 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // UPDATED: Added centralized stats (Strength) and Hunger mechanics.
+        // UPDATED: Incorporates new mood mechanics (decay and restoration).
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -1461,7 +1528,7 @@
                 this.speed = Config.BASE_SPEED;
                 this.currentSpeedMultiplier = 1.0;
 
-                // NEW Stats
+                // Stats
                 this.baseStrength = 1.0; // Base wear multiplier
                 this.currentStrengthMultiplier = 1.0;
 
@@ -1475,10 +1542,9 @@
                 this.currentMoodState = 'normal';
                 this.isCalm = false;
                 this.isHangry = false;
-                // NEW: Differentiates cause of Hangry state (Req 6)
                 this.isInterruptedHangry = false;
 
-                // Hunger state (NEW)
+                // Hunger state
                 this.hunger = Config.MAX_HUNGER;
 
                 // Behavior state
@@ -1497,6 +1563,13 @@
                 return this.y - this.verticalOffset + this.radius;
             }
 
+            // NEW: Method to apply immediate mood boost
+            applyMoodBoost(amount) {
+                // Amount is positive, representing a decrease in annoyance
+                this.annoyance = Math.max(0, this.annoyance - amount);
+            }
+
+
             setTarget(x, y) {
                 if (this.isHangry) {
                     return false;
@@ -1504,7 +1577,7 @@
 
                 // If the dot is currently chewing (eatingStartTime > 0), interrupting it triggers Hangry
                 if (this.isEating && this.eatingStartTime > 0) {
-                    // Specify interruption cause (Req 6)
+                    // Specify interruption cause
                     this.triggerHangry(true);
                     return false;
                 }
@@ -1514,7 +1587,6 @@
                 return true;
             }
 
-            // UPDATED: Handles interruption cause (Req 6).
             triggerHangry(causedByInterruption = false) {
                 this.isHangry = true;
 
@@ -1549,7 +1621,7 @@
             }
 
             update(deltaTime, bounds, buffManager, worldManager, entityManager) {
-                this.updateMood(deltaTime, buffManager);
+                this.updateMood(deltaTime, buffManager, entityManager); // Pass entityManager
                 this.updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager);
             }
 
@@ -1598,12 +1670,11 @@
                 }
             }
 
-            // UPDATED: Hunger drains faster when mood is bad (Req 4)
             updateHunger(deltaTime) {
                 if (this.hunger > 0) {
                     let decayRate = Config.HUNGER_DECAY_PER_SECOND;
 
-                    // Increase decay rate if mood is bad (Req 4)
+                    // Increase decay rate if mood is bad
                     if (this.currentMoodState === 'mad' || this.currentMoodState === 'annoyed') {
                         decayRate *= Config.MOOD_HUNGER_DRAIN_MULTIPLIER;
                     }
@@ -1618,24 +1689,38 @@
                 }
             }
 
-            // UPDATED: Mood drains faster when hungry (Req 5). Checks for exiting Hangry state.
-            updateMood(deltaTime, buffManager) {
-                // 1. Hunger decay (NEW)
+            // UPDATED: Includes natural decay and flower restoration.
+            updateMood(deltaTime, buffManager, entityManager) {
+                // 1. Hunger decay
                 this.updateHunger(deltaTime);
 
-                // 2. Annoyance Cooldown
-                if (this.annoyance > 0) {
-                    let cooldownPerSecond = (this.annoyance > Config.MAD_THRESHOLD) ? 1.8 : 3.0;
-
-                    // Reduce cooldown speed if hungry (Req 5)
-                    if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
-                        cooldownPerSecond *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
-                    }
-
-                    this.annoyance = Math.max(0, this.annoyance - (cooldownPerSecond * deltaTime));
+                // 2. Natural Mood Decay (Annoyance Increase) (NEW)
+                // Mood decays unless the dot is currently eating (chewing phase)
+                if (!(this.isEating && this.eatingStartTime > 0)) {
+                     this.annoyance = Math.min(100, this.annoyance + Config.MOOD_DECAY_PER_SECOND * deltaTime);
                 }
 
-                // 3. State Change Detection
+                // 3. Mood Restoration (Annoyance Decrease)
+                let restorationRate = 0;
+
+                // 3a. Check for nearby flowers (NEW)
+                const nearbyFlowers = entityManager.getNearbyDynamicEntities('flower', this.x, this.y, Config.MOOD_BOOST_FLOWER_RADIUS);
+                if (nearbyFlowers.length > 0) {
+                    // Apply boost based on the rate
+                    restorationRate += Config.MOOD_BOOST_FLOWER_RATE;
+                }
+
+                // Apply the calculated restoration rate
+                if (restorationRate > 0) {
+                    // Apply hunger penalty to restoration rate
+                    if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
+                         restorationRate *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
+                    }
+                    this.annoyance = Math.max(0, this.annoyance - restorationRate * deltaTime);
+                }
+
+
+                // 4. State Change Detection
                 const previousState = this.currentMoodState;
                 this.currentMoodState = this.getMoodState(this.annoyance);
 
@@ -1662,19 +1747,19 @@
                     }
                 }
 
-                // 4. Ensure Hangry state persists if hunger is low, even if annoyance cools slightly
+                // 5. Ensure Hangry state persists if hunger is low, even if annoyance cools slightly
                 if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !this.isHangry) {
                     this.triggerHangry(false); // Caused by hunger
                 }
 
 
-                // 5. Appearance and Speed Update
+                // 6. Appearance and Speed Update
                 this.updateAppearance(buffManager);
 
                 return transitionEmoji;
             }
 
-            // UPDATED: Centralizes calculation of Speed, Radius, and Strength.
+            // (updateAppearance remains unchanged)
             updateAppearance(buffManager) {
                 const buffs = buffManager.getActiveBuffs();
 
@@ -1724,6 +1809,7 @@
             }
 
             // --- MOVEMENT & BEHAVIOR LOGIC ---
+            // (updatePosition, handleEatingBehavior, moveToTarget, wander, handleBounce, land, handleBoundaries remain unchanged)
             updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager) {
                 this.previousX = this.x;
                 this.previousY = this.y;
@@ -1790,7 +1876,6 @@
                 }
             }
 
-            // UPDATED: Restores hunger upon completion.
             handleEatingBehavior(entityManager, buffManager) {
                 const uiManager = Game.instance.uiManager;
 
@@ -1821,7 +1906,7 @@
                     this.isEating = false;
                     this.eatingStartTime = 0;
 
-                    // Restore Hunger (NEW)
+                    // Restore Hunger
                     this.hunger = Math.min(Config.MAX_HUNGER, this.hunger + Config.MUSHROOM_HUNGER_RESTORE);
 
                     // Apply the buff
@@ -1944,7 +2029,6 @@
             }
 
             // --- RENDERING ---
-            // UPDATED: Glow only appears if interrupted (Req 6)
             draw(ctx) {
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
@@ -1988,7 +2072,7 @@
                     ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
                 }
 
-                // Draw Hangry Glow (Req 6: Only if interrupted)
+                // Draw Hangry Glow (Only if interrupted)
                 if (this.isInterruptedHangry) {
                     ctx.shadowBlur = 25;
                     ctx.shadowColor = Config.COLOR_HANGRY_GLOW;
@@ -2026,7 +2110,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // UPDATED: Added coffee mood boost logic
+        // (BuffManager and ItemManager implementations remain unchanged from the previous iteration)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -2046,7 +2130,7 @@
                             emoji: data.emoji,
                             indicator: null,
                             hideTimer: data.hideTimer || false,
-                            hungerRestore: data.hungerRestore || 0 // NEW
+                            hungerRestore: data.hungerRestore || 0
                         };
                     }
                 });
@@ -2110,15 +2194,15 @@
                 buff.isEnding = false;
 
                 if (isInitialActivation) {
-                    // Apply hunger restoration (Req 3)
+                    // Apply hunger restoration
                     if (buff.hungerRestore > 0 && wanderDot) {
                          wanderDot.hunger = Math.min(Config.MAX_HUNGER, wanderDot.hunger + buff.hungerRestore);
                     }
 
-                    // Apply Coffee mood boost (Req 2)
+                    // Apply Coffee mood boost
                     if (name === 'coffee' && wanderDot) {
                         // Reduce annoyance significantly when coffee is used
-                        wanderDot.annoyance = Math.max(0, wanderDot.annoyance - 30);
+                        wanderDot.applyMoodBoost(30);
                     }
                 }
 
@@ -2436,21 +2520,19 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
-        // UPDATED: Manages the new Bottom Bar elements (Stats, Timer, Graphs, Chest).
+        // UPDATED: Handles mood boosts from specific thoughts.
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
                 this.thoughtBubble = document.getElementById('thought-bubble');
-                // UPDATED: New Timer Display ID
                 this.worldTimerElement = document.getElementById('world-timer-display');
-                // Old timer container/icon removed.
 
-                // NEW Stat Elements
+                // Stat Elements
                 this.statStrength = document.getElementById('stat-strength').querySelector('span');
                 this.statRadius = document.getElementById('stat-radius').querySelector('span');
                 this.statSpeed = document.getElementById('stat-speed').querySelector('span');
 
-                // NEW Bar Graphs
+                // Bar Graphs
                 this.moodBarFill = document.getElementById('mood-bar-fill');
                 this.moodBarBg = document.getElementById('mood-bar-bg'); // Need background to add/remove class
                 this.hungerBarFill = document.getElementById('hunger-bar-fill');
@@ -2490,14 +2572,13 @@
                 this.thoughtBubble.addEventListener('mouseenter', () => this.handleBubbleEnter());
                 this.thoughtBubble.addEventListener('mouseleave', () => this.handleBubbleLeave());
 
-                // NEW: Chest button listener
+                // Chest button listener
                 const chestButton = document.getElementById('chest-button');
                 if (chestButton) {
                     chestButton.addEventListener('click', () => this.toggleItemBar());
                 }
             }
 
-            // NEW
             toggleItemBar() {
                 const itemBar = document.getElementById('item-bar');
                 if (itemBar) {
@@ -2601,17 +2682,15 @@
                 this.thoughtTimeout = setTimeout(() => this.hideThought(), Math.max(500, this.thoughtTimeoutRemaining));
             }
 
-            // UPDATED: Includes updates for new UI elements.
             update(worldCreationTime) {
                 this.updateTimer(worldCreationTime);
-                this.updateStats(); // NEW
-                this.updateBarGraphs(); // NEW
+                this.updateStats();
+                this.updateBarGraphs();
                 if (this.thoughtBubble.style.display === 'block') {
                     this.updateBubblePosition();
                 }
             }
 
-            // UPDATED: Simplified format.
             updateTimer(worldCreationTime) {
                 const elapsedTime = Date.now() - worldCreationTime;
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
@@ -2622,7 +2701,6 @@
                 this.worldTimerElement.textContent = timerText;
             }
 
-            // NEW
             updateStats() {
                 // Strength is the multiplier
                 this.statStrength.textContent = this.wanderDot.currentStrengthMultiplier.toFixed(2) + 'x';
@@ -2633,7 +2711,6 @@
                 this.statSpeed.textContent = effectiveSpeed.toFixed(1);
             }
 
-            // UPDATED: Manages bar text visibility (Req 1)
             updateBarGraphs() {
                 // Mood Bar (Annoyance 0 = 100% Green, Annoyance 100 = 0% Red)
                 const moodRatio = 1 - (this.wanderDot.annoyance / 100);
@@ -2642,7 +2719,7 @@
                 const moodColor = Utils.lerpColor({r: 220, g: 50, b: 40}, {r: 50, g: 205, b: 50}, moodRatio);
                 this.moodBarFill.style.backgroundColor = moodColor;
 
-                // Manage Mood Text Visibility (Req 1)
+                // Manage Mood Text Visibility
                 if (this.wanderDot.currentMoodState === 'mad' || this.wanderDot.currentMoodState === 'annoyed') {
                     this.moodBarBg.classList.add('active-state');
                 } else {
@@ -2655,7 +2732,7 @@
                 const hungerColor = Utils.lerpColor({r: 220, g: 50, b: 40}, {r: 154, g: 205, b: 50}, hungerRatio); // Different green for hunger
                 this.hungerBarFill.style.backgroundColor = hungerColor;
 
-                // Manage Hunger Text Visibility (Req 1)
+                // Manage Hunger Text Visibility
                 if (this.wanderDot.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
                     this.hungerBarBg.classList.add('active-state');
                 } else {
@@ -2663,8 +2740,14 @@
                 }
             }
 
+            // UPDATED: Apply mood boost for specific emojis
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
+
+                // NEW: Check for mood boosting emojis (🎮, 📽️)
+                if (emoji === '🎮' || emoji === '📽️') {
+                    this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_IDLE_THOUGHT);
+                }
 
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
@@ -2793,7 +2876,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // UPDATED: Handles resizing and Game Over logic.
+        // UPDATED: Handles resizing, Game Over, and Pause/Resume logic.
         class Game {
             static instance = null;
 
@@ -2804,16 +2887,15 @@
                 this.assetManager = new AssetManager();
                 this.isInitialized = false;
 
-                // Initialize Canvases must wait until the DOM is fully ready and the bottom bar height is known
-                // We initialize them here conceptually, but the resize logic handles the actual sizing.
                 this.initializeCanvases();
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
 
                 this.worldCreationTime = Date.now();
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
-                // NEW: Game state (Req 7)
+                // Game state
                 this.isRunning = false;
+                this.isPaused = false; // NEW: Differentiate between stopped (game over) and paused
                 this.animationFrameId = null;
 
                 // Load assets first, then proceed with initialization
@@ -2832,7 +2914,6 @@
                 this.resizeCanvases();
             }
 
-            // UPDATED: Calculates height based on the bottom bar.
             resizeCanvases() {
                 const width = window.innerWidth;
 
@@ -2895,12 +2976,62 @@
                 window.addEventListener('resize', () => this.handleResize());
                 this.mainCanvas.addEventListener('pointerdown', (event) => this.handleClick(event));
 
-                // NEW: Restart button listener (Req 7)
+                // Restart button listener
                 const restartButton = document.getElementById('restart-button');
                 if (restartButton) {
                     restartButton.addEventListener('click', () => this.restartGame());
                 }
+
+                // NEW: Pause/Resume listeners
+                document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
+                const resumeButton = document.getElementById('resume-button');
+                if (resumeButton) {
+                    resumeButton.addEventListener('click', () => this.resumeGame());
+                }
             }
+
+            // NEW: Handle Visibility Change
+            handleVisibilityChange() {
+                if (!this.isInitialized || !this.isRunning) return;
+
+                if (document.hidden) {
+                    this.pauseGame();
+                }
+                // We do not auto-resume, waiting for the button click.
+            }
+
+            // NEW: Pause Game
+            pauseGame() {
+                if (this.isPaused) return;
+                this.isPaused = true;
+
+                // Stop the animation loop
+                if (this.animationFrameId) {
+                    cancelAnimationFrame(this.animationFrameId);
+                    this.animationFrameId = null;
+                }
+
+                // Show the pause overlay
+                document.getElementById('pause-overlay').style.display = 'flex';
+
+                // Crucial: Reset lastFrameTime so deltaTime doesn't jump when resuming
+                this.lastFrameTime = 0;
+            }
+
+            // NEW: Resume Game
+            resumeGame() {
+                if (!this.isPaused) return;
+                this.isPaused = false;
+
+                // Hide the pause overlay
+                document.getElementById('pause-overlay').style.display = 'none';
+
+                // Restart the animation loop if the game is still running (not game over)
+                if (this.isRunning) {
+                    this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
+                }
+            }
+
 
             handleResize() {
                  if (!this.isInitialized) return;
@@ -2920,8 +3051,8 @@
             }
 
             handleClick(event) {
-                // NEW: Prevent clicks if the game is over
-                if (!this.isRunning) return;
+                // UPDATED: Prevent clicks if the game is over or paused
+                if (!this.isRunning || this.isPaused) return;
 
                 // Prevent default browser behavior
                 event.preventDefault();
@@ -2957,7 +3088,7 @@
                         // Cancel eating on direct click.
                         if (this.wanderDot.isEating) {
                             if (this.wanderDot.eatingStartTime > 0) {
-                                this.wanderDot.triggerHangry(true); // Interrupted (Req 6)
+                                this.wanderDot.triggerHangry(true); // Interrupted
                                 commandAccepted = false;
                             } else {
                                 // Cancel seeking without penalty
@@ -2971,8 +3102,9 @@
                     }
                 }
 
-                // Calculate and apply annoyance
+                // Calculate and apply annoyance from the click itself
                 if (commandAccepted || this.wanderDot.isHangry) {
+                    // Annoyance from clicks is still applied on top of the natural decay/restoration
                     const annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff));
                     const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
 
@@ -2992,7 +3124,6 @@
                 this.uiManager.scheduleNextIdleThought();
             }
 
-            // NEW: Game Over Logic (Req 7)
             checkGameOver() {
                 // Game over if annoyance hits 100 AND hunger hits 0
                 if (this.wanderDot.annoyance >= 100 && this.wanderDot.hunger <= 0) {
@@ -3000,11 +3131,12 @@
                 }
             }
 
-            // NEW
             gameOver() {
                 this.isRunning = false;
+                this.isPaused = false; // Ensure pause state is cleared
                 if (this.animationFrameId) {
                     cancelAnimationFrame(this.animationFrameId);
+                    this.animationFrameId = null;
                 }
 
                 // Calculate survival time
@@ -3020,7 +3152,6 @@
                 gameOverOverlay.style.display = 'flex';
             }
 
-            // NEW
             restartGame() {
                 // Easiest way to reset the entire state
                 location.reload();
@@ -3029,10 +3160,12 @@
 
             // Main game loop
             animate(currentTime) {
-                // NEW: Store the frame ID and check if running
+                // UPDATED: Check if running
                 if (!this.isRunning) return;
                 this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
 
+                // If paused, we skip the update/draw logic but keep the RAF loop going (or rely on cancel/restart in pause/resume)
+                // We rely on cancel/restart in pause/resume, so if we are here, we assume we are not paused.
 
                 if (!this.isInitialized) return;
 
@@ -3042,7 +3175,7 @@
                 }
                 const deltaTime = (currentTime - this.lastFrameTime) / 1000;
 
-                // Handle large deltaTime spikes
+                // Handle large deltaTime spikes (often happens after resuming from a long pause)
                 if (deltaTime > 0.1) {
                      this.lastFrameTime = currentTime;
                      this.updateTimeBasedSystems();
@@ -3063,9 +3196,10 @@
 
             update(deltaTime) {
                 // Update WanderDot
+                // Pass entityManager to WanderDot update for flower detection
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
 
-                // NEW: Check for game over after WanderDot updates its state (Req 7)
+                // Check for game over after WanderDot updates its state
                 this.checkGameOver();
                 if (!this.isRunning) return;
 
@@ -3135,9 +3269,10 @@
 
             start() {
                 // Start is called after assets load in initializeAfterLoading
-                this.isRunning = true; // NEW
+                this.isRunning = true;
+                this.isPaused = false;
                 this.uiManager.scheduleNextIdleThought();
-                this.animationFrameId = requestAnimationFrame((time) => this.animate(time)); // UPDATED
+                this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
             }
         }
 
