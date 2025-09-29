@@ -55,6 +55,55 @@
 
         /* --- 3. UI ELEMENTS --- */
 
+        /* Game Over Modal (NEW) */
+        #game-over-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: var(--color-text);
+            text-align: center;
+        }
+
+        #game-over-modal {
+            background-color: #333;
+            padding: 30px 50px;
+            border-radius: 15px;
+            border: 3px solid var(--color-ui-border);
+            box-shadow: 0 0 30px rgba(255, 50, 50, 0.5);
+        }
+
+        #game-over-modal h1 {
+            font-size: 2.5rem;
+            color: #FF6347; /* Tomato Red */
+            margin-bottom: 20px;
+        }
+
+        #game-over-modal p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+
+        #restart-button {
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #restart-button:hover {
+            background-color: #45a049;
+        }
+
+
         /* Thought Bubble */
         #thought-bubble {
             position: absolute;
@@ -187,10 +236,20 @@
             right: 10px;
             top: 50%;
             transform: translateY(-50%);
-            color: rgba(255, 255, 255, 0.6);
+            /* Start hidden (UPDATED) */
+            color: rgba(255, 255, 255, 1);
+            opacity: 0;
             font-size: 0.75rem;
             pointer-events: none;
+            transition: opacity 0.5s ease-in-out;
+            text-shadow: 0 0 5px black;
         }
+
+        /* Show text when state is active (NEW) */
+        .graph-bar.active-state .graph-bar-text {
+            opacity: 1;
+        }
+
 
         /* World Timer Display (NEW) */
         #world-timer-display {
@@ -275,10 +334,10 @@
         /* --- 3.5. MOBILE RESPONSIVENESS (UPDATED) --- */
         @media (max-width: 768px) {
              #bottom-bar {
-                height: 110px; /* Taller on mobile */
-                flex-wrap: wrap;
-                padding: 5px 10px;
-            }
+                 height: 110px; /* Taller on mobile */
+                 flex-wrap: wrap;
+                 padding: 5px 10px;
+             }
             #stats-container {
                 font-size: 0.9rem;
                 gap: 15px;
@@ -294,8 +353,8 @@
                 max-width: none;
             }
              .graph-label {
-                font-size: 0.8rem;
-                width: 50px;
+                 font-size: 0.8rem;
+                 width: 50px;
             }
             .graph-bar {
                 height: 18px;
@@ -342,9 +401,17 @@
 
         <div id="thought-bubble"></div>
         <div id="buff-container"></div>
-        </div>
+    </div>
 
-     <div id="bottom-bar">
+    <div id="game-over-overlay">
+        <div id="game-over-modal">
+            <h1>GAME OVER</h1>
+            <p>Under your watchful eye, WanderDot survived for <span id="survival-time">[00m:00s]</span>.</p>
+            <button id="restart-button">Restart Game</button>
+        </div>
+    </div>
+
+   <div id="bottom-bar">
         <div id="stats-container">
             <div class="stat-item" id="stat-strength">💪: <span></span></div>
             <div class="stat-item" id="stat-radius">⭕: <span></span></div>
@@ -383,6 +450,10 @@
             WARNING_ANNOYANCE_THRESHOLD: 25,
             ANNOYANCE_THRESHOLD: 40,
             MAD_THRESHOLD: 75,
+
+            // NEW: Mood/Hunger Interaction (Req 4 & 5)
+            MOOD_HUNGER_DRAIN_MULTIPLIER: 2.0, // Hunger drains 2x faster when mad/annoyed
+            HUNGER_MOOD_DRAIN_MULTIPLIER: 0.5, // Mood cooldown is 50% slower when hungry
 
             // Colors
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
@@ -1404,6 +1475,8 @@
                 this.currentMoodState = 'normal';
                 this.isCalm = false;
                 this.isHangry = false;
+                // NEW: Differentiates cause of Hangry state (Req 6)
+                this.isInterruptedHangry = false;
 
                 // Hunger state (NEW)
                 this.hunger = Config.MAX_HUNGER;
@@ -1431,7 +1504,8 @@
 
                 // If the dot is currently chewing (eatingStartTime > 0), interrupting it triggers Hangry
                 if (this.isEating && this.eatingStartTime > 0) {
-                    this.triggerHangry();
+                    // Specify interruption cause (Req 6)
+                    this.triggerHangry(true);
                     return false;
                 }
 
@@ -1440,16 +1514,21 @@
                 return true;
             }
 
-            // UPDATED: TriggerHangry logic now considers hunger levels.
-            triggerHangry() {
+            // UPDATED: Handles interruption cause (Req 6).
+            triggerHangry(causedByInterruption = false) {
                 this.isHangry = true;
 
+                // Set specific Hangry type based on cause
+                if (causedByInterruption) {
+                    this.isInterruptedHangry = true;
+                }
+
                  // If triggered by low hunger, annoyance might not be high yet.
-                if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
+                if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !causedByInterruption) {
                     // Ensure annoyance is high enough to look significantly annoyed/mad.
                     this.annoyance = Math.max(this.annoyance, Config.ANNOYANCE_THRESHOLD + 5);
                 } else {
-                    // If triggered by interruption, ensure annoyance is very high (MAD)
+                    // If triggered by interruption (or already very mad), ensure annoyance is very high (MAD)
                     this.annoyance = Math.max(this.annoyance, Config.MAD_THRESHOLD + 1);
                 }
 
@@ -1519,26 +1598,40 @@
                 }
             }
 
-            // NEW
+            // UPDATED: Hunger drains faster when mood is bad (Req 4)
             updateHunger(deltaTime) {
                 if (this.hunger > 0) {
-                    this.hunger = Math.max(0, this.hunger - Config.HUNGER_DECAY_PER_SECOND * deltaTime);
+                    let decayRate = Config.HUNGER_DECAY_PER_SECOND;
+
+                    // Increase decay rate if mood is bad (Req 4)
+                    if (this.currentMoodState === 'mad' || this.currentMoodState === 'annoyed') {
+                        decayRate *= Config.MOOD_HUNGER_DRAIN_MULTIPLIER;
+                    }
+
+                    this.hunger = Math.max(0, this.hunger - decayRate * deltaTime);
                 }
 
                 // Check if hunger triggers Hangry state
                 if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !this.isHangry) {
-                    this.triggerHangry();
+                    // Triggered by hunger, not interruption
+                    this.triggerHangry(false);
                 }
             }
 
-            // UPDATED: Integrates Hunger updates and checks for exiting Hangry state.
+            // UPDATED: Mood drains faster when hungry (Req 5). Checks for exiting Hangry state.
             updateMood(deltaTime, buffManager) {
                 // 1. Hunger decay (NEW)
                 this.updateHunger(deltaTime);
 
                 // 2. Annoyance Cooldown
                 if (this.annoyance > 0) {
-                    const cooldownPerSecond = (this.annoyance > Config.MAD_THRESHOLD) ? 1.8 : 3.0;
+                    let cooldownPerSecond = (this.annoyance > Config.MAD_THRESHOLD) ? 1.8 : 3.0;
+
+                    // Reduce cooldown speed if hungry (Req 5)
+                    if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
+                        cooldownPerSecond *= Config.HUNGER_MOOD_DRAIN_MULTIPLIER;
+                    }
+
                     this.annoyance = Math.max(0, this.annoyance - (cooldownPerSecond * deltaTime));
                 }
 
@@ -1554,22 +1647,24 @@
                         // Exit Hangry state ONLY IF hunger is sufficient AND annoyance cooled down
                         if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
                             this.isHangry = false;
+                            this.isInterruptedHangry = false; // Clear interruption flag
                         }
 
                     } else if (previousState === 'annoyed' && this.currentMoodState === 'normal') {
                          this.isCalm = true;
                          transitionEmoji = Config.Emojis.cooldownToNormal[0];
 
-                          // Exit Hangry state if returning to normal (should be covered above but safe check)
+                         // Exit Hangry state if returning to normal (should be covered above but safe check)
                          if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
                             this.isHangry = false;
+                            this.isInterruptedHangry = false; // Clear interruption flag
                         }
                     }
                 }
 
                 // 4. Ensure Hangry state persists if hunger is low, even if annoyance cools slightly
                 if (this.hunger < Config.HANGRY_HUNGER_THRESHOLD && !this.isHangry) {
-                    this.triggerHangry();
+                    this.triggerHangry(false); // Caused by hunger
                 }
 
 
@@ -1849,6 +1944,7 @@
             }
 
             // --- RENDERING ---
+            // UPDATED: Glow only appears if interrupted (Req 6)
             draw(ctx) {
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
@@ -1892,8 +1988,8 @@
                     ctx.scale(1 + jiggleAmount, 1 - jiggleAmount);
                 }
 
-                // Draw Hangry Glow
-                if (this.isHangry) {
+                // Draw Hangry Glow (Req 6: Only if interrupted)
+                if (this.isInterruptedHangry) {
                     ctx.shadowBlur = 25;
                     ctx.shadowColor = Config.COLOR_HANGRY_GLOW;
                 }
@@ -1930,7 +2026,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (BuffManager implementation remains unchanged)
+        // UPDATED: Added coffee mood boost logic
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -2002,23 +2098,30 @@
                 }
             }
 
-            // UPDATED: Applies hunger restoration when a buff is added.
+            // UPDATED: Applies hunger restoration and coffee mood boost.
             addBuffTime(name, duration) {
                 const buff = this.buffs[name];
                 if (!buff) return;
 
+                const wanderDot = Game.instance.wanderDot; // Get reference early
                 const isInitialActivation = buff.endTime <= Date.now();
                 const baseTime = Math.max(Date.now(), buff.endTime);
                 buff.endTime = baseTime + duration;
                 buff.isEnding = false;
 
-                // Apply hunger restoration if this is the initial activation (not a time extension)
-                if (isInitialActivation && buff.hungerRestore > 0) {
-                    const wanderDot = Game.instance.wanderDot;
-                    if (wanderDot) {
-                        wanderDot.hunger = Math.min(Config.MAX_HUNGER, wanderDot.hunger + buff.hungerRestore);
+                if (isInitialActivation) {
+                    // Apply hunger restoration (Req 3)
+                    if (buff.hungerRestore > 0 && wanderDot) {
+                         wanderDot.hunger = Math.min(Config.MAX_HUNGER, wanderDot.hunger + buff.hungerRestore);
+                    }
+
+                    // Apply Coffee mood boost (Req 2)
+                    if (name === 'coffee' && wanderDot) {
+                        // Reduce annoyance significantly when coffee is used
+                        wanderDot.annoyance = Math.max(0, wanderDot.annoyance - 30);
                     }
                 }
+
 
                 this.setupBuffIndicator(buff);
                 this.setupBlinkTimer(buff);
@@ -2349,7 +2452,9 @@
 
                 // NEW Bar Graphs
                 this.moodBarFill = document.getElementById('mood-bar-fill');
+                this.moodBarBg = document.getElementById('mood-bar-bg'); // Need background to add/remove class
                 this.hungerBarFill = document.getElementById('hunger-bar-fill');
+                this.hungerBarBg = document.getElementById('hunger-bar-bg'); // Need background to add/remove class
 
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
@@ -2528,7 +2633,7 @@
                 this.statSpeed.textContent = effectiveSpeed.toFixed(1);
             }
 
-            // NEW
+            // UPDATED: Manages bar text visibility (Req 1)
             updateBarGraphs() {
                 // Mood Bar (Annoyance 0 = 100% Green, Annoyance 100 = 0% Red)
                 const moodRatio = 1 - (this.wanderDot.annoyance / 100);
@@ -2537,11 +2642,25 @@
                 const moodColor = Utils.lerpColor({r: 220, g: 50, b: 40}, {r: 50, g: 205, b: 50}, moodRatio);
                 this.moodBarFill.style.backgroundColor = moodColor;
 
+                // Manage Mood Text Visibility (Req 1)
+                if (this.wanderDot.currentMoodState === 'mad' || this.wanderDot.currentMoodState === 'annoyed') {
+                    this.moodBarBg.classList.add('active-state');
+                } else {
+                    this.moodBarBg.classList.remove('active-state');
+                }
+
                 // Hunger Bar (Hunger 100 = 100% Green, Hunger 0 = 0% Red)
                 const hungerRatio = this.wanderDot.hunger / Config.MAX_HUNGER;
                 this.hungerBarFill.style.width = `${hungerRatio * 100}%`;
                 const hungerColor = Utils.lerpColor({r: 220, g: 50, b: 40}, {r: 154, g: 205, b: 50}, hungerRatio); // Different green for hunger
                 this.hungerBarFill.style.backgroundColor = hungerColor;
+
+                // Manage Hunger Text Visibility (Req 1)
+                if (this.wanderDot.hunger < Config.HANGRY_HUNGER_THRESHOLD) {
+                    this.hungerBarBg.classList.add('active-state');
+                } else {
+                    this.hungerBarBg.classList.remove('active-state');
+                }
             }
 
             showThought(emoji, duration = 2000) {
@@ -2674,7 +2793,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // UPDATED: Handles resizing based on the new Bottom Bar height.
+        // UPDATED: Handles resizing and Game Over logic.
         class Game {
             static instance = null;
 
@@ -2693,6 +2812,9 @@
                 this.worldCreationTime = Date.now();
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
+                // NEW: Game state (Req 7)
+                this.isRunning = false;
+                this.animationFrameId = null;
 
                 // Load assets first, then proceed with initialization
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
@@ -2772,6 +2894,12 @@
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
                 this.mainCanvas.addEventListener('pointerdown', (event) => this.handleClick(event));
+
+                // NEW: Restart button listener (Req 7)
+                const restartButton = document.getElementById('restart-button');
+                if (restartButton) {
+                    restartButton.addEventListener('click', () => this.restartGame());
+                }
             }
 
             handleResize() {
@@ -2792,6 +2920,9 @@
             }
 
             handleClick(event) {
+                // NEW: Prevent clicks if the game is over
+                if (!this.isRunning) return;
+
                 // Prevent default browser behavior
                 event.preventDefault();
 
@@ -2826,7 +2957,7 @@
                         // Cancel eating on direct click.
                         if (this.wanderDot.isEating) {
                             if (this.wanderDot.eatingStartTime > 0) {
-                                this.wanderDot.triggerHangry();
+                                this.wanderDot.triggerHangry(true); // Interrupted (Req 6)
                                 commandAccepted = false;
                             } else {
                                 // Cancel seeking without penalty
@@ -2861,9 +2992,47 @@
                 this.uiManager.scheduleNextIdleThought();
             }
 
+            // NEW: Game Over Logic (Req 7)
+            checkGameOver() {
+                // Game over if annoyance hits 100 AND hunger hits 0
+                if (this.wanderDot.annoyance >= 100 && this.wanderDot.hunger <= 0) {
+                    this.gameOver();
+                }
+            }
+
+            // NEW
+            gameOver() {
+                this.isRunning = false;
+                if (this.animationFrameId) {
+                    cancelAnimationFrame(this.animationFrameId);
+                }
+
+                // Calculate survival time
+                const elapsedTime = Date.now() - this.worldCreationTime;
+                const elapsedSeconds = Math.floor(elapsedTime / 1000);
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                const survivalTimeText = `[${minutes}m:${seconds.toString().padStart(2, '0')}s]`;
+
+                // Show the modal
+                document.getElementById('survival-time').textContent = survivalTimeText;
+                const gameOverOverlay = document.getElementById('game-over-overlay');
+                gameOverOverlay.style.display = 'flex';
+            }
+
+            // NEW
+            restartGame() {
+                // Easiest way to reset the entire state
+                location.reload();
+            }
+
+
             // Main game loop
             animate(currentTime) {
-                requestAnimationFrame((time) => this.animate(time));
+                // NEW: Store the frame ID and check if running
+                if (!this.isRunning) return;
+                this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
+
 
                 if (!this.isInitialized) return;
 
@@ -2895,6 +3064,10 @@
             update(deltaTime) {
                 // Update WanderDot
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
+
+                // NEW: Check for game over after WanderDot updates its state (Req 7)
+                this.checkGameOver();
+                if (!this.isRunning) return;
 
                 if (transitionEmoji) {
                     this.uiManager.showThought(transitionEmoji);
@@ -2962,8 +3135,9 @@
 
             start() {
                 // Start is called after assets load in initializeAfterLoading
+                this.isRunning = true; // NEW
                 this.uiManager.scheduleNextIdleThought();
-                requestAnimationFrame((time) => this.animate(time));
+                this.animationFrameId = requestAnimationFrame((time) => this.animate(time)); // UPDATED
             }
         }
 
