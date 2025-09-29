@@ -76,8 +76,8 @@
             border: 2px solid var(--color-ui-border);
         }
         #pause-modal h2 {
-             font-size: 1.5rem;
-             margin-bottom: 15px;
+              font-size: 1.5rem;
+              margin-bottom: 15px;
         }
 
         #resume-button {
@@ -373,32 +373,32 @@
 
         /* --- 3.5. MOBILE RESPONSIVENESS (UPDATED) --- */
         @media (max-width: 768px) {
-             #bottom-bar {
-                 height: 110px; /* Taller on mobile */
-                 flex-wrap: wrap;
-                 padding: 5px 10px;
+              #bottom-bar {
+                  height: 110px; /* Taller on mobile */
+                  flex-wrap: wrap;
+                  padding: 5px 10px;
+              }
+             #stats-container {
+                 font-size: 0.9rem;
+                 gap: 15px;
              }
-            #stats-container {
-                font-size: 0.9rem;
-                gap: 15px;
-            }
-            #world-timer-display {
-                font-size: 0.9rem;
-                margin-right: 15px;
-            }
-            #bar-graphs-container {
-                width: 100%;
-                order: 2; /* Move graphs below stats/chest */
-                margin: 5px 0 0 0;
-                max-width: none;
-            }
-             .graph-label {
-                 font-size: 0.8rem;
-                 width: 50px;
-            }
-            .graph-bar {
-                height: 18px;
-            }
+             #world-timer-display {
+                 font-size: 0.9rem;
+                 margin-right: 15px;
+             }
+             #bar-graphs-container {
+                 width: 100%;
+                 order: 2; /* Move graphs below stats/chest */
+                 margin: 5px 0 0 0;
+                 max-width: none;
+             }
+              .graph-label {
+                  font-size: 0.8rem;
+                  width: 50px;
+             }
+             .graph-bar {
+                 height: 18px;
+             }
         }
 
 
@@ -503,10 +503,10 @@
             HUNGER_MOOD_DRAIN_MULTIPLIER: 0.5, // Mood restoration is 50% slower when hungry
 
             // NEW: Mood Mechanics
-            MOOD_DECAY_PER_SECOND: 0.3,      // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
-            MOOD_BOOST_FLOWER_RADIUS: 100,    // Radius to gain mood boost from flowers
+            MOOD_DECAY_PER_SECOND: 0.3,     // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
+            MOOD_BOOST_FLOWER_RADIUS: 100,     // Radius to gain mood boost from flowers
             MOOD_BOOST_FLOWER_RATE: 3.5,     // Annoyance decrease per second near a flower
-            MOOD_BOOST_IDLE_THOUGHT: 10,     // Annoyance decrease when a positive thought appears
+            MOOD_BOOST_CLICK_THOUGHT: 15,    // Annoyance decrease when a positive thought is clicked
 
 
             // Colors
@@ -606,7 +606,7 @@
                     '../images/grass/grass_blade_06.png',
                 ],
                 alienGrass: [
-                     // Assuming these paths exist for blue grass visualization
+                       // Assuming these paths exist for blue grass visualization
                     '../images/grass/alien_grass_blade_01.png',
                     '../images/grass/alien_grass_blade_02.png',
                     '../images/grass/alien_grass_blade_03.png',
@@ -725,8 +725,8 @@
                          // Fallback if image fails
                          const chestButton = document.getElementById('chest-button');
                          if (chestButton) {
-                            chestButton.textContent = '📦';
-                            chestButton.style.fontSize = '2.5rem';
+                             chestButton.textContent = '📦';
+                             chestButton.style.fontSize = '2.5rem';
                          }
                          onError(chestPath);
                     };
@@ -1741,9 +1741,9 @@
 
                          // Exit Hangry state if returning to normal (should be covered above but safe check)
                          if (this.isHangry && this.hunger >= Config.HANGRY_HUNGER_THRESHOLD) {
-                            this.isHangry = false;
-                            this.isInterruptedHangry = false; // Clear interruption flag
-                        }
+                             this.isHangry = false;
+                             this.isInterruptedHangry = false; // Clear interruption flag
+                         }
                     }
                 }
 
@@ -2540,6 +2540,7 @@
 
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
+                this.kangarooThoughtTimer = null; // NEW: Timer for kangaroo mood
                 this.thoughtTimeout = null;
                 this.fadeTimeout = null;
                 this.idleEmojiHistory = [];
@@ -2652,20 +2653,40 @@
                 this.madThoughtTimer = null;
             }
 
+            // NEW: Methods to manage Kangaroo mood timer
+            startKangarooTimer() {
+                this.stopKangarooTimer(); // Ensure no duplicates
+                this.kangarooThoughtTimer = setInterval(() => {
+                    // Check if the buff is still active
+                    if (Game.instance.buffManager.getActiveBuffs().kangaroo) {
+                        this.showThought('🤩', 2500); // Show an excited thought
+                    } else {
+                        this.stopKangarooTimer(); // Stop if buff ended unexpectedly
+                    }
+                }, 5000); // Every 5 seconds
+            }
+
+            stopKangarooTimer() {
+                clearInterval(this.kangarooThoughtTimer);
+                this.kangarooThoughtTimer = null;
+            }
+
+            // UPDATED: Logic moved here from showThought
             handleThoughtClick() {
                 const emoji = this.getCurrentThought();
+                if (!emoji) return;
 
-                const collected = Game.instance.itemManager.addItem(emoji);
-
-                if (!collected) {
-                    if (emoji === '👽') {
-                        Game.instance.ufo.activate();
-                    }
-                    if (emoji === '🎮' || emoji === '📽️'|| emoji === '🦘') {
-                        this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_IDLE_THOUGHT);
-                    }
+                // Check for special, non-collectible thought clicks first
+                if (emoji === '🎮' || emoji === '🎥') {
+                    this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_CLICK_THOUGHT);
+                } else if (emoji === '👽') {
+                    Game.instance.ufo.activate();
+                } else {
+                    // Default behavior: try to collect as an item
+                    Game.instance.itemManager.addItem(emoji);
                 }
 
+                // Hide bubble after any successful click
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
                 this.thoughtBubble.style.display = 'none';
@@ -2684,18 +2705,32 @@
                 this.isMouseOverBubble = false;
                 this.thoughtTimeout = setTimeout(() => this.hideThought(), Math.max(500, this.thoughtTimeoutRemaining));
             }
+            
+            // NEW: Manages the kangaroo mood timer based on buff state
+            updateKangarooMood() {
+                const isKangarooActive = !!Game.instance.buffManager.getActiveBuffs().kangaroo;
+                if (isKangarooActive && !this.kangarooThoughtTimer) {
+                     // Buff is active, but timer isn't running. Start it.
+                     this.startKangarooTimer();
+                } else if (!isKangarooActive && this.kangarooThoughtTimer) {
+                    // Buff is inactive, but timer is running. Stop it.
+                    this.stopKangarooTimer();
+                }
+            }
 
             update(worldCreationTime) {
                 this.updateTimer(worldCreationTime);
                 this.updateStats();
                 this.updateBarGraphs();
+                this.updateKangarooMood(); // NEW
                 if (this.thoughtBubble.style.display === 'block') {
                     this.updateBubblePosition();
                 }
             }
-
+            
+            // UPDATED: Now accounts for paused time
             updateTimer(worldCreationTime) {
-                const elapsedTime = Date.now() - worldCreationTime;
+                const elapsedTime = (Date.now() - worldCreationTime) - Game.instance.totalPausedTime;
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
@@ -2743,14 +2778,9 @@
                 }
             }
 
-            // UPDATED: Apply mood boost for specific emojis
+            // UPDATED: Mood boost logic removed from here
             showThought(emoji, duration = 2000) {
                 if (!emoji) return;
-
-                // NEW: Check for mood boosting emojis (🎮, 📽️)
-                if (emoji === '🎮' || emoji === '📽️') {
-                    this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_IDLE_THOUGHT);
-                }
 
                 clearTimeout(this.thoughtTimeout);
                 clearTimeout(this.fadeTimeout);
@@ -2896,6 +2926,11 @@
                 this.worldCreationTime = Date.now();
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
+                
+                // NEW: Pause timing variables
+                this.totalPausedTime = 0;
+                this.pauseStartTime = 0;
+
                 // Game state
                 this.isRunning = false;
                 this.isPaused = false; // NEW: Differentiate between stopped (game over) and paused
@@ -3005,8 +3040,9 @@
 
             // NEW: Pause Game
             pauseGame() {
-                if (this.isPaused) return;
+                if (this.isPaused || !this.isRunning) return;
                 this.isPaused = true;
+                this.pauseStartTime = Date.now(); // Record when pause starts
 
                 // Stop the animation loop
                 if (this.animationFrameId) {
@@ -3016,16 +3052,22 @@
 
                 // Show the pause overlay
                 document.getElementById('pause-overlay').style.display = 'flex';
-
-                // Crucial: Reset lastFrameTime so deltaTime doesn't jump when resuming
+                
+                // This prevents a large deltaTime jump when resuming.
                 this.lastFrameTime = 0;
             }
 
             // NEW: Resume Game
             resumeGame() {
                 if (!this.isPaused) return;
-                this.isPaused = false;
 
+                // Calculate paused duration and add to total
+                if (this.pauseStartTime > 0) {
+                    this.totalPausedTime += Date.now() - this.pauseStartTime;
+                }
+                this.pauseStartTime = 0; // Reset start time
+                this.isPaused = false;
+                
                 // Hide the pause overlay
                 document.getElementById('pause-overlay').style.display = 'none';
 
@@ -3142,8 +3184,8 @@
                     this.animationFrameId = null;
                 }
 
-                // Calculate survival time
-                const elapsedTime = Date.now() - this.worldCreationTime;
+                // Calculate survival time, accounting for pauses
+                const elapsedTime = (Date.now() - this.worldCreationTime) - this.totalPausedTime;
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
@@ -3167,9 +3209,8 @@
                 if (!this.isRunning) return;
                 this.animationFrameId = requestAnimationFrame((time) => this.animate(time));
 
-                // If paused, we skip the update/draw logic but keep the RAF loop going (or rely on cancel/restart in pause/resume)
-                // We rely on cancel/restart in pause/resume, so if we are here, we assume we are not paused.
-
+                // If paused, we skip the update/draw logic. The loop is cancelled in pauseGame.
+                
                 if (!this.isInitialized) return;
 
                 if (!this.lastFrameTime) {
