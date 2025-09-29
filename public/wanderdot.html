@@ -504,8 +504,8 @@
 
             // NEW: Mood Mechanics
             MOOD_DECAY_PER_SECOND: 0.3,      // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
-            MOOD_BOOST_FLOWER_RADIUS: 60,    // Radius to gain mood boost from flowers
-            MOOD_BOOST_FLOWER_RATE: 1.5,     // Annoyance decrease per second near a flower
+            MOOD_BOOST_FLOWER_RADIUS: 80,    // Radius to gain mood boost from flowers
+            MOOD_BOOST_FLOWER_RATE: 2.5,     // Annoyance decrease per second near a flower
             MOOD_BOOST_IDLE_THOUGHT: 10,     // Annoyance decrease when a positive thought appears
 
 
@@ -2660,6 +2660,9 @@
                 if (!collected) {
                     if (emoji === '👽') {
                         Game.instance.ufo.activate();
+                    }
+                    if (emoji === '🎮' || emoji === '📽️'|| emoji === '🦘') {
+                        this.wanderDot.applyMoodBoost(Config.MOOD_BOOST_IDLE_THOUGHT);
                     }
                 }
 
