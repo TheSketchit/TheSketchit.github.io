@@ -29,7 +29,7 @@
             background-color: var(--color-field-bg);
             font-family: var(--font-main);
             cursor: default;
-            user-select: none; 
+            user-select: none;
             /* Ensure pixel art scales cleanly */
             image-rendering: pixelated;
             image-rendering: crisp-edges;
@@ -48,10 +48,11 @@
             top: 0; left: 0;
         }
 
-        /* Z-Index layering UPDATED: Consolidated rendering for depth sorting */
-        #pathCanvas { z-index: 0; } /* Dirt paths at the bottom */
-        #mainCanvas { z-index: 1; } /* Everything else (WanderDot, Grass, Entities, Particles) */
-
+        /* Z-Index layering */
+        /* grassCanvas removed as grass is now dynamically sorted on mainCanvas */
+        #pathCanvas { z-index: 1; }
+        #entityCanvas { z-index: 2; }
+        #mainCanvas { z-index: 3; } /* Handles Grass, WanderDot, UFO, Particles */
 
         /* --- 3. UI ELEMENTS --- */
 
@@ -65,10 +66,10 @@
             border: 2px solid var(--color-ui-border);
             border-radius: 50%;
             backdrop-filter: blur(3px);
-            transition: opacity 0.3s ease-in-out, left 0.1s linear, top 0.1s linear; 
+            transition: opacity 0.3s ease-in-out, left 0.1s linear, top 0.1s linear;
             z-index: 4;
             cursor: pointer;
-            transform: translate(-50%, -50%); 
+            transform: translate(-50%, -50%);
             white-space: nowrap;
         }
 
@@ -96,7 +97,7 @@
             align-items: center;
             text-shadow: 0 0 5px black;
         }
-        
+
         .buff-icon {
             font-size: 1.5rem;
             transition: box-shadow 0.3s ease-in-out;
@@ -112,7 +113,7 @@
             color: var(--color-text);
             margin-top: 2px;
         }
-        
+
         /* Item Bar */
         #item-bar {
             position: absolute;
@@ -154,7 +155,7 @@
         .item-button.clicked {
             animation: use-item-anim 0.2s ease-out;
         }
-        
+
         /* World Timer (Top Left) */
         #timer-container {
             position: absolute;
@@ -170,7 +171,7 @@
             border: 2px solid rgba(204, 204, 204, 0.5);
             padding: 5px;
             border-radius: 4px;
-            cursor: pointer; 
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -186,7 +187,7 @@
             border-radius: 5px;
             white-space: nowrap; /* Default for desktop rollout */
             pointer-events: none;
-            
+
             /* Rollout transition setup */
             opacity: 0;
             max-width: 0;
@@ -241,7 +242,7 @@
         @keyframes use-item-anim {
             50% { transform: scale(0.85); }
         }
-        
+
         @keyframes wiggle {
             0%, 100% { transform: rotate(0deg); }
             25% { transform: rotate(15deg); }
@@ -252,8 +253,9 @@
 <body>
     <div id="world-container">
         <canvas id="pathCanvas"></canvas>
+        <canvas id="entityCanvas"></canvas>
         <canvas id="mainCanvas"></canvas>
-        
+
         <div id="thought-bubble"></div>
         <div id="timer-container">
             <div id="timer-icon">🕰️</div>
@@ -269,49 +271,44 @@
         // ====================================================================
 
         const Config = {
-            // (Configuration remains unchanged from the previous version)
             // Mood Thresholds
             WARNING_ANNOYANCE_THRESHOLD: 25,
             ANNOYANCE_THRESHOLD: 40,
             MAD_THRESHOLD: 75,
-            
+
             // Colors
             COLOR_NORMAL: { r: 255, g: 255, b: 224 },
             COLOR_ANNOYED: { r: 255, g: 165, b: 0 },
             COLOR_MAD: { r: 152, g: 14, b: 11 },
             COLOR_HANGRY_GLOW: 'rgba(255, 100, 100, 0.7)',
-            
+
             // Terrain Colors
             COLOR_FIELD: { r: 1, g: 50, b: 32 },
             COLOR_DIRT: { r: 101, g: 67, b: 33 },
-            COLOR_ALIEN_BLUE: { r: 100, g: 149, b: 237 }, 
+            COLOR_ALIEN_BLUE: { r: 100, g: 149, b: 237 },
             COLOR_ALIEN_CLAY: { r: 205, g: 133, b: 63 },
-            COLOR_ALIEN_TINT: 'rgba(100, 149, 237, 0.5)', 
 
             // World Grid
             GRID_CELL_SIZE: 10,
             MAX_WEAR: 100,
             WEAR_PER_PIXEL: 0.05, // Wear applied to the dirt path
-            
+
             // Grass Configuration
-            GRASS_CLUMP_COUNT: 800, 
+            // UPDATED: Clump configuration replaces uniform distribution
+            GRASS_CLUMP_COUNT: 300, // Total number of clumps on the map
             GRASS_CLUMP_MIN_SIZE: 3,
             GRASS_CLUMP_MAX_SIZE: 6,
-            GRASS_CLUMP_RADIUS: 12,
+            GRASS_CLUMP_RADIUS: 15, // How spread out a clump is
 
-            GRASS_INTERACTION_RADIUS: 25, // How far away grass reacts to movement (from the south edge)
-            GRASS_LANDING_RADIUS: 60, // How far away grass reacts to landing
-            
-            GRASS_BASE_OPACITY: 0.5,
-            GRASS_WEAR_FADE_THRESHOLD: 30, 
-
-            GRASS_SLIDE_DISTANCE: 10, // Max distance grass slides aside
-            GRASS_BEND_ANGLE: 45 * (Math.PI / 180), // Max bend angle (in radians)
+            // UPDATED: Wear is now indirect. Interaction radii moved to local variables in WorldManager.
+            GRASS_DEATH_THRESHOLD: 0.05, // Remove grass below 5% health/opacity
+            GRASS_SLIDE_DISTANCE: 10, // Max distance grass slides aside (for animation)
+            GRASS_BEND_ANGLE: 45 * (Math.PI / 180), // Max bend angle (for animation)
 
             // Legacy thresholds (used for entity spawning/maturation on dirt)
-            GRASS_REMOVAL_THRESHOLD: 50, 
+            GRASS_REMOVAL_THRESHOLD: 50,
             PEBBLE_SPAWN_THRESHOLD: 70,
-            
+
             UFO_MUSHROOM_CHANCE: 0.015,
 
             // WanderDot Base Stats
@@ -337,7 +334,7 @@
                 pizza: { emoji: '🍕', type: 'buff', duration: 30000 },
                 kangaroo: { emoji: '🦘', type: 'buff', duration: 30000 },
                 lightbulb: { emoji: '💡', type: 'utility' },
-                mushroom: { emoji: '🍄', type: 'buff', hideTimer: true } 
+                mushroom: { emoji: '🍄', type: 'buff', hideTimer: true }
             },
 
             // Emojis
@@ -369,6 +366,15 @@
                     '../images/grass/grass_blade_04.png',
                     '../images/grass/grass_blade_05.png',
                     '../images/grass/grass_blade_06.png',
+                ],
+                // NEW: Assets for alien blue grass (assuming these exist)
+                alienGrass: [
+                    '../images/grass/alien_grass_blade_01.png',
+                    '../images/grass/alien_grass_blade_02.png',
+                    '../images/grass/alien_grass_blade_03.png',
+                    '../images/grass/alien_grass_blade_04.png',
+                    '../images/grass/alien_grass_blade_05.png',
+                    '../images/grass/alien_grass_blade_06.png',
                 ]
             }
         };
@@ -381,7 +387,6 @@
         };
 
         const Utils = {
-            // (Utils implementation remains unchanged)
             lerp(start, end, amount) {
                 return start * (1 - amount) + end * amount;
             },
@@ -407,11 +412,11 @@
                 try {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    if (!ctx) return true; 
+                    if (!ctx) return true;
 
                     ctx.font = '20px sans-serif';
                     const metrics = ctx.measureText(emoji);
-                    const baselineMetrics = ctx.measureText('🍄'); 
+                    const baselineMetrics = ctx.measureText('🍄');
 
                     return metrics.width <= baselineMetrics.width * 1.5;
                 } catch (e) {
@@ -424,106 +429,81 @@
         // ====================================================================
         // 0.5. ASSET MANAGER
         // ====================================================================
-        
-        // (AssetManager implementation remains unchanged)
+
+        // UPDATED: Loads both standard and alien grass assets.
         class AssetManager {
             constructor() {
                 this.images = {
-                    grass: []
+                    grass: [],
+                    alienGrass: [] // NEW
                 };
                 this.loadedCount = 0;
                 this.totalCount = 0;
-                // Buffer canvas for tinting effects
-                this.tintBuffer = document.createElement('canvas');
-                this.tintBufferCtx = this.tintBuffer.getContext('2d');
             }
 
             loadAll(onComplete) {
-                this.totalCount = Config.Assets.grass.length;
+                const grassPaths = Config.Assets.grass;
+                const alienGrassPaths = Config.Assets.alienGrass;
+                // Count total assets across all categories
+                this.totalCount = grassPaths.length + alienGrassPaths.length;
 
                 if (this.totalCount === 0) {
                     onComplete();
                     return;
                 }
 
-                Config.Assets.grass.forEach((path, index) => {
+                // Unified load/error handling
+                const onLoad = () => {
+                    this.loadedCount++;
+                    if (this.loadedCount === this.totalCount) {
+                        onComplete();
+                    }
+                };
+
+                const onError = (path) => {
+                    console.error(`Failed to load asset: ${path}. Ensure the path is correct.`);
+                    onLoad(); // Proceed even if an asset fails
+                };
+
+                // Load standard grass
+                grassPaths.forEach((path, index) => {
                     const img = new Image();
                     img.src = path;
                     img.onload = () => {
                         this.images.grass[index] = img;
-                        this.loadedCount++;
-                        if (this.loadedCount === this.totalCount) {
-                            onComplete();
-                        }
+                        onLoad();
                     };
-                    img.onerror = () => {
-                        console.error(`Failed to load asset: ${path}. Ensure the path is correct.`);
-                        // Treat as loaded even if failed, to allow game to proceed (might look weird)
-                        this.loadedCount++;
-                        if (this.loadedCount === this.totalCount) {
-                            onComplete();
-                        }
-                    }
+                    img.onerror = () => onError(path);
                 });
-            }
 
-            // Helper function to draw a tinted version of an image using the buffer
-            drawTinted(ctx, image, x, y, width, height, tintColor) {
-                if (!this.tintBufferCtx) {
-                    // Fallback if buffer context fails
-                    ctx.drawImage(image, x, y, width, height);
-                    return;
-                }
-
-                // Setup buffer dimensions
-                this.tintBuffer.width = width;
-                this.tintBuffer.height = height;
-
-                // 1. Draw the original image onto the buffer
-                this.tintBufferCtx.drawImage(image, 0, 0, width, height);
-
-                // 2. Apply the tint color using 'source-atop' composite operation
-                // This colors the opaque pixels of the image with the tint color.
-                this.tintBufferCtx.globalCompositeOperation = 'source-atop';
-                this.tintBufferCtx.fillStyle = tintColor;
-                this.tintBufferCtx.fillRect(0, 0, width, height);
-                
-                // Reset composite operation
-                this.tintBufferCtx.globalCompositeOperation = 'source-over';
-
-                // 3. Draw the tinted buffer onto the main context
-                ctx.drawImage(this.tintBuffer, x, y, width, height);
+                // Load alien grass
+                alienGrassPaths.forEach((path, index) => {
+                    const img = new Image();
+                    img.src = path;
+                    img.onload = () => {
+                        this.images.alienGrass[index] = img;
+                        onLoad();
+                    };
+                    img.onerror = () => onError(path);
+                });
             }
         }
 
         // ====================================================================
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
-        
-        // UPDATED: Adapted for single-canvas rendering and depth sorting.
+
+        // (EntityManager implementation remains unchanged)
         class EntityManager {
-            // ctx is now the main canvas context
             constructor(ctx) {
                 this.ctx = ctx;
                 this.pebbles = [];
                 this.mushrooms = [];
                 this.dynamicEntities = [];
-                // needsRedraw is deprecated as we redraw every frame now.
-            }
-
-            // NEW: Combines all entities for the main game loop sorting
-            getAllEntities() {
-                // Assign types for the drawEntity function if not already present
-                const typedPebbles = this.pebbles.map(p => ({...p, entityType: 'pebble'}));
-                const typedMushrooms = this.mushrooms.map(m => ({...m, entityType: 'mushroom'}));
-                // Dynamic entities already have a 'type' property, rename it to entityType for consistency
-                const typedDynamic = this.dynamicEntities.map(e => ({...e, entityType: e.type}));
-
-                return [...typedPebbles, ...typedMushrooms, ...typedDynamic];
+                this.needsRedraw = true;
             }
 
             // --- Dynamic Entities ---
-            // (Methods updated to remove needsRedraw=true)
             addEntity(type, x, y, data = {}) {
                 const entity = {
                     type: type,
@@ -532,6 +512,7 @@
                     ...data
                 };
                 this.dynamicEntities.push(entity);
+                this.needsRedraw = true;
             }
 
             removeDynamicEntitiesInArea(x, y, radius) {
@@ -551,6 +532,10 @@
                         }
                     }
                 }
+
+                if (removed) {
+                    this.needsRedraw = true;
+                }
                 return removed;
             }
 
@@ -559,7 +544,7 @@
                 const now = Date.now();
                 for (let i = this.dynamicEntities.length - 1; i >= 0; i--) {
                     const entity = this.dynamicEntities[i];
-                    
+
                     if (entity.type === 'seed') {
                         if (now - entity.createdAt > Config.SEED_MATURATION_TIME) {
                             this.matureSeed(entity, i, worldManager);
@@ -580,23 +565,25 @@
                         newType = 'brownMushroom';
                     }
                 }
-                
+
                 if (newType) {
                     seed.type = newType;
                 } else {
                     this.dynamicEntities.splice(index, 1);
                 }
+                this.needsRedraw = true;
             }
 
-            // --- Static Entities (Pebbles, Mushrooms) ---
-            // (Methods updated to remove needsRedraw=true)
+            // --- Static Entities (Pebbles, Mushrooms) (Unchanged) ---
             addPebble(pebble) {
                 this.pebbles.push(pebble);
+                this.needsRedraw = true;
             }
 
             addMushroom(mushroom) {
                 if(!this.mushrooms.some(m => m.gridX === mushroom.gridX && m.gridY === mushroom.gridY)) {
                     this.mushrooms.push(mushroom);
+                    this.needsRedraw = true;
                     return true;
                 }
                 return false;
@@ -606,6 +593,7 @@
                 const index = this.mushrooms.indexOf(mushroomObject);
                 if (index > -1) {
                     this.mushrooms.splice(index, 1);
+                    this.needsRedraw = true;
                     return true;
                 }
                 return false;
@@ -620,6 +608,7 @@
                         removed = true;
                     }
                 }
+                if (removed) this.needsRedraw = true;
                 return removed;
             }
 
@@ -637,53 +626,61 @@
                 return closest;
             }
 
-            // --- Rendering ---
-            // UPDATED: The main Game loop now calls drawEntity for each item after sorting.
-            // This function is now deprecated/empty as we no longer use a separate entity canvas.
+            // --- Rendering (Unchanged) ---
             draw(bounds) {
-                // No longer needed.
+                if (!this.needsRedraw) return;
+
+                this.ctx.clearRect(0, 0, bounds.width, bounds.height);
+
+                this.drawPebbles();
+                this.drawDynamicEntities();
+                this.drawMushrooms();
+
+                this.needsRedraw = false;
             }
 
-            // NEW: Draws a single entity (called by the sorted Game loop)
-            drawEntity(ctx, e) {
-                // Use the provided context (the main canvas ctx)
-                
-                if (e.entityType === 'pebble') {
-                    ctx.font = 'bold 0.7rem monospace';
-                    ctx.fillStyle = e.color;
-                    ctx.globalAlpha = e.type === 'spaceRock' ? 1.0 : 0.8;
-                    ctx.fillText(e.char, e.x, e.y);
-                    ctx.globalAlpha = 1.0; // Reset alpha
-                } 
-                else if (e.entityType === 'mushroom') {
-                    ctx.font = '1rem monospace';
-                    ctx.globalAlpha = 1.0;
-                    ctx.fillText('🍄', e.x, e.y);
-                }
-                else {
-                    // Dynamic Entities (Seed, Flower, etc.)
-                    ctx.globalAlpha = 1.0;
+            drawPebbles() {
+                this.ctx.font = 'bold 0.7rem monospace';
+                this.pebbles.forEach(p => {
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.globalAlpha = p.type === 'spaceRock' ? 1.0 : 0.8;
+                    this.ctx.fillText(p.char, p.x, p.y);
+                });
+            }
+
+            drawMushrooms() {
+                this.ctx.font = '1rem monospace';
+                this.ctx.globalAlpha = 1.0;
+                this.mushrooms.forEach(m => {
+                    this.ctx.fillText('🍄', m.x, m.y);
+                });
+            }
+
+            drawDynamicEntities() {
+                this.ctx.globalAlpha = 1.0;
+                this.dynamicEntities.forEach(e => {
                     let emoji = '';
                     let fontSize = '1rem';
                     let textShadow = 'none';
 
-                    if (e.entityType === 'seed') {
+                    if (e.type === 'seed') {
                         emoji = Config.Emojis.SEED;
                         fontSize = '0.5rem'; // Tiny
-                        textShadow = '0 0 2px black, 0 0 2px black, 0 0 2px black'; 
+                        // Use text shadow to make the emoji appear dark/black
+                        textShadow = '0 0 2px black, 0 0 2px black, 0 0 2px black';
                     }
-                    else if (e.entityType === 'brownMushroom') emoji = Config.Emojis.BROWN_MUSHROOM;
-                    else if (e.entityType === 'flower') emoji = Config.Emojis.FLOWER;
-                    else if (e.entityType === 'diamond') emoji = Config.Emojis.DIAMOND;
-                    
+                    else if (e.type === 'brownMushroom') emoji = Config.Emojis.BROWN_MUSHROOM;
+                    else if (e.type === 'flower') emoji = Config.Emojis.FLOWER;
+                    else if (e.type === 'diamond') emoji = Config.Emojis.DIAMOND;
+
                     if (emoji) {
-                        ctx.font = `${fontSize} monospace`;
-                        ctx.shadowColor = textShadow === 'none' ? 'transparent' : 'black';
-                        ctx.shadowBlur = textShadow === 'none' ? 0 : 2;
-                        ctx.fillText(emoji, e.x, e.y);
-                        ctx.shadowBlur = 0; // Reset shadow
+                        this.ctx.font = `${fontSize} monospace`;
+                        this.ctx.shadowColor = textShadow === 'none' ? 'transparent' : 'black';
+                        this.ctx.shadowBlur = textShadow === 'none' ? 0 : 2;
+                        this.ctx.fillText(emoji, e.x, e.y);
+                        this.ctx.shadowBlur = 0; // Reset shadow
                     }
-                }
+                });
             }
         }
 
@@ -691,22 +688,23 @@
         // 2. WORLD MANAGER (Environment, Paths, Grass)
         // ====================================================================
 
-        // UPDATED: Adapted for single-canvas rendering and depth sorting.
+        // UPDATED: Major changes to grass generation, updates, and rendering architecture.
         class WorldManager {
-            // grassCtx is removed, mainCtx is added.
-            constructor(width, height, pathCtx, mainCtx, entityManager, assetManager) {
+            // Removed grassCtx from constructor as grass is now drawn on the main canvas.
+            constructor(width, height, pathCtx, entityManager, assetManager) {
                 this.width = width;
                 this.height = height;
                 this.pathCtx = pathCtx;
-                this.mainCtx = mainCtx; // NEW: Reference to the main canvas context
+                // this.grassCtx removed
                 this.entityManager = entityManager;
                 this.assetManager = assetManager;
 
                 this.pathGrid = [];
-                
+
                 // Grass structures
                 this.grassBlades = [];
-                
+                // needsGrassRedraw removed; grass is redrawn every frame for sorting.
+
                 this.initializeGrid();
             }
 
@@ -738,13 +736,13 @@
                 this.height = height;
                 this.initializeGrid();
                 // Regenerate grass field on resize to fill the new area correctly.
-                this.grassBlades = []; 
-                this.generateGrassField(); 
+                this.grassBlades = [];
+                this.generateGrassField();
                 this.redrawWorld();
             }
 
             redrawWorld() {
-                // Redraw Paths (on the path canvas)
+                // Redraw Paths (Only paths are drawn here now)
                 this.pathCtx.clearRect(0, 0, this.width, this.height);
                 for (let i = 0; i < this.pathGrid.length; i++) {
                     for (let j = 0; j < this.pathGrid[i].length; j++) {
@@ -754,13 +752,15 @@
                         }
                     }
                 }
-                // Grass is redrawn in the main loop.
+                // Grass redraw is handled in the main Game loop now.
             }
 
             // --- Utility Functions ---
             isValidCell(gridX, gridY) {
                 return gridX >= 0 && gridX < this.pathGrid.length && gridY >= 0 && gridY < this.pathGrid[0].length;
             }
+
+            // removeGrassInArea is no longer needed as alterGround handles removal/transformation correctly now.
 
             getTerrainInfoAtPoint(x, y) {
                 const gridX = Math.floor(x / Config.GRID_CELL_SIZE);
@@ -773,10 +773,10 @@
             }
 
             // --- GRASS MANAGEMENT ---
-            
-            // (generateGrassField remains unchanged)
+
+            // REWRITTEN: Generates grass in clumps instead of uniformly.
             generateGrassField() {
-                // If blades already exist, don't regenerate yet.
+                // If blades already exist (e.g. during initialization phase), don't regenerate yet.
                 if (this.grassBlades.length > 0) {
                     return;
                 }
@@ -789,93 +789,126 @@
                     return;
                 }
 
-                // Iterate to create the desired number of clumps
+                // Iterate through the desired number of clumps
                 for (let i = 0; i < Config.GRASS_CLUMP_COUNT; i++) {
-                    // Find a center point for the clump
+                    // 1. Choose clump center point
                     const centerX = Math.random() * this.width;
                     const centerY = Math.random() * this.height;
-                    
-                    // Determine the number of blades in this clump
+
+                    // 2. Choose clump size (e.g., 3 to 6 blades)
                     const clumpSize = Math.floor(Utils.randomRange(Config.GRASS_CLUMP_MIN_SIZE, Config.GRASS_CLUMP_MAX_SIZE + 1));
 
+                    // 3. Generate blades within the clump radius
                     for (let j = 0; j < clumpSize; j++) {
-                        // Calculate blade position within the clump radius using polar coordinates
                         const angle = Math.random() * Math.PI * 2;
-                        const radius = Math.random() * Config.GRASS_CLUMP_RADIUS;
-                        const xPx = centerX + Math.cos(angle) * radius;
-                        const yPx = centerY + Math.sin(angle) * radius;
+                        const distance = Math.random() * Config.GRASS_CLUMP_RADIUS;
+                        const xPx = centerX + Math.cos(angle) * distance;
+                        const yPx = centerY + Math.sin(angle) * distance;
 
-                        // Ensure the blade is within world bounds
+                        // Basic bounds check
                         if (xPx < 0 || xPx >= this.width || yPx < 0 || yPx >= this.height) continue;
-
-                        // Determine the grid cell (needed for terrain/wear lookup later)
-                        const gridX = Math.floor(xPx / Config.GRID_CELL_SIZE);
-                        const gridY = Math.floor(yPx / Config.GRID_CELL_SIZE);
-
-                        // Safety check for valid grid cell
-                        if (!this.isValidCell(gridX, gridY)) continue;
 
                         const blade = {
                             x: xPx,
                             y: yPx,
-                            gridX: gridX, // Store grid coordinates for efficient lookup
-                            gridY: gridY,
                             imageIndex: Math.floor(Math.random() * grassImageCount),
-                            scale: Utils.randomRange(0.4, 0.8), 
-                            offsetX: 0, 
-                            offsetY: 0, 
-                            angle: 0    
+                            // UPDATED: Scale reduced by half (was 0.8 to 1.6)
+                            scale: Utils.randomRange(0.4, 0.8),
+                            // UPDATED: Initial health (opacity) set to 50%
+                            health: 0.5,
+                            offsetX: 0, // For slide animation
+                            offsetY: 0, // For slide animation
+                            angle: 0,   // For bend animation (radians)
+                            isAlien: false // NEW: Flag for alien grass type
                         };
-                        
+
                         this.grassBlades.push(blade);
                     }
                 }
             }
 
-            // (interactWithGrass remains unchanged, only affects animation state)
+            // UPDATED: Handles interaction (sliding, bending) for animation ONLY. Wear/Health impact removed.
             interactWithGrass(impactX, impactY, radius) {
                 const radiusSq = radius * radius;
 
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
+                    // Interaction correctly calculated based on the BASE of the grass (blade.x/y)
                     const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
 
                     if (distSq < radiusSq) {
-                        
-                        // Apply Slide and Bend Animation
+
+                        // 1. Apply Wear (REMOVED)
+                        // 2. Check for Death (REMOVED - handled in updateGrassHealthFromDirt)
+
+                        // 3. Apply Slide and Bend Animation (Kept)
                         const distance = Math.sqrt(distSq);
                         if (distance > 0.1) {
-
                             // Calculate vector from impact point to the blade
                             const dx = blade.x - impactX;
                             const dy = blade.y - impactY;
-                            
+
                             // Normalize the vector
                             const nx = dx / distance;
                             const ny = dy / distance;
 
                             // Calculate intensity (stronger when closer)
                             const intensity = (1 - (distance / radius));
-                            
+
                             // Slide
                             const slideAmount = intensity * Config.GRASS_SLIDE_DISTANCE;
                             blade.offsetX = nx * slideAmount;
                             blade.offsetY = ny * slideAmount;
 
-                            // Bend
+                            // Bend (Rotation based primarily on horizontal displacement direction)
                             blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
                         }
                     }
                 }
+                // needsGrassRedraw logic removed.
             }
 
-            // UPDATED: Simplified as we no longer need to track if a redraw is needed (always redraw).
+            // NEW: Updates grass health based on the wear level of the dirt underneath.
+            updateGrassHealthFromDirt() {
+                for (let i = this.grassBlades.length - 1; i >= 0; i--) {
+                    const blade = this.grassBlades[i];
+
+                    // Find the grid cell the blade occupies
+                    const gridX = Math.floor(blade.x / Config.GRID_CELL_SIZE);
+                    const gridY = Math.floor(blade.y / Config.GRID_CELL_SIZE);
+
+                    if (this.isValidCell(gridX, gridY)) {
+                        const cell = this.pathGrid[gridX][gridY];
+                        const wearRatio = cell.wear / Config.MAX_WEAR;
+
+                        // Health = Base Opacity (0.5) * (1 - WearRatio)
+                        // If wear is 0, health is 0.5. If wear is 100, health is 0.
+                        blade.health = 0.5 * (1 - wearRatio);
+
+                    } else {
+                        // Fallback health if somehow off-grid
+                        blade.health = 0.5;
+                    }
+
+                    // Check for Death
+                    if (blade.health <= Config.GRASS_DEATH_THRESHOLD) {
+                        this.grassBlades.splice(i, 1);
+                    }
+                }
+            }
+
+
+            // Update loop for grass (handles animation decay AND health updates)
             updateGrass(deltaTime) {
+                // 1. Update health based on underlying dirt wear
+                this.updateGrassHealthFromDirt();
+
+                // 2. Handle animation decay (springing back)
                 const decayRate = 5; // How quickly the grass springs back (higher is faster)
 
                 for (const blade of this.grassBlades) {
                     const needsUpdate = Math.abs(blade.offsetX) > 0.1 || Math.abs(blade.offsetY) > 0.1 || Math.abs(blade.angle) > 0.01;
-                    
+
                     if (needsUpdate) {
                         // Lerp offsets and angle back towards 0
                         blade.offsetX = Utils.lerp(blade.offsetX, 0, decayRate * deltaTime);
@@ -888,92 +921,65 @@
                         blade.angle = 0;
                     }
                 }
+                // needsGrassRedraw logic removed.
             }
 
-            // UPDATED: The main Game loop now calls drawBlade for each item after sorting.
-            drawGrass() {
-               // Deprecated/Empty. Drawing is handled via drawBlade in the main loop.
-            }
-
-            // NEW: Draws a single blade of grass (called by the sorted Game loop)
+            // NEW/REFACTORED: Draws a single blade of grass. Called by the main Game loop during sorted rendering.
             drawBlade(ctx, blade) {
-                // Use the provided context (the main canvas ctx)
+                // Determine which asset set to use (Standard or Alien)
+                const assetSet = blade.isAlien ? this.assetManager.images.alienGrass : this.assetManager.images.grass;
 
-                const grassImages = this.assetManager.images.grass;
-                const img = grassImages[blade.imageIndex];
-                if (!img || !img.complete) return;
+                // Ensure the index is valid for the selected set (important if sets have different lengths)
+                if (!assetSet || blade.imageIndex >= assetSet.length) return;
 
-                // 1. Determine Terrain and Wear
-                // Check bounds before accessing pathGrid
-                if (!this.isValidCell(blade.gridX, blade.gridY)) return;
+                const img = assetSet[blade.imageIndex];
 
-                const cell = this.pathGrid[blade.gridX][blade.gridY];
-                const wear = cell.wear;
-                const terrainType = cell.terrainType;
+                if (!img || !img.complete) return; // Ensure image is valid and loaded
 
-                // 2. Calculate Opacity based on Wear
-                let opacity = Config.GRASS_BASE_OPACITY;
-                if (wear > Config.GRASS_WEAR_FADE_THRESHOLD) {
-                    const fadeProgress = (wear - Config.GRASS_WEAR_FADE_THRESHOLD) / (Config.MAX_WEAR - Config.GRASS_WEAR_FADE_THRESHOLD);
-                    opacity = Utils.lerp(Config.GRASS_BASE_OPACITY, 0, fadeProgress);
-                }
-
-                if (opacity < 0.05) return; // Skip drawing if nearly invisible
-
-                // 3. Setup drawing parameters
                 const width = img.width * blade.scale;
                 const height = img.height * blade.scale;
-                
+
+                // Calculate the position of the base of the blade (pivot point)
                 const baseX = blade.x + blade.offsetX;
                 const baseY = blade.y + blade.offsetY;
 
-                // 4. Draw (handling rotation and tinting)
-                const isTinted = terrainType === TerrainType.ALIEN_BLUE;
+                // Set opacity based on health
+                ctx.globalAlpha = Math.max(0, blade.health);
 
-                // Set alpha just for this draw call
-                ctx.globalAlpha = opacity;
-
+                // Apply rotation around the base of the blade
                 if (blade.angle !== 0) {
                     ctx.save();
                     ctx.translate(baseX, baseY);
                     ctx.rotate(blade.angle);
-                    
-                    if (isTinted) {
-                        this.assetManager.drawTinted(ctx, img, -width / 2, -height, width, height, Config.COLOR_ALIEN_TINT);
-                    } else {
-                        ctx.drawImage(img, -width / 2, -height, width, height);
-                    }
+                    // Draw the image relative to the translated/rotated origin
+                    // We draw it offset by (-width/2, -height) so the origin is the bottom center
+                    ctx.drawImage(img, -width / 2, -height, width, height);
                     ctx.restore();
                 } else {
                     // Optimized drawing for non-rotated blades
                     const drawX = baseX - width / 2;
                     const drawY = baseY - height;
-
-                    if (isTinted) {
-                        this.assetManager.drawTinted(ctx, img, drawX, drawY, width, height, Config.COLOR_ALIEN_TINT);
-                    } else {
-                        ctx.drawImage(img, drawX, drawY, width, height);
-                    }
+                    ctx.drawImage(img, drawX, drawY, width, height);
                 }
-                
-                // Reset alpha immediately after drawing the blade
+
+                // Reset alpha for subsequent draws
                 ctx.globalAlpha = 1.0;
             }
 
 
             // --- WEAR AND TEAR (Dirt Paths) ---
-
-            // (applyMovementWear, applyLandingImpact remain unchanged)
-            applyMovementWear(startX, startY, endX, endY, buffManager, interactionPointX, interactionPointY) {
+            // UPDATED: Removed direct grass wear, kept grass interaction animation.
+            applyMovementWear(startX, startY, endX, endY, buffManager) {
                 const distance = Utils.distance(startX, startY, endX, endY);
                 // Use smaller steps for smoother interaction detection
-                const steps = Math.ceil(distance / 5); 
+                const steps = Math.ceil(distance / 5);
                 if (steps === 0) return;
 
                 const buffs = buffManager.getActiveBuffs();
                 let dirtWearMultiplier = Config.WEAR_PER_PIXEL;
-                
-                // Buff multipliers (Grass wear is no longer calculated here)
+                // grassWearAmount removed.
+
+                // Buff multipliers (Dirt only)
                 if (buffs.coffee) {
                     dirtWearMultiplier *= (1 + 1.0 * buffs.coffee.potency);
                 }
@@ -993,32 +999,36 @@
                 const isHeavy = buffs.pizza || buffs.mushroom;
                 const currentDotRadius = Game.instance.wanderDot.radius;
 
+                // Define interaction radius for the animation effect
+                const interactionRadius = 35;
+
                 for (let i = 0; i <= steps; i++) {
                     const t = i / steps;
                     const currentX = Utils.lerp(startX, endX, t);
                     const currentY = Utils.lerp(startY, endY, t);
-                    
-                    // 1. Apply Wear to Dirt Path
+
+                    // 1. Apply Wear to Dirt Path (Preserved logic)
                     this.applyWearToArea(currentX, currentY, dirtWearRadius, (distance/steps) * dirtWearMultiplier);
+
+                    // 2. Interact with Grass (Animation only)
+                    this.interactWithGrass(currentX, currentY, interactionRadius);
 
                     // 3. Entity Destruction while rolling
                     if (isHeavy) {
                         this.entityManager.removeDynamicEntitiesInArea(currentX, currentY, currentDotRadius);
                     }
                 }
-
-                // 2. Interact with Grass (Visual movement only, using the specific interaction point)
-                // This is done once per frame using the designated interaction point (south edge), rather than interpolated steps.
-                this.interactWithGrass(interactionPointX, interactionPointY, Config.GRASS_INTERACTION_RADIUS);
             }
 
+            // UPDATED: Removed direct grass wear, kept grass interaction animation.
             applyLandingImpact(x, y, moodState, buffManager) {
                 let impactWear = Config.BASE_IMPACT_WEAR;
+                // grassImpactWear removed.
 
                 const buffs = buffManager.getActiveBuffs();
                 const isHeavy = buffs.pizza || buffs.mushroom;
 
-                // Buff multipliers
+                // Buff multipliers (Dirt only)
                 if (buffs.coffee) {
                     impactWear *= (1 + 1.0 * buffs.coffee.potency);
                 }
@@ -1035,12 +1045,13 @@
                 }
 
                 const impactRadius = 2.5;
-                
-                // 1. Apply Wear to Dirt Path
+
+                // 1. Apply Wear to Dirt Path (Preserved logic)
                 this.applyWearToArea(x, y, impactRadius, impactWear, true);
-                
-                // 2. Interact with Grass (Visual movement only)
-                this.interactWithGrass(x, y, Config.GRASS_LANDING_RADIUS);
+
+                // 2. Interact with Grass (Animation only)
+                const landingInteractionRadius = 60;
+                this.interactWithGrass(x, y, landingInteractionRadius);
 
                 // 3. Entity Destruction on impact
                 this.entityManager.removeMushroomInArea(x, y, Config.BASE_RADIUS * 2);
@@ -1051,7 +1062,7 @@
                 }
             }
 
-            // UPDATED: No longer need to explicitly trigger grass redraw, as it happens every frame.
+            // (applyWearToArea remains unchanged, only affects the dirt pathGrid)
             applyWearToArea(x, y, radius, wearAmount, useFalloff = false) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -1060,9 +1071,9 @@
                 for (let i = -Math.ceil(radius); i <= Math.ceil(radius); i++) {
                     for (let j = -Math.ceil(radius); j <= Math.ceil(radius); j++) {
                         const distSq = i * i + j * j;
-                        
-                        if (!useFalloff && distSq > radiusSq) continue; 
-                        
+
+                        if (!useFalloff && distSq > radiusSq) continue;
+
                         const distance = Math.sqrt(distSq);
                         if (useFalloff && distance > radius) continue;
 
@@ -1072,7 +1083,7 @@
                         if (this.isValidCell(gridX, gridY)) {
                             const cell = this.pathGrid[gridX][gridY];
                             const oldWear = cell.wear;
-                            
+
                             let effectiveWear = wearAmount;
                             if (useFalloff) {
                                 const falloff = 1 - (distance / radius);
@@ -1101,11 +1112,11 @@
                 switch (cell.terrainType) {
                     case TerrainType.ALIEN_BLUE:
                         baseColor = Config.COLOR_ALIEN_BLUE;
-                        targetColor = Config.COLOR_DIRT; 
-                        baseOpacity = cell.mistOpacity ?? 0; 
+                        targetColor = Config.COLOR_DIRT;
+                        baseOpacity = cell.mistOpacity ?? 0;
                         break;
                     case TerrainType.ALIEN_CLAY:
-                        baseColor = Config.COLOR_DIRT; 
+                        baseColor = Config.COLOR_DIRT;
                         targetColor = Config.COLOR_ALIEN_CLAY;
                         baseOpacity = 0.2;
                         break;
@@ -1138,12 +1149,12 @@
                 if (cell.wear > Config.PEBBLE_SPAWN_THRESHOLD) {
                     let spawnChance = 0.01;
                     let pebbleType = 'normal';
-                    
+
                     if (cell.terrainType === TerrainType.ALIEN_BLUE) {
                         spawnChance = 0.03;
                         pebbleType = 'spaceRock';
                     } else if (cell.terrainType === TerrainType.ALIEN_CLAY) {
-                        spawnChance = 0.008; 
+                        spawnChance = 0.008;
                     }
 
                     if (Math.random() < spawnChance) {
@@ -1184,28 +1195,30 @@
             }
 
             // --- UFO/ALIEN TERRAFORMING ---
-            // (alterGround remains unchanged)
+            // UPDATED: Now correctly transforms grass to alien type or removes it based on the new terrain.
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
                 const alterRadius = 3;
+                const alterationPixelRadius = alterRadius * Config.GRID_CELL_SIZE;
 
+                // 1. Update the underlying Path Grid (Logic unchanged)
                 for(let i = -alterRadius; i <= alterRadius; i++) {
                     for (let j = -alterRadius; j <= alterRadius; j++) {
                         const distSq = i*i + j*j;
                         if (distSq > alterRadius * alterRadius) continue;
-                        
+
                         const gridX = centerX + i;
                         const gridY = centerY + j;
 
                         if (this.isValidCell(gridX, gridY)) {
                             const cell = this.pathGrid[gridX][gridY];
-                            
+
                             // Terrain type determination relies on the underlying dirt path wear
                             const isGrass = cell.wear < Config.GRASS_REMOVAL_THRESHOLD;
                             const targetType = isGrass ? TerrainType.ALIEN_BLUE : TerrainType.ALIEN_CLAY;
 
-                            
+
                             if (targetType === TerrainType.ALIEN_BLUE) {
                                 const distance = Math.sqrt(distSq);
                                 const falloff = 1 - (distance / alterRadius);
@@ -1216,7 +1229,7 @@
                             if (cell.terrainType !== targetType) {
                                 cell.terrainType = targetType;
                             }
-                            
+
                             this.drawPathCell(gridX, gridY);
 
                             // Spawn Mushrooms (using configured reduced chance)
@@ -1226,6 +1239,27 @@
                         }
                     }
                 }
+
+                // 2. Update Grass Blades based on new terrain
+                const radiusSq = alterationPixelRadius * alterationPixelRadius;
+                for (let i = this.grassBlades.length - 1; i >= 0; i--) {
+                    const blade = this.grassBlades[i];
+                    const distSq = (blade.x - x)**2 + (blade.y - y)**2;
+
+                    if (distSq < radiusSq) {
+                        // Check the new terrain type at the blade's specific location
+                        const terrainInfo = this.getTerrainInfoAtPoint(blade.x, blade.y);
+
+                        if (terrainInfo.type === TerrainType.ALIEN_BLUE) {
+                            // Transform to alien grass
+                            blade.isAlien = true;
+                        } else if (terrainInfo.type === TerrainType.ALIEN_CLAY) {
+                            // Remove grass on clay (as it's barren)
+                            this.grassBlades.splice(i, 1);
+                        }
+                        // If it's still NORMAL (unlikely in the center of the blast, but possible), do nothing.
+                    }
+                }
             }
         }
 
@@ -1233,14 +1267,14 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
+        // UPDATED: Added getBaseY() for dynamic sorting.
         class WanderDot {
-            // (Constructor and Mood Logic remain unchanged)
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
                 this.previousX = x;
                 this.previousY = y;
-                
+
                 this.radius = Config.BASE_RADIUS;
                 this.color = Utils.lerpColor(Config.COLOR_NORMAL, Config.COLOR_NORMAL, 0);
 
@@ -1257,7 +1291,7 @@
                 this.currentMoodState = 'normal';
                 this.isCalm = false;
                 this.isHangry = false;
-                
+
                 // Behavior state
                 this.isEating = false;
                 this.eatingStartTime = 0;
@@ -1267,6 +1301,12 @@
                 this.distanceTraveledOnCurrentBounce = 0;
                 this.jiggleEndTime = 0;
                 this.verticalOffset = 0;
+            }
+
+            // NEW: Returns the Y coordinate of the bottom of the dot for sorting purposes.
+            getBaseY() {
+                // The base is the bottom edge of the visual circle (accounting for bounce)
+                return this.y - this.verticalOffset + this.radius;
             }
 
             setTarget(x, y) {
@@ -1387,14 +1427,14 @@
 
             updateAppearance(buffManager) {
                 const buffs = buffManager.getActiveBuffs();
-                
+
                 let speed = Config.BASE_SPEED;
                 let radius = Config.BASE_RADIUS;
 
                 if (buffs.coffee) {
                     speed *= (1 + 0.3 * buffs.coffee.potency);
                 }
-                
+
                 // Pizza and Mushroom both increase size (0.3 factor each)
                 if (buffs.pizza) {
                     radius *= (1 + 0.3 * buffs.pizza.potency);
@@ -1421,28 +1461,29 @@
             }
 
             // --- MOVEMENT & BEHAVIOR LOGIC ---
-            // UPDATED: Calculates the interaction point for grass movement.
             updatePosition(deltaTime, bounds, buffManager, worldManager, entityManager) {
                 this.previousX = this.x;
                 this.previousY = this.y;
 
-                // 1. Determine behavior and direction (Unchanged)
+                // 1. Determine behavior and direction
                 let movementAllowed = true;
-                
-                // Check if eating target still exists
+
+                // Check if eating target still exists (if it was destroyed before reaching it)
                 if (this.isEating && this.eatingStartTime === 0 && this.eatingTarget && !entityManager.mushrooms.includes(this.eatingTarget)) {
                     this.eatingTarget = null;
                     this.isEating = false;
                     this.clearTarget();
+                    // Hide the seeking thought if it was active
                     if (Game.instance.uiManager.getCurrentThought() === Config.Emojis.EATING_SEEKING) {
                         Game.instance.uiManager.hideThought();
                     }
                 }
 
                 if (this.isEating) {
+                    // handleEatingBehavior returns true if movement is allowed (seeking), false if stationary (chewing)
                     movementAllowed = this.handleEatingBehavior(entityManager, buffManager);
-                } 
-                
+                }
+
                 if (movementAllowed) {
                     if (this.targetX !== null) {
                         this.moveToTarget();
@@ -1456,17 +1497,17 @@
                 }
 
 
-                // 2. Calculate movement distance (Unchanged)
+                // 2. Calculate movement distance
                 const buffs = buffManager.getActiveBuffs();
                 let effectiveSpeed = this.speed * this.currentSpeedMultiplier;
-                
+
                 if (buffs.kangaroo) {
                     effectiveSpeed = Config.BASE_SPEED * (buffs.kangaroo.isEureka ? 1.3 : 1.0);
                 }
-                
+
                 const distanceMoved = effectiveSpeed * deltaTime;
 
-                // 3. Apply movement (Unchanged)
+                // 3. Apply movement
                 this.x += this.dx * distanceMoved;
                 this.y += this.dy * distanceMoved;
 
@@ -1474,25 +1515,19 @@
                 if (buffs.kangaroo) {
                     this.handleBounce(distanceMoved, buffManager, worldManager);
                 } else {
-                    this.verticalOffset = 0; 
+                    this.verticalOffset = 0;
                     if (movementAllowed) {
-                        // NEW: Calculate the interaction point (South edge of the WanderDot)
-                        // This is the point where the grass should react to the movement.
-                        const interactionX = this.x;
-                        const interactionY = this.y + this.radius;
-
-                         // Pass the interaction point to the world manager
-                         worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager, interactionX, interactionY);
+                         // This now handles both dirt wear AND grass interaction animation
+                         worldManager.applyMovementWear(this.previousX, this.previousY, this.x, this.y, buffManager);
                     }
                 }
 
-                // 5. Boundary Collision (Unchanged)
+                // 5. Boundary Collision
                 if (movementAllowed) {
                     this.handleBoundaries(bounds);
                 }
             }
 
-            // (handleEatingBehavior, moveToTarget, wander remain unchanged)
             handleEatingBehavior(entityManager, buffManager) {
                 const uiManager = Game.instance.uiManager;
 
@@ -1500,7 +1535,7 @@
                 if (this.targetX !== null) {
                     if (uiManager.getCurrentThought() !== Config.Emojis.EATING_SEEKING) {
                         // Show for a long duration, ensuring it stays up until consumption or interruption
-                        uiManager.showThought(Config.Emojis.EATING_SEEKING, 60000); 
+                        uiManager.showThought(Config.Emojis.EATING_SEEKING, 60000);
                     }
                     return true; // Allow movement
                 }
@@ -1513,7 +1548,7 @@
                         entityManager.removeMushroomByObject(this.eatingTarget);
                         this.eatingTarget = null; // Target is now consumed/held
                     }
-                    // Show initial thought, will be updated dynamically. 
+                    // Show initial thought, will be updated dynamically.
                     // Set a slightly longer duration as a fallback.
                     uiManager.showThought(Config.Emojis.EATING_CONSUMING, Config.EAT_DURATION + 500);
                 }
@@ -1525,7 +1560,7 @@
                 if (remaining <= 0) {
                     this.isEating = false;
                     this.eatingStartTime = 0;
-                    
+
                     // Apply the buff (using the flat duration)
                     buffManager.addBuffTime('mushroom', Config.MUSHROOM_BUFF_DURATION);
 
@@ -1547,7 +1582,7 @@
             moveToTarget() {
                 const targetX = this.targetX;
                 const targetY = this.targetY;
-                
+
                 const vecX = targetX - this.x;
                 const vecY = targetY - this.y;
                 const distanceToTarget = Math.sqrt(vecX * vecX + vecY * vecY);
@@ -1572,7 +1607,7 @@
                 if (this.isEating || this.isHangry) {
                     return;
                 }
-                
+
                 // Don't seek new mushrooms if the mushroom buff is already active
                 if (!buffManager.getActiveBuffs().mushroom) {
                     const nearbyMushroom = entityManager.getNearbyMushroom(this.x, this.y, Config.EAT_DETECTION_RADIUS);
@@ -1581,7 +1616,7 @@
                         this.eatingTarget = nearbyMushroom;
                         this.targetX = nearbyMushroom.x;
                         this.targetY = nearbyMushroom.y;
-                        return; 
+                        return;
                     }
                 }
 
@@ -1608,9 +1643,9 @@
             }
 
             land(buffManager, worldManager) {
-                // Landing impact uses the center point (x, y) as it's a stomp, not a rolling movement.
+                // This now handles both dirt impact AND grass interaction animation
                 worldManager.applyLandingImpact(this.x, this.y, this.currentMoodState, buffManager);
-                
+
                 this.jiggleEndTime = Date.now();
                 this.verticalOffset = 0;
                 this.distanceTraveledOnCurrentBounce = 0;
@@ -1648,7 +1683,7 @@
             }
 
             // --- RENDERING ---
-            // (Draw implementation remains unchanged)
+            // UPDATED: Shadow drawing logic updated slightly to ensure it always draws on the ground (Y) regardless of vertical offset.
             draw(ctx) {
                 let scaleFactor = 1;
                 const buffs = Game.instance.buffManager.getActiveBuffs();
@@ -1665,7 +1700,8 @@
                 if (!(this.isEating && this.eatingStartTime > 0)) {
                     ctx.beginPath();
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-                    const shadowY = this.y + this.radius; 
+                    // Shadow Y is based on ground position (this.y), not the visual position (drawY)
+                    const shadowY = this.y + this.radius;
                     const shadowScale = 1 - (this.verticalOffset / (Config.BOUNCE_HEIGHT * 3));
                     const shadowRadiusX = currentRadius * shadowScale;
                     const shadowRadiusY = (currentRadius / 3) * shadowScale;
@@ -1676,9 +1712,9 @@
 
                 // Draw Circle
                 ctx.save();
-                
+
                 let drawY = this.y - this.verticalOffset;
-                
+
                 ctx.translate(this.x, drawY);
 
                 // Landing Jiggle Effect
@@ -1702,7 +1738,7 @@
                 ctx.fillStyle = this.color;
                 ctx.fill();
                 ctx.closePath();
-                
+
                 // Draw held item (Mushroom) during chewing phase
                 if (this.isEating && this.eatingStartTime > 0) {
                     const elapsed = Date.now() - this.eatingStartTime;
@@ -1715,10 +1751,10 @@
                     ctx.textBaseline = 'middle';
 
                     // Draw offset to the side (e.g., right side, 70% of radius) and near the "mouth" level (20% down)
-                    const mushroomX = this.radius * 0.7; 
+                    const mushroomX = this.radius * 0.7;
                     const mushroomY = this.radius * 0.2 + mushroomWiggleY;
 
-                    ctx.fillText('🍄', mushroomX, mushroomY); 
+                    ctx.fillText('🍄', mushroomX, mushroomY);
                 }
 
                 ctx.restore();
@@ -1763,7 +1799,7 @@
                     const indicator = document.createElement('div');
                     indicator.className = 'buff-indicator';
                     indicator.id = `buff-indicator-${name}`;
-                    
+
                     const timerHTML = buff.hideTimer ? '' : '<div class="buff-timer"></div>';
 
                     indicator.innerHTML = `
@@ -1793,7 +1829,7 @@
                 const minutes = Math.floor(remainingSeconds / 60);
                 const seconds = remainingSeconds % 60;
                 const timerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
+
                 const timerEl = buff.indicator.querySelector('.buff-timer');
                 if (timerEl) {
                     timerEl.textContent = timerText;
@@ -1839,7 +1875,7 @@
 
             deactivateBuff(name, force = false) {
                 const buff = this.buffs[name];
-                
+
                 if ((buff.endTime === 0 && !buff.isEnding)) return;
 
                 if (name === 'kangaroo' && !force) {
@@ -2002,7 +2038,7 @@
                 }
             }
         }
-        
+
         // ====================================================================
         // 5. PARTICLE SYSTEM & UFO
         // ====================================================================
@@ -2028,7 +2064,7 @@
             }
 
             spawnUFOMist(x, y) {
-                if (Math.random() < 0.5) return; 
+                if (Math.random() < 0.5) return;
 
                 this.particles.push({
                     type: 'mist',
@@ -2084,7 +2120,7 @@
                 if (this.active) return;
                 this.active = true;
                 this.y = Math.random() * (this.bounds.height * 0.6) + (this.bounds.height * 0.1);
-                
+
                 if(Math.random() < 0.5) {
                     this.direction = 1;
                     this.x = -50;
@@ -2098,11 +2134,11 @@
                 if (!this.active) return;
 
                 this.x += this.speed * this.direction * deltaTime;
-                
+
                 particleManager.spawnUFOMist(this.x, this.y);
-                
+
                 if(Math.random() < 0.1) {
-                    // This now triggers grass redraw via the updated alterGround function if terrain changes.
+                    // This now also transforms/removes grass blades via the updated alterGround function.
                     worldManager.alterGround(this.x + (Math.random() - 0.5) * 50, this.y + (Math.random() - 0.5) * 50);
                 }
 
@@ -2134,7 +2170,7 @@
                 this.worldTimerElement = document.getElementById('world-timer');
                 this.timerContainer = document.getElementById('timer-container');
                 this.timerIcon = document.getElementById('timer-icon');
-                
+
                 this.idleThoughtTimer = null;
                 this.madThoughtTimer = null;
                 this.thoughtTimeout = null;
@@ -2145,7 +2181,7 @@
                 this.targetBubbleAngle = -Math.PI / 2;
                 this.riseStartTime = 0;
                 this.bounceEndTime = 0;
-                
+
                 this.isMouseOverBubble = false;
                 this.thoughtTimeoutStartTime = 0;
                 this.thoughtTimeoutDuration = 0;
@@ -2199,14 +2235,14 @@
                 if (this.thoughtBubble.style.display === 'block') {
                     const span = this.thoughtBubble.querySelector('span');
                     if (span) {
-                       if (span.textContent !== content) {
-                            span.textContent = content;
-                       }
-                       // Adjust font size if needed for compact display (like timers)
-                       const targetFontSize = isCompact ? '1.5rem' : '2.5rem';
-                       if (this.thoughtBubble.style.fontSize !== targetFontSize) {
-                           this.thoughtBubble.style.fontSize = targetFontSize;
-                       }
+                         if (span.textContent !== content) {
+                             span.textContent = content;
+                        }
+                        // Adjust font size if needed for compact display (like timers)
+                        const targetFontSize = isCompact ? '1.5rem' : '2.5rem';
+                        if (this.thoughtBubble.style.fontSize !== targetFontSize) {
+                             this.thoughtBubble.style.fontSize = targetFontSize;
+                        }
                     }
                 }
             }
@@ -2251,9 +2287,9 @@
             handleThoughtClick() {
                 // Get the current thought emoji (handles timer text stripping)
                 const emoji = this.getCurrentThought();
-                
+
                 const collected = Game.instance.itemManager.addItem(emoji);
-                
+
                 if (!collected) {
                     if (emoji === '👽') {
                         Game.instance.ufo.activate();
@@ -2291,7 +2327,7 @@
                 const elapsedSeconds = Math.floor(elapsedTime / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
-                
+
                 let timerText = `Your WanderDot's world has existed for `;
                 if (minutes > 0) {
                     timerText += `${minutes} minute${minutes !== 1 ? 's' : ''} and `;
@@ -2330,7 +2366,7 @@
                 }
 
                 this.thoughtBubble.classList.remove('is-rising');
-                void this.thoughtBubble.offsetWidth; 
+                void this.thoughtBubble.offsetWidth;
                 this.thoughtBubble.classList.add('is-rising');
                 this.riseStartTime = Date.now();
             }
@@ -2339,18 +2375,18 @@
             scheduleNextIdleThought(delay = 7000) {
                 const IDLE_THOUGHT_DURATION = 4000;
                 const BREAK_DURATION = 7000;
-                
+
                 clearTimeout(this.idleThoughtTimer);
                 this.idleThoughtTimer = setTimeout(() => {
                     // Only show if idle (no target AND not eating) AND not annoyed AND not Hangry
-                    if (this.wanderDot.targetX === null && 
-                        !this.wanderDot.isEating && 
+                    if (this.wanderDot.targetX === null &&
+                        !this.wanderDot.isEating &&
                         !this.wanderDot.isHangry &&
                         this.wanderDot.annoyance < Config.WARNING_ANNOYANCE_THRESHOLD) {
-                        
+
                         const nextEmoji = this.getNextIdleEmoji();
                         this.showThought(nextEmoji, IDLE_THOUGHT_DURATION);
-                        
+
                         this.scheduleNextIdleThought(IDLE_THOUGHT_DURATION + 300 + BREAK_DURATION);
                     } else {
                         // If busy, eating, or annoyed/hangry, check again later
@@ -2431,7 +2467,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // UPDATED: Adapted for single-canvas rendering and depth sorting.
+        // UPDATED: Initialization adapted for new architecture. Draw loop rewritten for dynamic sorting.
         class Game {
             static instance = null;
 
@@ -2453,21 +2489,19 @@
                 this.assetManager.loadAll(() => this.initializeAfterLoading());
             }
 
-            // UPDATED: Removed initialization of entityCanvas and grassCanvas.
             initializeCanvases() {
                 this.worldContainer = document.getElementById('world-container');
-                
-                this.pathCanvas = document.getElementById('pathCanvas');
-                this.pathCtx = this.pathCanvas.getContext('2d');
-                
-                // Main Canvas handles everything now
                 this.mainCanvas = document.getElementById('mainCanvas');
                 this.ctx = this.mainCanvas.getContext('2d');
+                this.pathCanvas = document.getElementById('pathCanvas');
+                this.pathCtx = this.pathCanvas.getContext('2d');
+                this.entityCanvas = document.getElementById('entityCanvas');
+                this.entityCtx = this.entityCanvas.getContext('2d');
+                // Grass Canvas (grassCanvas/grassCtx) removed from initialization as it's no longer used.
 
                 this.resizeCanvases();
             }
 
-            // UPDATED: Simplified resize.
             resizeCanvases() {
                 const width = window.innerWidth;
                 const height = window.innerHeight;
@@ -2475,14 +2509,14 @@
                 this.worldContainer.style.width = `${width}px`;
                 this.worldContainer.style.height = `${height}px`;
 
-                this.mainCanvas.width = this.pathCanvas.width = width;
-                this.mainCanvas.height = this.pathCanvas.height = height;
+                // Removed grassCanvas from resize
+                this.mainCanvas.width = this.pathCanvas.width = this.entityCanvas.width = width;
+                this.mainCanvas.height = this.pathCanvas.height = this.entityCanvas.height = height;
             }
 
-            // (initializeAfterLoading remains unchanged)
             initializeAfterLoading() {
                 this.initializeGameObjects();
-                
+
                 // Initialize UIs
                 this.buffManager.initializeUI();
                 this.itemManager.initializeUI();
@@ -2495,25 +2529,22 @@
                 this.start(); // Start the animation loop
             }
 
-            // UPDATED: Pass the main context (this.ctx) to managers.
             initializeGameObjects() {
-                // Pass main ctx instead of entityCtx
-                this.entityManager = new EntityManager(this.ctx);
-                // Pass pathCtx and mainCtx
-                this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.ctx, this.entityManager, this.assetManager);
+                this.entityManager = new EntityManager(this.entityCtx);
+                // Pass the updated arguments (removed grassCtx)
+                this.worldManager = new WorldManager(this.bounds.width, this.bounds.height, this.pathCtx, this.entityManager, this.assetManager);
                 this.wanderDot = new WanderDot(this.bounds.width / 2, this.bounds.height / 2);
                 this.uiManager = new UIManager(this.wanderDot);
                 this.buffManager = new BuffManager(this.entityManager);
                 this.itemManager = new ItemManager(this.buffManager);
-                
+
                 this.particleManager = new ParticleSystem(this.ctx);
                 this.ufo = new UFO(this.ctx, this.bounds);
             }
 
-            // (finalizeInitialization remains unchanged)
             finalizeInitialization() {
                 // Generate the world fresh
-                this.worldManager.generateGrassField(); 
+                this.worldManager.generateGrassField();
                 this.worldManager.redrawWorld();
 
                 this.wanderDot.x = Utils.clamp(this.wanderDot.x, Config.BASE_RADIUS, this.bounds.width - Config.BASE_RADIUS);
@@ -2526,7 +2557,6 @@
             setupEventListeners() {
                 window.addEventListener('resize', () => this.handleResize());
                 // Use pointerdown for better responsiveness on all devices
-                // This works now because mainCanvas is the top layer.
                 this.mainCanvas.addEventListener('pointerdown', (event) => this.handleClick(event));
             }
 
@@ -2535,64 +2565,186 @@
 
                 // Resize canvases and the world container based on new window size
                 this.resizeCanvases();
-                
+
                 // Update bounds based on the new canvas size
                 this.bounds.width = this.mainCanvas.width;
                 this.bounds.height = this.mainCanvas.height;
 
                 // Notify managers to adapt to the new size
                 this.worldManager.handleResize(this.bounds.width, this.bounds.height);
+                this.entityManager.needsRedraw = true;
             }
 
-            // (handleClick, animate, updateTimeBasedSystems, update remain unchanged)
-            // ... [Methods omitted for brevity, they are identical to the previous turn] ...
+            handleClick(event) {
+                // Prevent default browser behavior (like drag/select)
+                event.preventDefault();
 
-            // UPDATED: Implements the depth sorting (Z-sorting) algorithm.
+                const clickX = event.clientX;
+                const clickY = event.clientY;
+
+                // Check if click is on the thought bubble (prevents interaction behind it)
+                if (this.uiManager.thoughtBubble.style.display === 'block') {
+                    const bubbleRect = this.uiManager.thoughtBubble.getBoundingClientRect();
+                    if (clickX >= bubbleRect.left && clickX <= bubbleRect.right &&
+                        clickY >= bubbleRect.top && clickY <= bubbleRect.bottom) {
+                        return;
+                    }
+                }
+
+                const currentTime = Date.now();
+                const timeDiff = currentTime - this.lastClickTime;
+
+                const distanceToCenter = Utils.distance(clickX, clickY, this.wanderDot.x, this.wanderDot.y - this.wanderDot.verticalOffset);
+                const isDirectClick = distanceToCenter <= this.wanderDot.radius;
+
+                let commandAccepted = false;
+
+                // Try to issue command
+                if (!isDirectClick) {
+                   // Attempt to set target. If it returns false, the command was ignored (Hangry or interrupted eating)
+                   commandAccepted = this.wanderDot.setTarget(clickX, clickY);
+                } else {
+                    // Direct click always registers as interaction (unless Hangry)
+                    commandAccepted = !this.wanderDot.isHangry;
+                    if (commandAccepted) {
+                        this.wanderDot.clearTarget();
+                        // Cancel eating on direct click. If chewing (eatingStartTime > 0), this causes Hangry.
+                        if (this.wanderDot.isEating) {
+                            if (this.wanderDot.eatingStartTime > 0) {
+                                this.wanderDot.triggerHangry();
+                                commandAccepted = false; // Hangry state overrides the initial acceptance
+                            } else {
+                                // Cancel seeking without penalty
+                                this.wanderDot.isEating = false;
+                                this.wanderDot.eatingTarget = null;
+                                if (this.uiManager.getCurrentThought() === Config.Emojis.EATING_SEEKING) {
+                                    this.uiManager.hideThought();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Calculate and apply annoyance if an interaction occurred OR if the dot is Hangry (to reinforce the anger)
+                if (commandAccepted || this.wanderDot.isHangry) {
+                    const annoyanceToAdd = Math.min(35, 10 + (2500 / timeDiff));
+                    const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
+
+                    // Show reaction thought, unless the dot is currently chewing (to avoid overriding 🤤 timer)
+                    if (!(this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0)) {
+                         this.uiManager.showThought(reactionEmoji);
+                    }
+                }
+
+                // Manage Mad Timer
+                const currentMood = this.wanderDot.currentMoodState;
+                if (currentMood === 'mad' && !this.uiManager.madThoughtTimer) {
+                     this.uiManager.startMadTimer();
+                }
+
+                this.lastClickTime = currentTime;
+                // Always reschedule idle thoughts after a click attempt
+                this.uiManager.scheduleNextIdleThought();
+            }
+
+            // Main game loop
+            animate(currentTime) {
+                requestAnimationFrame((time) => this.animate(time));
+
+                if (!this.isInitialized) return; // Wait until assets are loaded
+
+                if (!this.lastFrameTime) {
+                    this.lastFrameTime = currentTime;
+                    return;
+                }
+                const deltaTime = (currentTime - this.lastFrameTime) / 1000;
+
+                // Handle large deltaTime spikes (e.g., tab inactive)
+                if (deltaTime > 0.1) {
+                     this.lastFrameTime = currentTime;
+                     this.updateTimeBasedSystems();
+                     return;
+                }
+
+                this.lastFrameTime = currentTime;
+
+                this.update(deltaTime);
+                this.draw(deltaTime);
+            }
+
+            updateTimeBasedSystems() {
+                this.entityManager.update(this.worldManager);
+                this.buffManager.update();
+                this.uiManager.update(this.worldCreationTime);
+            }
+
+            update(deltaTime) {
+                // Update WanderDot
+                const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
+
+                if (transitionEmoji) {
+                    this.uiManager.showThought(transitionEmoji);
+                    if (transitionEmoji === Config.Emojis.cooldownToAnnoyed[0]) {
+                        this.uiManager.stopMadTimer();
+                    }
+                }
+
+                this.updateTimeBasedSystems();
+
+                // Update grass animations and health
+                this.worldManager.updateGrass(deltaTime);
+
+                // Update UFO
+                this.ufo.update(deltaTime, this.particleManager, this.worldManager);
+            }
+
+            // REWRITTEN: Implements dynamic sorting (Painter's Algorithm) for grass and WanderDot.
             draw(deltaTime) {
-                // 1. Clear the main canvas (Path canvas is handled separately by WorldManager during updates)
+                // Draw Grass (REMOVED - handled below)
+
+                // Clear main canvas
                 this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
 
-                // 2. Collect all sortable entities
-                let drawList = [];
+                // Draw environment/entities (on their respective canvases)
+                this.entityManager.draw(this.bounds);
 
-                // Add Grass Blades
-                // We wrap the blade data and create a closure function (draw) that calls the WorldManager's drawBlade helper.
-                drawList.push(...this.worldManager.grassBlades.map(b => ({
-                    y: b.y, // Sort by the base of the blade
-                    draw: (ctx) => this.worldManager.drawBlade(ctx, b) 
-                })));
+                // --- Dynamic Sorting (Z-sorting) ---
 
-                // Add Entities (Pebbles, Mushrooms, Dynamic Entities)
-                const entities = this.entityManager.getAllEntities();
-                drawList.push(...entities.map(e => ({
-                    y: e.y, // Sort by the entity's Y position
-                    draw: (ctx) => this.entityManager.drawEntity(ctx, e)
-                })));
+                // 1. Create a list of all objects to be sorted (Grass and WanderDot)
+                const sortedDrawables = [];
 
-                // Add WanderDot
-                drawList.push({
-                    // Sort by the south edge (base) of the WanderDot, accounting for the shadow position
-                    y: this.wanderDot.y + this.wanderDot.radius, 
-                    draw: (ctx) => this.wanderDot.draw(ctx)
-                });
-
-                // Add UFO (if active)
-                if (this.ufo.active) {
-                    drawList.push({
-                        y: this.ufo.y, // UFO center is fine for sorting
-                        draw: (ctx) => this.ufo.draw()
+                // Add grass blades
+                for (const blade of this.worldManager.grassBlades) {
+                    sortedDrawables.push({
+                        y: blade.y, // The base Y position of the grass blade
+                        type: 'grass',
+                        data: blade
                     });
                 }
 
-                // 3. Sort the list (Back to Front: Ascending Y order)
-                drawList.sort((a, b) => a.y - b.y);
+                // Add WanderDot
+                sortedDrawables.push({
+                    y: this.wanderDot.getBaseY(), // The base Y position of the WanderDot
+                    type: 'wanderdot',
+                    data: this.wanderDot
+                });
 
-                // 4. Draw everything in the sorted order
-                for (const item of drawList) {
-                    item.draw(this.ctx);
+                // 2. Sort the list by Y coordinate (ascending: back to front)
+                sortedDrawables.sort((a, b) => a.y - b.y);
+
+                // 3. Draw objects in sorted order on the main canvas (this.ctx)
+                for (const drawable of sortedDrawables) {
+                    if (drawable.type === 'grass') {
+                        this.worldManager.drawBlade(this.ctx, drawable.data);
+                    } else if (drawable.type === 'wanderdot') {
+                        drawable.data.draw(this.ctx);
+                    }
                 }
 
-                // 5. Draw particles (Drawn last, on top of everything else)
+                // Draw actors always on top (UFO)
+                this.ufo.draw();
+
+                // Draw particles (always on top)
                 this.particleManager.updateAndDraw(deltaTime);
             }
 
