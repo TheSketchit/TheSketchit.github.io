@@ -494,8 +494,8 @@
 
         const Config = {
             // Mood Thresholds
-            WARNING_ANNOYANCE_THRESHOLD: 25,
-            ANNOYANCE_THRESHOLD: 40,
+            WARNING_ANNOYANCE_THRESHOLD: 45,
+            ANNOYANCE_THRESHOLD: 55,
             MAD_THRESHOLD: 75,
 
             // Mood/Hunger Interaction
@@ -504,8 +504,8 @@
 
             // NEW: Mood Mechanics
             MOOD_DECAY_PER_SECOND: 0.3,      // Baseline annoyance increase (Mood decrease). Takes ~5.5 mins to reach max if idle.
-            MOOD_BOOST_FLOWER_RADIUS: 80,    // Radius to gain mood boost from flowers
-            MOOD_BOOST_FLOWER_RATE: 2.5,     // Annoyance decrease per second near a flower
+            MOOD_BOOST_FLOWER_RADIUS: 100,    // Radius to gain mood boost from flowers
+            MOOD_BOOST_FLOWER_RATE: 3.5,     // Annoyance decrease per second near a flower
             MOOD_BOOST_IDLE_THOUGHT: 10,     // Annoyance decrease when a positive thought appears
 
 
@@ -1636,12 +1636,12 @@
                 let annoyanceToAdd = amount;
 
                 if (this.isCalm) {
-                    annoyanceToAdd = 5;
+                    annoyanceToAdd = 1.2;
                     this.isCalm = false;
                 }
 
                 if (isDirectClick) {
-                    annoyanceToAdd *= 1.5;
+                    annoyanceToAdd *= 1.1;
                 }
 
                 this.annoyance = Math.min(100, this.annoyance + annoyanceToAdd);
