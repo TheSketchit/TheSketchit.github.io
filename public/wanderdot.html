@@ -641,6 +641,13 @@
             colorToString(colorObj) {
                 return `rgb(${colorObj.r}, ${colorObj.g}, ${colorObj.b})`;
             },
+            // NEW: Helper to convert RGB string (from lerpColor) to RGBA string
+            rgbStringToRGBA(rgbString, alpha) {
+                // Assumes format "rgb(r, g, b)"
+                // Added safety check for initialization
+                if (!rgbString || !rgbString.startsWith('rgb(')) return `rgba(0, 0, 0, ${alpha})`;
+                return rgbString.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+            },
             randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
             },
@@ -1023,7 +1030,7 @@
         // 2. WORLD MANAGER (Environment, Paths, Grass)
         // ====================================================================
 
-        // UPDATED: Implements Spatial Grid and Pre-sorted grass list for performance.
+        // UPDATED: Implements Spatial Grid, Pre-sorted grass list, and Gradient Paths.
         class WorldManager {
             constructor(width, height, pathCtx, entityManager, assetManager) {
                 this.width = width;
@@ -1455,7 +1462,7 @@
                 }
             }
 
-            // (applyWearToArea remains unchanged)
+            // UPDATED: Modified to ensure redraw happens on any wear change (for gradients).
             applyWearToArea(x, y, radius, wearAmount, useFalloff = false) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -1485,22 +1492,34 @@
 
                             cell.wear = Math.min(Config.MAX_WEAR, cell.wear + effectiveWear);
 
-                            if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                            // UPDATED: Redraw cell if wear changed (needed for gradients), but only spawn entities on significant change.
+                            if (cell.wear !== oldWear) {
                                 this.drawPathCell(gridX, gridY);
-                                this.trySpawnEntity(gridX, gridY, cell);
+                                // Keep entity spawn optimization
+                                if (Math.floor(cell.wear) > Math.floor(oldWear)) {
+                                    this.trySpawnEntity(gridX, gridY, cell);
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // --- RENDERING & SPAWNING (Unchanged) ---
-            // (drawPathCell, trySpawnEntity, spawnPebble, spawnMushroom remain unchanged)
+            // --- RENDERING & SPAWNING ---
+
+            // UPDATED: Uses radial gradients for softer edges on paths and alien mist.
             drawPathCell(gridX, gridY) {
                 const cell = this.pathGrid[gridX][gridY];
                 const wearRatio = cell.wear / Config.MAX_WEAR;
                 let baseColor, targetColor;
                 let baseOpacity = 0;
+
+                // Define the visual impact radius of the gradient
+                const cellSize = Config.GRID_CELL_SIZE;
+                // Making the radius slightly larger than half the cell size helps blend neighboring cells.
+                const gradientRadius = cellSize * 0.8;
+                const centerX = gridX * cellSize + cellSize / 2;
+                const centerY = gridY * cellSize + cellSize / 2;
 
                 switch (cell.terrainType) {
                     case TerrainType.ALIEN_BLUE:
@@ -1509,6 +1528,7 @@
                         baseOpacity = cell.mistOpacity ?? 0;
                         break;
                     case TerrainType.ALIEN_CLAY:
+                        // Clay remains relatively sharp
                         baseColor = Config.COLOR_DIRT;
                         targetColor = Config.COLOR_ALIEN_CLAY;
                         baseOpacity = 0.2;
@@ -1520,14 +1540,53 @@
                         break;
                 }
 
+                // 1. Calculate the resulting color and opacity based on wear.
+                // pathColor is an RGB string: "rgb(r, g, b)"
                 const pathColor = Utils.lerpColor(baseColor, targetColor, wearRatio);
+                // pathOpacity is a float: 0.0 to 1.0
                 const pathOpacity = Math.max(wearRatio * 0.8, baseOpacity);
 
-                this.pathCtx.fillStyle = pathColor;
-                this.pathCtx.globalAlpha = pathOpacity;
-                this.pathCtx.clearRect(gridX * Config.GRID_CELL_SIZE, gridY * Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE);
-                this.pathCtx.fillRect(gridX * Config.GRID_CELL_SIZE, gridY * Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE, Config.GRID_CELL_SIZE);
-                this.pathCtx.globalAlpha = 1.0;
+                // Clear the existing cell area before redrawing. This is crucial for correct opacity blending.
+                this.pathCtx.clearRect(gridX * cellSize, gridY * cellSize, cellSize, cellSize);
+
+                // Optimization for ALIEN_CLAY or very high wear: use fillRect as it's fully opaque/sharp anyway
+                // This also ensures Clay looks distinct from regular dirt.
+                if (cell.terrainType === TerrainType.ALIEN_CLAY || wearRatio >= 0.99) {
+                    this.pathCtx.fillStyle = pathColor;
+                    this.pathCtx.globalAlpha = pathOpacity;
+                    this.pathCtx.fillRect(gridX * cellSize, gridY * cellSize, cellSize, cellSize);
+                    this.pathCtx.globalAlpha = 1.0;
+                    return;
+                }
+
+                // 2. Create the radial gradient.
+
+                // The gradient fades from the calculated color/opacity at the center
+                // to the same color but with 0 opacity at the edges.
+
+                const centerColorRGBA = Utils.rgbStringToRGBA(pathColor, pathOpacity);
+                // The edge color uses the same RGB components but 0 alpha.
+                const edgeColorRGBA = Utils.rgbStringToRGBA(pathColor, 0);
+
+
+                const gradient = this.pathCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, gradientRadius);
+
+                // Define the gradient falloff profile
+                gradient.addColorStop(0, centerColorRGBA);
+
+                // We want a relatively solid center that falls off near the edges.
+                // Adjust these stops to control the "softness".
+                // If wearRatio is high, the center should be more solid.
+                const solidCoreRatio = Math.min(0.7, wearRatio * 0.7 + 0.3);
+                gradient.addColorStop(solidCoreRatio, centerColorRGBA);
+
+                gradient.addColorStop(1, edgeColorRGBA);
+
+                // 3. Draw the gradient onto the canvas.
+                this.pathCtx.fillStyle = gradient;
+                // We fill the entire cell area. The gradient handles the shaping and opacity.
+                // Note: We don't use globalAlpha here because the gradient stops define the alpha.
+                this.pathCtx.fillRect(gridX * cellSize, gridY * cellSize, cellSize, cellSize);
             }
 
             trySpawnEntity(gridX, gridY, cell) {
