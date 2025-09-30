@@ -30,8 +30,8 @@
             cursor: default;
             user-select: none;
             /* Ensure pixel art scales cleanly */
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
+            image-rendering: crisp-edges; /* Fallback */
+            image-rendering: pixelated;   /* Preferred */
         }
 
         /* --- 2. WORLD CONTAINERS & LAYERS --- */
