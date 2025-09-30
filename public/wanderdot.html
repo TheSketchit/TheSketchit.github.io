@@ -425,11 +425,6 @@
             50% { transform: scale(0.85); }
         }
 
-        @keyframes wiggle {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(15deg); }
-            75% { transform: rotate(-15deg); }
-        }
     </style>
 </head>
 <body>
@@ -2964,7 +2959,6 @@
                 this.initializeCanvases();
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
 
-                this.worldCreationTime = Date.now();
                 this.accumulatedGameTime = 0; // NEW: Tracks actual time the game has been active (in ms)
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
