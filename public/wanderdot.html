@@ -1041,8 +1041,7 @@
 
                 this.pathGrid = [];
                 this.grassBlades = []; // This list is kept sorted by Y-coordinate (Back to Front)
-                this.needsPathRedraw = true;
-                
+
                 // NEW: Spatial Grid for interaction optimization
                 this.spatialGrid = [];
                 this.gridWidth = 0;
@@ -1098,20 +1097,18 @@
                 this.redrawWorld();
             }
 
-            redrawWorld() {
-                // Redraw Paths (Only paths are drawn here now)
-                this.pathCtx.clearRect(0, 0, this.width, this.height);
-                for (let i = 0; i < this.pathGrid.length; i++) {
-                    for (let j = 0; j < (this.pathGrid[i]?.length || 0); j++) {
-                        const cell = this.pathGrid[i][j];
-                        // Ensure we also draw cells if they have mist opacity
-                        if (cell.wear > 0 || cell.terrainType !== TerrainType.NORMAL || cell.mistOpacity > 0) {
-                            this.drawPathCell(i, j);
-                        }
-                    }
-                }
-                this.needsPathRedraw = false; // Reset the flag
-            }
+            redrawWorld() {
+                // Redraw Paths (Only paths are drawn here now)
+                this.pathCtx.clearRect(0, 0, this.width, this.height);
+                for (let i = 0; i < this.pathGrid.length; i++) {
+                    for (let j = 0; j < (this.pathGrid[i]?.length || 0); j++) {
+                        const cell = this.pathGrid[i][j];
+                        if (cell.wear > 0 || cell.terrainType !== TerrainType.NORMAL) {
+                            this.drawPathCell(i, j);
+                        }
+                    }
+                }
+            }
 
             // --- Utility Functions ---
             isValidCell(gridX, gridY) {
@@ -1295,29 +1292,6 @@
                     }
                 }
             }
-
-            revertGrassBladesInCell(gridX, gridY) {
-                // Calculate the pixel bounds of the path grid cell
-                const minX = gridX * Config.GRID_CELL_SIZE;
-                const maxX = (gridX + 1) * Config.GRID_CELL_SIZE;
-                const minY = gridY * Config.GRID_CELL_SIZE;
-                const maxY = (gridY + 1) * Config.GRID_CELL_SIZE;
-
-                // Determine the affected spatial grid cell.
-                const sGridX = Math.floor(minX / Config.SPATIAL_GRID_SIZE);
-                const sGridY = Math.floor(minY / Config.SPATIAL_GRID_SIZE);
-
-                if (sGridX >= 0 && sGridX < this.gridWidth && sGridY >= 0 && sGridY < this.gridHeight) {
-                    const cellBlades = this.spatialGrid[sGridX][sGridY];
-
-                    for (const blade of cellBlades) {
-                        // Double-check if the blade is actually within the specific path grid cell bounds
-                        if (blade.isAlien && blade.x >= minX && blade.x < maxX && blade.y >= minY && blade.y < maxY) {
-                            blade.isAlien = false;
-                        }
-                    }
-                }
-            }
 
 
             // Update loop for grass (handles animation decay AND health updates)
@@ -1511,34 +1485,16 @@
                             const oldWear = cell.wear;
 
                             let effectiveWear = wearAmount;
-                            if (useFalloff) {
-                                const falloff = 1 - (distance / radius);
-                                effectiveWear *= falloff;
-                            }
+                            if (useFalloff) {
+                                const falloff = 1 - (distance / radius);
+                                effectiveWear *= falloff;
+                            }
 
-                            // NEW: Handle mist removal when rolling over ALIEN_BLUE terrain
-                            if (cell.terrainType === TerrainType.ALIEN_BLUE && cell.mistOpacity > 0) {
-                                // We amplify the wear amount to clear mist faster than dirt is created.
-                                const mistRemovalAmount = effectiveWear * 5; // Adjust multiplier for desired speed
-                                cell.mistOpacity = Math.max(0, cell.mistOpacity - mistRemovalAmount);
+                            cell.wear = Math.min(Config.MAX_WEAR, cell.wear + effectiveWear);
 
-                                // If mist is gone, check if we should revert to normal terrain
-                                if (cell.mistOpacity <= 0.01) {
-                                     cell.mistOpacity = 0;
-                                     // Revert to NORMAL only if wear is low (still grass)
-                                     if (cell.wear < Config.GRASS_REMOVAL_THRESHOLD) {
-                                         cell.terrainType = TerrainType.NORMAL;
-                                         // Revert the grass blades visually
-                                         this.revertGrassBladesInCell(gridX, gridY);
-                                     }
-                                }
-                            }
-
-                            cell.wear = Math.min(Config.MAX_WEAR, cell.wear + effectiveWear);
-
-                            // UPDATED: Set the flag for a full redraw instead of drawing the cell immediately.
-                            if (cell.wear !== oldWear || cell.mistOpacity < oldMistOpacity) {
-                                this.needsPathRedraw = true;
+                            // UPDATED: Redraw cell if wear changed (needed for gradients), but only spawn entities on significant change.
+                            if (cell.wear !== oldWear) {
+                                this.drawPathCell(gridX, gridY);
                                 // Keep entity spawn optimization
                                 if (Math.floor(cell.wear) > Math.floor(oldWear)) {
                                     this.trySpawnEntity(gridX, gridY, cell);
@@ -1589,6 +1545,19 @@
                 const pathColor = Utils.lerpColor(baseColor, targetColor, wearRatio);
                 // pathOpacity is a float: 0.0 to 1.0
                 const pathOpacity = Math.max(wearRatio * 0.8, baseOpacity);
+
+                // Clear the existing cell area before redrawing. This is crucial for correct opacity blending.
+                this.pathCtx.clearRect(gridX * cellSize, gridY * cellSize, cellSize, cellSize);
+
+                // Optimization for ALIEN_CLAY or very high wear: use fillRect as it's fully opaque/sharp anyway
+                // This also ensures Clay looks distinct from regular dirt.
+                if (cell.terrainType === TerrainType.ALIEN_CLAY || wearRatio >= 0.99) {
+                    this.pathCtx.fillStyle = pathColor;
+                    this.pathCtx.globalAlpha = pathOpacity;
+                    this.pathCtx.fillRect(gridX * cellSize, gridY * cellSize, cellSize, cellSize);
+                    this.pathCtx.globalAlpha = 1.0;
+                    return;
+                }
 
                 // 2. Create the radial gradient.
 
@@ -1712,7 +1681,7 @@
                                 cell.terrainType = targetType;
                             }
 
-                            this.needsPathRedraw = true;
+                            this.drawPathCell(gridX, gridY);
 
                             // Spawn Mushrooms
                             if(targetType === TerrainType.ALIEN_BLUE && Math.random() < Config.UFO_MUSHROOM_CHANCE) {
@@ -3524,10 +3493,6 @@
                 // Pass entityManager to WanderDot update for flower detection
                 const transitionEmoji = this.wanderDot.update(deltaTime, this.bounds, this.buffManager, this.worldManager, this.entityManager);
 
-                if (this.worldManager.needsPathRedraw) {
-                    this.worldManager.redrawWorld();
-                }
-                
                 // Check for game over after WanderDot updates its state
                 this.checkGameOver();
                 if (!this.isRunning) return;
