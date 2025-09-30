@@ -541,6 +541,9 @@
             GRASS_SHADOW_OFFSET_Y: 1,
             GRASS_SHADOW_OPACITY: 0.3,
 
+            // NEW: Spatial Grid for optimization (Defines the size of cells for interaction checks)
+            SPATIAL_GRID_SIZE: 100,
+
 
             // Legacy thresholds
             GRASS_REMOVAL_THRESHOLD: 50,
@@ -809,7 +812,7 @@
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
 
-        // UPDATED: Added helper for finding nearby dynamic entities.
+        // (EntityManager implementation remains unchanged)
         class EntityManager {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -1020,7 +1023,7 @@
         // 2. WORLD MANAGER (Environment, Paths, Grass)
         // ====================================================================
 
-        // UPDATED: drawBlade modified for performance.
+        // UPDATED: Implements Spatial Grid and Pre-sorted grass list for performance.
         class WorldManager {
             constructor(width, height, pathCtx, entityManager, assetManager) {
                 this.width = width;
@@ -1030,9 +1033,15 @@
                 this.assetManager = assetManager;
 
                 this.pathGrid = [];
-                this.grassBlades = [];
+                this.grassBlades = []; // This list is kept sorted by Y-coordinate (Back to Front)
+
+                // NEW: Spatial Grid for interaction optimization
+                this.spatialGrid = [];
+                this.gridWidth = 0;
+                this.gridHeight = 0;
 
                 this.initializeGrid();
+                this.initializeSpatialGrid(); // Initialize the spatial grid structure
             }
 
             initializeGrid() {
@@ -1057,11 +1066,25 @@
                 this.pathGrid = newPathGrid;
             }
 
+            // NEW: Initialize Spatial Grid Structure
+            initializeSpatialGrid() {
+                this.gridWidth = Math.ceil(this.width / Config.SPATIAL_GRID_SIZE);
+                this.gridHeight = Math.ceil(this.height / Config.SPATIAL_GRID_SIZE);
+                this.spatialGrid = [];
+                for (let i = 0; i < this.gridWidth; i++) {
+                    this.spatialGrid[i] = [];
+                    for (let j = 0; j < this.gridHeight; j++) {
+                        this.spatialGrid[i][j] = []; // Initialize empty array for blades in this cell
+                    }
+                }
+            }
+
             handleResize(width, height) {
                 this.width = width;
                 this.height = height;
                 this.initializeGrid();
-                // Regenerate grass field on resize to fill the new area correctly.
+                this.initializeSpatialGrid(); // Re-initialize spatial structure
+                // Regenerate grass field on resize to fill the new area correctly and populate the spatial grid.
                 this.grassBlades = [];
                 this.generateGrassField();
                 this.redrawWorld();
@@ -1097,12 +1120,15 @@
 
             // --- GRASS MANAGEMENT ---
 
-            // Generates grass in clumps.
+            // Generates grass in clumps. UPDATED: Populates spatial grid and sorts the master list.
             generateGrassField() {
-                // If blades already exist, don't regenerate yet.
+                // If blades already exist, don't regenerate yet. (HandleResize clears this if needed)
                 if (this.grassBlades.length > 0) {
                     return;
                 }
+
+                // Ensure spatial grid is clear (important if called manually later)
+                this.initializeSpatialGrid();
 
                 this.grassBlades = [];
                 const grassImageCount = this.assetManager.images.grass.length;
@@ -1146,48 +1172,78 @@
                         };
 
                         this.grassBlades.push(blade);
+
+                        // NEW: Add blade to the spatial grid
+                        const gridX = Math.floor(xPx / Config.SPATIAL_GRID_SIZE);
+                        const gridY = Math.floor(yPx / Config.SPATIAL_GRID_SIZE);
+
+                        // Safety check (should be covered by bounds check, but robust)
+                        if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
+                            this.spatialGrid[gridX][gridY].push(blade);
+                        }
                     }
                 }
+
+                // NEW: Sort the master list once after generation for efficient Z-sorting during draw.
+                this.grassBlades.sort((a, b) => a.y - b.y);
             }
 
             // Handles interaction (sliding, bending) for animation ONLY.
+            // UPDATED: Uses spatial grid for massive performance improvement.
             interactWithGrass(impactX, impactY, radius) {
                 const radiusSq = radius * radius;
 
-                for (let i = this.grassBlades.length - 1; i >= 0; i--) {
-                    const blade = this.grassBlades[i];
-                    const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
+                // 1. Determine affected spatial grid cells (Bounding Box check)
+                const minGridX = Math.max(0, Math.floor((impactX - radius) / Config.SPATIAL_GRID_SIZE));
+                const maxGridX = Math.min(this.gridWidth - 1, Math.floor((impactX + radius) / Config.SPATIAL_GRID_SIZE));
+                const minGridY = Math.max(0, Math.floor((impactY - radius) / Config.SPATIAL_GRID_SIZE));
+                const maxGridY = Math.min(this.gridHeight - 1, Math.floor((impactY + radius) / Config.SPATIAL_GRID_SIZE));
 
-                    if (distSq < radiusSq) {
+                // 2. Iterate only through blades in the affected cells
+                for (let gx = minGridX; gx <= maxGridX; gx++) {
+                    for (let gy = minGridY; gy <= maxGridY; gy++) {
+                        const cellBlades = this.spatialGrid[gx][gy];
 
-                        // Apply Slide and Bend Animation
-                        const distance = Math.sqrt(distSq);
-                        if (distance > 0.1) {
-                            // Calculate vector from impact point to the blade
-                            const dx = blade.x - impactX;
-                            const dy = blade.y - impactY;
+                        for (let i = 0; i < cellBlades.length; i++) {
+                            const blade = cellBlades[i];
 
-                            // Normalize the vector
-                            const nx = dx / distance;
-                            const ny = dy / distance;
+                            // 3. Perform the standard interaction check (distance check)
+                            const distSq = (blade.x - impactX)**2 + (blade.y - impactY)**2;
 
-                            // Calculate intensity (stronger when closer)
-                            const intensity = (1 - (distance / radius));
+                            if (distSq < radiusSq) {
 
-                            // Slide
-                            const slideAmount = intensity * Config.GRASS_SLIDE_DISTANCE;
-                            blade.offsetX = nx * slideAmount;
-                            blade.offsetY = ny * slideAmount;
+                                // Apply Slide and Bend Animation
+                                const distance = Math.sqrt(distSq);
+                                if (distance > 0.1) {
+                                    // Calculate vector from impact point to the blade
+                                    const dx = blade.x - impactX;
+                                    const dy = blade.y - impactY;
 
-                            // Bend
-                            blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
+                                    // Normalize the vector
+                                    const nx = dx / distance;
+                                    const ny = dy / distance;
+
+                                    // Calculate intensity (stronger when closer)
+                                    const intensity = (1 - (distance / radius));
+
+                                    // Slide
+                                    const slideAmount = intensity * Config.GRASS_SLIDE_DISTANCE;
+                                    blade.offsetX = nx * slideAmount;
+                                    blade.offsetY = ny * slideAmount;
+
+                                    // Bend
+                                    blade.angle = nx * intensity * Config.GRASS_BEND_ANGLE;
+                                }
+                            }
                         }
                     }
                 }
             }
 
             // Updates grass health based on the wear level of the dirt underneath.
+            // UPDATED: Must maintain the spatial grid when removing blades.
             updateGrassHealthFromDirt() {
+                // We iterate backwards through the master list for safe removal.
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
 
@@ -1208,7 +1264,24 @@
 
                     // Check for Death
                     if (blade.health <= Config.GRASS_DEATH_THRESHOLD) {
+                        // Remove from master list
                         this.grassBlades.splice(i, 1);
+                        // NEW: Remove from spatial grid (Crucial!)
+                        this.removeBladeFromSpatialGrid(blade);
+                    }
+                }
+            }
+
+             // NEW: Helper to remove a blade from the spatial grid
+            removeBladeFromSpatialGrid(blade) {
+                const gridX = Math.floor(blade.x / Config.SPATIAL_GRID_SIZE);
+                const gridY = Math.floor(blade.y / Config.SPATIAL_GRID_SIZE);
+
+                if (gridX >= 0 && gridX < this.gridWidth && gridY >= 0 && gridY < this.gridHeight) {
+                    const cell = this.spatialGrid[gridX][gridY];
+                    const index = cell.indexOf(blade);
+                    if (index > -1) {
+                        cell.splice(index, 1);
                     }
                 }
             }
@@ -1222,6 +1295,8 @@
                 // 2. Handle animation decay (springing back)
                 const decayRate = 5;
 
+                // Note: We still iterate all blades here, as we don't track which specific blades are currently animating.
+                // This loop is relatively fast compared to the interaction/drawing loops.
                 for (const blade of this.grassBlades) {
                     const needsUpdate = Math.abs(blade.offsetX) > 0.1 || Math.abs(blade.offsetY) > 0.1 || Math.abs(blade.angle) > 0.01;
 
@@ -1513,7 +1588,7 @@
             }
 
             // --- UFO/ALIEN TERRAFORMING ---
-            // UPDATED: Sets blade.isAlien flag instead of relying on separate assets.
+            // UPDATED: Must maintain spatial grid when removing blades.
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -1559,6 +1634,7 @@
 
                 // 2. Update Grass Blades based on new terrain
                 const radiusSq = alterationPixelRadius * alterationPixelRadius;
+                 // Iterate backwards through the master list for safe removal.
                 for (let i = this.grassBlades.length - 1; i >= 0; i--) {
                     const blade = this.grassBlades[i];
                     const distSq = (blade.x - x)**2 + (blade.y - y)**2;
@@ -1572,10 +1648,14 @@
                             blade.isAlien = true;
                         } else if (terrainInfo.type === TerrainType.ALIEN_CLAY) {
                             // Remove grass on clay
+                            // Remove from master list
                             this.grassBlades.splice(i, 1);
+                            // NEW: Remove from spatial grid
+                            this.removeBladeFromSpatialGrid(blade);
                         }
                     }
                 }
+                // Note: Since we only removed items and didn't change Y positions, the master list remains sorted.
             }
         }
 
@@ -1583,7 +1663,7 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // UPDATED: Incorporates Kangaroo mood color.
+        // (WanderDot implementation remains unchanged)
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -2188,7 +2268,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // UPDATED: Handles pausing/resuming buff timers.
+        // (BuffManager and ItemManager implementations remain unchanged)
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -2655,7 +2735,7 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
-        // UPDATED: Handles mood boosts on click, and uses accumulated game time for the timer.
+        // (UIManager implementation remains unchanged)
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
@@ -3017,7 +3097,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // UPDATED: Handles accumulated game time and pause/resume integration with BuffManager.
+        // UPDATED: Optimized draw loop using pre-sorted grass list.
         class Game {
             static instance = null;
 
@@ -3257,7 +3337,7 @@
                     const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
 
                     // Show reaction thought, unless chewing
-                    if (!(this.wanderDot.isEating && this.eatingStartTime > 0)) {
+                    if (!(this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0)) {
                          this.uiManager.showThought(reactionEmoji);
                     }
                 }
@@ -3375,6 +3455,7 @@
             }
 
             // Implements dynamic sorting (Painter's Algorithm) for grass and WanderDot.
+            // UPDATED: Uses the pre-sorted grass array for massive performance improvement.
             draw(deltaTime) {
                 // Clear main canvas
                 this.ctx.clearRect(0, 0, this.bounds.width, this.bounds.height);
@@ -3382,37 +3463,31 @@
                 // Draw environment/entities (on their respective canvases)
                 this.entityManager.draw(this.bounds);
 
-                // --- Dynamic Sorting (Z-sorting) ---
+                // --- Optimized Z-sorting (using pre-sorted list) ---
 
-                // 1. Create a list of all objects to be sorted
-                const sortedDrawables = [];
+                const wanderDotY = this.wanderDot.getBaseY();
+                // The list is already sorted by Y in WorldManager.
+                const blades = this.worldManager.grassBlades;
+                let wanderDotDrawn = false;
 
-                // Add grass blades
-                for (const blade of this.worldManager.grassBlades) {
-                    sortedDrawables.push({
-                        y: blade.y, // The base Y position of the grass blade
-                        type: 'grass',
-                        data: blade
-                    });
+                // Iterate through the pre-sorted list
+                for (let i = 0; i < blades.length; i++) {
+                    const blade = blades[i];
+
+                    // Check if it's time to draw WanderDot (when we encounter the first blade in front of the dot)
+                    if (!wanderDotDrawn && blade.y > wanderDotY) {
+                        this.wanderDot.draw(this.ctx);
+                        wanderDotDrawn = true;
+                    }
+
+                    // Draw the blade
+                    // Future Optimization: Viewport culling could be added here to skip drawBlade if blade is offscreen.
+                    this.worldManager.drawBlade(this.ctx, blade);
                 }
 
-                // Add WanderDot
-                sortedDrawables.push({
-                    y: this.wanderDot.getBaseY(), // The base Y position of the WanderDot
-                    type: 'wanderdot',
-                    data: this.wanderDot
-                });
-
-                // 2. Sort the list by Y coordinate (ascending: back to front)
-                sortedDrawables.sort((a, b) => a.y - b.y);
-
-                // 3. Draw objects in sorted order on the main canvas (this.ctx)
-                for (const drawable of sortedDrawables) {
-                    if (drawable.type === 'grass') {
-                        this.worldManager.drawBlade(this.ctx, drawable.data);
-                    } else if (drawable.type === 'wanderdot') {
-                        drawable.data.draw(this.ctx);
-                    }
+                // If WanderDot is in front of all grass (or if there is no grass)
+                if (!wanderDotDrawn) {
+                    this.wanderDot.draw(this.ctx);
                 }
 
                 // Draw actors always on top (UFO)
