@@ -30,8 +30,8 @@
             cursor: default;
             user-select: none;
             /* Ensure pixel art scales cleanly */
-            image-rendering: crisp-edges; /* Fallback */
-            image-rendering: pixelated;   /* Preferred */
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         /* --- 2. WORLD CONTAINERS & LAYERS --- */
@@ -425,6 +425,11 @@
             50% { transform: scale(0.85); }
         }
 
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
     </style>
 </head>
 <body>
@@ -1557,7 +1562,7 @@
 
             // Returns the Y coordinate of the bottom of the dot for sorting purposes.
             getBaseY() {
-                return this.y + this.radius;
+                return this.y - this.verticalOffset + this.radius;
             }
 
             // Method to apply immediate mood boost
@@ -2959,6 +2964,7 @@
                 this.initializeCanvases();
                 this.bounds = { width: this.mainCanvas.width, height: this.mainCanvas.height };
 
+                this.worldCreationTime = Date.now();
                 this.accumulatedGameTime = 0; // NEW: Tracks actual time the game has been active (in ms)
                 this.lastFrameTime = 0;
                 this.lastClickTime = 0;
