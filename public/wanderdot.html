@@ -536,6 +536,11 @@
             GRASS_DEATH_THRESHOLD: 0.05,
             GRASS_SLIDE_DISTANCE: 10,
             GRASS_BEND_ANGLE: 45 * (Math.PI / 180),
+            // NEW: Grass Shadow Config
+            GRASS_SHADOW_OFFSET_X: -2, // Small offset behind (assuming light comes from top-right slightly)
+            GRASS_SHADOW_OFFSET_Y: 1,
+            GRASS_SHADOW_OPACITY: 0.3,
+
 
             // Legacy thresholds
             GRASS_REMOVAL_THRESHOLD: 50,
@@ -597,7 +602,7 @@
                 DIAMOND: '🔸',
             },
 
-            // Asset Paths (UPDATED)
+            // Asset Paths (UPDATED: Removed alienGrass paths)
             Assets: {
                 grass: [
                     '../images/grass/grass_blade_01.png',
@@ -607,7 +612,7 @@
                     '../images/grass/grass_blade_05.png',
                     '../images/grass/grass_blade_06.png',
                 ],
-                // alienGrass removed, tinting is applied dynamically.
+                // alienGrass removed, handled by programmatic tinting
                 chest: '../images/textures/chest.png'
             }
         };
@@ -628,6 +633,10 @@
                 const g = Math.round(Utils.lerp(colorA.g, colorB.g, amount));
                 const b = Math.round(Utils.lerp(colorA.b, colorB.b, amount));
                 return `rgb(${r}, ${g}, ${b})`;
+            },
+            // NEW: Helper to convert RGB object to string
+            colorToString(colorObj) {
+                return `rgb(${colorObj.r}, ${colorObj.g}, ${colorObj.b})`;
             },
             randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -663,24 +672,70 @@
         // 0.5. ASSET MANAGER
         // ====================================================================
 
-        // (UPDATED: Removed alienGrass handling)
+        // UPDATED: Pre-renders tinted and silhouette versions of grass assets for performance.
         class AssetManager {
             constructor() {
                 this.images = {
                     grass: [],
-                    // alienGrass: [], // Removed
+                    // NEW: Store pre-rendered variations (as Canvases)
+                    tintedGrass: [],
+                    silhouetteGrass: [],
                     chest: null
                 };
                 this.loadedCount = 0;
                 this.totalCount = 0;
             }
 
+            // --- Pre-rendering Helpers (NEW) ---
+
+            // Creates an offscreen canvas containing a tinted version of the image.
+            generateTintedImage(image, tintColor) {
+                const canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const ctx = canvas.getContext('2d');
+
+                // 1. Draw the original image
+                ctx.drawImage(image, 0, 0);
+
+                // 2. Apply the tint color using the 'color' blend mode.
+                // This changes the hue and saturation of the underlying pixels while preserving luminosity.
+                ctx.globalCompositeOperation = 'color';
+                ctx.fillStyle = tintColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 3. Ensure the tint only applies where the original image was opaque (restore alpha).
+                ctx.globalCompositeOperation = 'destination-in';
+                ctx.drawImage(image, 0, 0);
+
+                return canvas;
+            }
+
+            // Creates an offscreen canvas containing a black silhouette of the image.
+            generateSilhouette(image) {
+                const canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const ctx = canvas.getContext('2d');
+
+                // 1. Draw the original image (needed for the next step)
+                ctx.drawImage(image, 0, 0);
+
+                // 2. Fill the canvas with black, but only where the original image was present ('source-in').
+                ctx.globalCompositeOperation = 'source-in';
+                ctx.fillStyle = 'black';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                return canvas;
+            }
+
+
             loadAll(onComplete) {
                 const grassPaths = Config.Assets.grass;
                 // const alienGrassPaths = Config.Assets.alienGrass; // Removed
                 const chestPath = Config.Assets.chest;
 
-                // Count total assets (UPDATED)
+                // Count total assets
                 this.totalCount = grassPaths.length + (chestPath ? 1 : 0);
 
                 if (this.totalCount === 0) {
@@ -726,12 +781,21 @@
                     };
                 }
 
-                // Load standard grass
+                // Load standard grass and generate variations (UPDATED)
+                const alienTintColor = Utils.colorToString(Config.COLOR_ALIEN_BLUE);
+
                 grassPaths.forEach((path, index) => {
                     const img = new Image();
                     img.src = path;
                     img.onload = () => {
                         this.images.grass[index] = img;
+
+                        // Generate and store tinted version
+                        this.images.tintedGrass[index] = this.generateTintedImage(img, alienTintColor);
+
+                        // Generate and store silhouette version
+                        this.images.silhouetteGrass[index] = this.generateSilhouette(img);
+
                         onLoad();
                     };
                     img.onerror = () => onError(path);
@@ -745,7 +809,7 @@
         // 1. ENTITY MANAGER (Seeds, Diamonds, Pebbles, Mushrooms)
         // ====================================================================
 
-        // (EntityManager implementation remains unchanged)
+        // UPDATED: Added helper for finding nearby dynamic entities.
         class EntityManager {
             constructor(ctx) {
                 this.ctx = ctx;
@@ -956,7 +1020,7 @@
         // 2. WORLD MANAGER (Environment, Paths, Grass)
         // ====================================================================
 
-        // (UPDATED: drawBlade implementation)
+        // UPDATED: drawBlade modified for performance.
         class WorldManager {
             constructor(width, height, pathCtx, entityManager, assetManager) {
                 this.width = width;
@@ -1176,64 +1240,63 @@
             }
 
             // Draws a single blade of grass. Called by the main Game loop during sorted rendering.
-            // UPDATED: Applies dynamic tinting and shadows.
+            // UPDATED: Uses pre-rendered assets for tinting and shadows for performance.
             drawBlade(ctx, blade) {
-                // UPDATED: Always use standard grass assets.
-                const assetSet = this.assetManager.images.grass;
+                const index = blade.imageIndex;
 
-                // Ensure the index is valid for the selected set
-                if (!assetSet || assetSet.length === 0) return;
+                // Ensure the index is valid and assets exist (they are generated in AssetManager)
+                if (!this.assetManager.images.grass[index] || !this.assetManager.images.tintedGrass[index] || !this.assetManager.images.silhouetteGrass[index]) return;
 
-                // Use modulo to safely access the image index
-                const imageIndex = blade.imageIndex % assetSet.length;
-                const img = assetSet[imageIndex];
+                // Select the appropriate image (standard or pre-tinted)
+                const img = blade.isAlien ? this.assetManager.images.tintedGrass[index] : this.assetManager.images.grass[index];
+                const shadowImg = this.assetManager.images.silhouetteGrass[index];
 
-                if (!img || !img.complete) return; // Ensure image is valid and loaded
+                // Check if image/canvas is valid (img can be Image or Canvas)
+                if (!img || (img instanceof HTMLImageElement && !img.complete)) return;
+
 
                 const width = img.width * blade.scale;
                 const height = img.height * blade.scale;
 
-                // Calculate the position of the base of the blade (pivot point)
+                // Calculate the position of the base of the blade (pivot point), including interaction offsets
                 const baseX = blade.x + blade.offsetX;
                 const baseY = blade.y + blade.offsetY;
 
-                // --- (UPDATED) Rendering Logic with Filters and Shadows ---
-                // Use save/restore to efficiently manage canvas state (opacity, filter, shadow, transform).
-                ctx.save();
+                // Calculate blade opacity based on health
+                const bladeOpacity = Math.max(0, blade.health);
 
-                // 1. Set global properties
+                // Helper function to apply transformations and draw
+                // This handles drawing the image (shadow or blade) at a specific world-space offset from baseX/Y, applying the blade's rotation.
+                const drawTransformed = (imageToDraw, drawOffsetX, drawOffsetY, opacity) => {
+                    ctx.globalAlpha = opacity;
 
-                // Set opacity based on health
-                ctx.globalAlpha = Math.max(0, blade.health);
+                    if (blade.angle !== 0) {
+                        ctx.save();
+                        // Translate to the pivot point (base position + desired drawing offset)
+                        ctx.translate(baseX + drawOffsetX, baseY + drawOffsetY);
+                        // Apply the bend rotation
+                        ctx.rotate(blade.angle);
+                        // Draw relative to the translated/rotated origin (centered on pivot)
+                        ctx.drawImage(imageToDraw, -width / 2, -height, width, height);
+                        ctx.restore();
+                    } else {
+                        // Optimized drawing for non-rotated blades
+                        const drawX = baseX + drawOffsetX - width / 2;
+                        const drawY = baseY + drawOffsetY - height;
+                        ctx.drawImage(imageToDraw, drawX, drawY, width, height);
+                    }
+                };
 
-                // (NEW) Apply Shadow
-                // Shadow intensity can be static or linked to health if desired, here it's static.
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
-                ctx.shadowBlur = 3;
+                // 1. Draw Shadow (using the pre-rendered silhouette)
+                // This is significantly faster than using ctx.shadowBlur/shadowColor.
+                const shadowOpacity = bladeOpacity * Config.GRASS_SHADOW_OPACITY;
+                drawTransformed(shadowImg, Config.GRASS_SHADOW_OFFSET_X, Config.GRASS_SHADOW_OFFSET_Y, shadowOpacity);
 
-                // (NEW) Apply tint if alien using canvas filters
-                if (blade.isAlien) {
-                    // Rotate hue from green towards blue.
-                    // This provides the distinct blueish look without needing separate assets.
-                    ctx.filter = 'hue-rotate(120deg) saturate(150%) brightness(110%)';
-                }
+                // 2. Draw Blade (using the standard or pre-tinted image)
+                drawTransformed(img, 0, 0, bladeOpacity);
 
-                // 2. Apply transformations (Translate, Rotate)
-                ctx.translate(baseX, baseY);
-                if (blade.angle !== 0) {
-                    ctx.rotate(blade.angle);
-                }
-
-                // 3. Draw
-                // Draw the image relative to the translated/rotated origin
-                // Shadows and filters are applied automatically.
-                ctx.drawImage(img, -width / 2, -height, width, height);
-
-                // 4. Restore state
-                // Resets alpha, shadow, filter, and transformations for the next draw call.
-                ctx.restore();
+                // Reset alpha for subsequent draws
+                ctx.globalAlpha = 1.0;
             }
 
 
@@ -1450,6 +1513,7 @@
             }
 
             // --- UFO/ALIEN TERRAFORMING ---
+            // UPDATED: Sets blade.isAlien flag instead of relying on separate assets.
             alterGround(x, y) {
                 const centerX = Math.floor(x / Config.GRID_CELL_SIZE);
                 const centerY = Math.floor(y / Config.GRID_CELL_SIZE);
@@ -1504,7 +1568,7 @@
                         const terrainInfo = this.getTerrainInfoAtPoint(blade.x, blade.y);
 
                         if (terrainInfo.type === TerrainType.ALIEN_BLUE) {
-                            // Transform to alien grass
+                            // Transform to alien grass (sets flag for rendering)
                             blade.isAlien = true;
                         } else if (terrainInfo.type === TerrainType.ALIEN_CLAY) {
                             // Remove grass on clay
@@ -1519,7 +1583,7 @@
         // 3. WANDERDOT (The Circle, Mood, and Behavior)
         // ====================================================================
 
-        // (WanderDot implementation remains unchanged)
+        // UPDATED: Incorporates Kangaroo mood color.
         class WanderDot {
             constructor(x, y) {
                 this.x = x;
@@ -2124,7 +2188,7 @@
         // 4. BUFF AND ITEM MANAGERS
         // ====================================================================
 
-        // (BuffManager and ItemManager implementations remain unchanged)
+        // UPDATED: Handles pausing/resuming buff timers.
         class BuffManager {
             constructor(entityManager) {
                 this.entityManager = entityManager;
@@ -2591,7 +2655,7 @@
         // 6. UI MANAGER (Thoughts, Timers, Interaction)
         // ====================================================================
 
-        // (UIManager implementation remains unchanged)
+        // UPDATED: Handles mood boosts on click, and uses accumulated game time for the timer.
         class UIManager {
             constructor(wanderDot) {
                 this.wanderDot = wanderDot;
@@ -2787,7 +2851,7 @@
                 // Radius is the pixel radius
                 this.statRadius.textContent = this.wanderDot.radius.toFixed(1) + 'px';
                 // Speed is the base speed multiplied by the current speed multiplier (ignoring kangaroo boost for UI stability)
-                const effectiveSpeed = this.wanderDot.speed * this.currentSpeedMultiplier;
+                const effectiveSpeed = this.wanderDot.speed * this.wanderDot.currentSpeedMultiplier;
                 this.statSpeed.textContent = effectiveSpeed.toFixed(1);
             }
 
@@ -2953,7 +3017,7 @@
         // 7. GAME (Main Loop, Initialization)
         // ====================================================================
 
-        // (Game implementation remains unchanged)
+        // UPDATED: Handles accumulated game time and pause/resume integration with BuffManager.
         class Game {
             static instance = null;
 
@@ -3193,7 +3257,7 @@
                     const reactionEmoji = this.wanderDot.addAnnoyance(annoyanceToAdd, isDirectClick);
 
                     // Show reaction thought, unless chewing
-                    if (!(this.wanderDot.isEating && this.wanderDot.eatingStartTime > 0)) {
+                    if (!(this.wanderDot.isEating && this.eatingStartTime > 0)) {
                          this.uiManager.showThought(reactionEmoji);
                     }
                 }
