@@ -1764,74 +1764,56 @@
 
       <div id="game-over"></div>
     </div>
+    
+    <div id="game-over"></div>
+</div>
 
-    <script>
-      class Vec2 {
-        constructor(x, y) {
-          this.x = x;
-          this.y = y;
-        }
-        add(v) {
-          return new Vec2(this.x + v.x, this.y + v.y);
-        }
-        sub(v) {
-          return new Vec2(this.x - v.x, this.y - v.y);
-        }
-        mag() {
-          return Math.sqrt(this.x * this.x + this.y * this.y);
-        }
-        norm() {
-          const m = this.mag();
-          return m === 0 ? new Vec2(0, 0) : new Vec2(this.x / m, this.y / m);
-        }
-        mult(n) {
-          return new Vec2(this.x * n, this.y * n);
-        }
-        dist(v) {
-          return this.sub(v).mag();
-        }
-        distSq(v) {
-          return (this.x - v.x) ** 2 + (this.y - v.y) ** 2;
-        }
-      }
+<script src="hero-utils.js"></script>
+<script>
+class Vec2 {
+    constructor(x, y) { this.x = x; this.y = y; }
+    add(v) { return new Vec2(this.x + v.x, this.y + v.y); }
+    sub(v) { return new Vec2(this.x - v.x, this.y - v.y); }
+    mag() { return Math.sqrt(this.x*this.x + this.y*this.y); }
+    norm() { const m = this.mag(); return m === 0 ? new Vec2(0,0) : new Vec2(this.x/m, this.y/m); }
+    mult(n) { return new Vec2(this.x * n, this.y * n); }
+    dist(v) { return this.sub(v).mag(); }
+    distSq(v) { return (this.x - v.x)**2 + (this.y - v.y)**2; }
+}
 
-      const canvas = document.getElementById("gameCanvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-      const WORLD_WIDTH = 1500;
-      const WORLD_HEIGHT = 1000;
+const WORLD_WIDTH = 1500;
+const WORLD_HEIGHT = 1000;
 
-      const Camera = {
-        x: WORLD_WIDTH / 2,
-        y: WORLD_HEIGHT / 2,
-        zoom: 1.0,
-        targetZoom: 1.0,
-      };
+const Camera = {
+    x: WORLD_WIDTH / 2,
+    y: WORLD_HEIGHT / 2,
+    zoom: 1.0,
+    targetZoom: 1.0
+};
 
-      let screenMousePos = new Vec2(0, 0);
-      let isPanning = false;
-      let panStart = new Vec2(0, 0);
-      let cameraStart = new Vec2(0, 0);
-      let mousePos = new Vec2(0, 0);
-      const keys = {};
+let screenMousePos = new Vec2(0, 0);
+let isPanning = false;
+let panStart = new Vec2(0,0);
+let cameraStart = new Vec2(0,0);
+let mousePos = new Vec2(0,0);
+const keys = {};
 
-      window.addEventListener("keydown", (e) => {
-        keys[e.key.toLowerCase()] = true;
-        if (!Game.isPaused && !Game.gameOver) {
-          const k = e.key.toLowerCase();
-          if (k === "escape") {
-            Game.selectedEntity = null;
-            setMode("NONE");
-            Game.updateUI(true);
-          }
-          if (k === "q") switchMenu("COMMAND");
-          if (k === "b") switchMenu("BUILD");
-          if (k === "f") Game.toggleRepair();
-          if (k === "\\") Game.fogOfWar = !Game.fogOfWar;
-
-          if (Game.selectedEntity && Game.selectedEntity.active) {
+window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (!Game.isPaused && !Game.gameOver) {
+        const k = e.key.toLowerCase();
+        if (k === 'escape') { Game.selectedEntity = null; setMode('NONE'); Game.updateUI(true); }
+        if (k === 'q') switchMenu('COMMAND');
+        if (k === 'b') switchMenu('BUILD');
+        if (k === 'f') Game.toggleRepair();
+        if (k === '\\') Game.fogOfWar = !Game.fogOfWar;
+        
+        if (Game.selectedEntity && Game.selectedEntity.active) {
             const type = Game.selectedEntity.type;
             if (
               type === "WARRIOR_GUILD" ||
@@ -2610,38 +2592,122 @@
           ctx.fillStyle = "#48bb78";
           ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30 * pct, 4);
         }
-      }
+        return res;
+    }
+};
+Grid.init();
 
-      class Unit extends Entity {
-        constructor(x, y) {
-          super(x, y);
-          this.speed = 1;
-          this.target = null;
-          this.attackRange = 15;
-          this.damage = 5;
-          this.attackCooldown = 0;
-          this.maxAttackCooldown = 1.0;
+const VisionGrid = {
+    cellSize: 40, width: 0, height: 0, cols: 0, rows: 0, data: null, offsetX: 1000, offsetY: 1000,
+    init(w, h, offX, offY) {
+        this.width = w; this.height = h; this.offsetX = offX; this.offsetY = offY;
+        this.cols = Math.ceil(w / this.cellSize); this.rows = Math.ceil(h / this.cellSize);
+        this.data = new Uint8Array(this.cols * this.rows);
+    },
+    reset() { if (this.data) this.data.fill(0); },
+    update(playerEntities) {
+        this.reset();
+        for (let i = 0; i < playerEntities.length; i++) {
+            const e = playerEntities[i];
+            const r = e.getVisionRange();
+            if (r <= 0) continue;
+            const cx = (e.pos.x + this.offsetX) / this.cellSize;
+            const cy = (e.pos.y + this.offsetY) / this.cellSize;
+            const cr = r / this.cellSize;
+            const minX = Math.max(0, Math.floor(cx - cr)), maxX = Math.min(this.cols - 1, Math.floor(cx + cr));
+            const minY = Math.max(0, Math.floor(cy - cr)), maxY = Math.min(this.rows - 1, Math.floor(cy + cr));
+            const crSq = cr * cr;
+            for (let y = minY; y <= maxY; y++) {
+                const dy = y - cy;
+                const dySq = dy * dy;
+                const rowOff = y * this.cols;
+                for (let x = minX; x <= maxX; x++) {
+                    const dx = x - cx;
+                    if (dx * dx + dySq <= crSq) this.data[rowOff + x] = 1;
+                }
+            }
         }
-        moveTowards(tp) {
-          const dx = tp.x - this.pos.x,
-            dy = tp.y - this.pos.y,
-            d = Math.sqrt(dx * dx + dy * dy);
-          if (d <= this.speed) {
-            this.pos.x = tp.x;
-            this.pos.y = tp.y;
-            return true;
-          }
-          if (d > 0) {
-            this.pos.x += (dx / d) * this.speed;
-            this.pos.y += (dy / d) * this.speed;
-          }
-          return false;
-        }
-        applySoftCollision() {
-          const neighbors = Grid.getNearby(this.pos, 400);
-          let pushX = 0,
-            pushY = 0;
-          for (let i = 0; i < neighbors.length; i++) {
+    },
+    isVisible(pos) {
+        if (!this.data || !Game.fogOfWar) return true;
+        const x = Math.floor((pos.x + this.offsetX) / this.cellSize);
+        const y = Math.floor((pos.y + this.offsetY) / this.cellSize);
+        if (x < 0 || x >= this.cols || y < 0 || y >= this.rows) return false;
+        return this.data[y * this.cols + x] === 1;
+    }
+};
+
+const UI = {
+    setText(id, text) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(text); if (el && el._lastText !== str) { el.innerText = str; el._lastText = str; } },
+    setHTML(id, html) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(html); if (el && el._lastHTML !== str) { el.innerHTML = str; el._lastHTML = str; } },
+    setDisplay(id, display) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el && el.style.display !== display) el.style.display = display; },
+    setColor(id, color) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el && el.style.color !== color) el.style.color = color; },
+    setDisabled(id, disabled) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el && el.disabled !== disabled) el.disabled = disabled; },
+    setClass(id, cls, force) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el) el.classList.toggle(cls, force); }
+};
+
+const ITEM_CONFIG = {
+    POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#48bb78', icon: '🧪' },
+    SWORD: { cost: 100, classes: ['WARRIOR'], color: '#e2e8f0', statBonus: { damage: 5 }, icon: '⚔️' },
+    DAGGER: { cost: 75, classes: ['ROGUE'], color: '#e2e8f0', statBonus: { damage: 3 }, icon: '🗡️' },
+    WAND: { cost: 120, classes: ['DRUID'], color: '#e2e8f0', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄' },
+    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#a0aec0', statBonus: { maxHp: 50, hp: 50 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥' },
+    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100 }, replaces: 'ARMOR', icon: '⛓️' },
+    ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50 }, replaces: 'ARMOR', icon: '👘' },
+    ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#718096', statBonus: { maxHp: 50, hp: 50 }, replaces: 'ARMOR', icon: '🕵️‍♂️' },
+    ANKH: { cost: 300, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#ecc94b', icon: '☥️' }
+};
+
+const HERO_CONFIG = {
+    WARRIOR: { maxHp: 120, speed: 1.2, damage: 15, maxAttackCooldown: 0.833, radius: 12, icon: '🧌', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'SWORD', 'CHAINMAIL'] },
+    ROGUE: { maxHp: 80, speed: 1.32, damage: 20, maxAttackCooldown: 0.666, radius: 10, icon: '🥷', recruitCost: 75, requiredItems: ['POTION', 'ANKH', 'DAGGER', 'ROGUES_DISGUISE'] },
+    DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.0, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'WAND', 'ROBE_OF_THORNS'] }
+};
+
+const UPGRADE_CONFIG = {
+    CHARGE: { cost: 100 },
+    RAT_TRAP: { cost: 100 },
+    REGROWTH: { cost: 150 },
+    MED_TENT: { cost: 125 }
+};
+
+const BUILDING_CONFIG = {
+    CASTLE: { baseCost: 0, hp: 1000, radius: 40, icon: '🏰', fontSize: '80px', foundationRx: 50, foundationRy: 15, yOffset: 35, vision: 300, name: 'Castle', isGuild: false },
+    WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
+    ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
+    DRUID_GUILD: { baseCost: 175, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
+    SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
+    FARM: { baseCost: 150, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false },
+    TOWER: { baseCost: 500, hp: 300, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false },
+    TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false }
+};
+
+const BASE_HERO_NAMES = ["Steven", "Gavin", "Lincoln", "Jeff", "Alex", "Daniel", "Beefaroni", "Tony", "Tasilogs", "Jody", "Javo", "Wolfgang", "Sean", "Rexba", "Squavin", "Naur", "Sipah", "Nippah", "Rathutch", "Jimmy", "Pam", "Don", "Patrick", "Shaybutters", "Shabusiness", "Mr. Stinky", "Snickers", "Cat Boy", "Dirtmorph", "Reverse Osmosis", "Romulus Stimuli", "Cantrop Fergusion", "Cluckster Stevens", "Purty McDavis", "Cousin Sam", "Cornhole Jackson", "Homunculus Michael", "Tasty Nomenclature", "Allen Akbar", "Delicious Virgil", "George McSexy", "Laquisha Washington", "Georgio Armani", "Korpo Tendons", "Zucchini Fritz", "Marcus Farcus", "Debbie Snacks", "Snozzberry Twist", "Andrew Sand", "Timmy Silverback", "Klinger", "Vecna", "Vindaloo", "Harshburger", "Kelli", "Markus Winnius"];
+let availableHeroNames = [...BASE_HERO_NAMES];
+let heroGeneration = 1;
+
+class Entity {
+    constructor(x, y) { this.id = Math.random().toString(36).substr(2, 9); this.pos = new Vec2(x, y); this.active = true; this.faction = 'NEUTRAL'; this.type = 'ENTITY'; this.radius = 10; this.hitboxOffset = {x: 0, y: 0}; this.hp = 10; this.maxHp = 10; this.lastAttacker = null; this.stunTimer = 0; this.attackers = new Set(); this.isStatic = false; }
+    update(dtSec) {}
+    draw(ctx) {}
+    getVisionRange() { return 0; }
+    takeDamage(amt, source) { if (!this.active) return; this.hp -= amt; this.lastAttacker = source; if (source && typeof source.gainXp === 'function') this.attackers.add(source); Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); if (this.hp <= 0) this.die(); }
+    die() { if (!this.active) return; this.active = false; if (this === Game.selectedEntity) Game.selectedEntity = null; }
+    drawHP(ctx, yOff = -15) { if (this.hp >= this.maxHp) return; const pct = Math.max(0, this.hp / this.maxHp); ctx.fillStyle = 'red'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30, 4); ctx.fillStyle = '#48bb78'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30 * pct, 4); }
+}
+
+class Unit extends Entity { 
+    constructor(x,y) { super(x,y); this.speed=1; this.target=null; this.attackRange=15; this.damage=5; this.attackCooldown=0; this.maxAttackCooldown=1.0; } 
+    moveTowards(tp) { 
+        const dx = tp.x - this.pos.x, dy = tp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
+        if (d <= this.speed) { this.pos.x = tp.x; this.pos.y = tp.y; return true; } 
+        if (d > 0) { this.pos.x += (dx/d)*this.speed; this.pos.y += (dy/d)*this.speed; }
+        return false; 
+    }
+    applySoftCollision() {
+        const neighbors = Grid.getNearby(this.pos, 400); 
+        let pushX = 0, pushY = 0;
+        for (let i = 0; i < neighbors.length; i++) {
             const other = neighbors[i];
             if (other === this || !other.active || !(other instanceof Unit))
               continue;
@@ -5886,27 +5952,18 @@
           UI.setDisplay("pause-overlay", "none");
           if (this.isPaused && !this.gameOver) {
             this.showStatsScreen(false);
-          } else if (!this.isPaused && !this.gameOver) {
-            UI.setDisplay("game-over", "none");
-          }
-          UI.setClass(document.body, "is-paused", this.isPaused);
-        },
-        isPosVisible(p) {
-          for (let i = 0; i < this.playerEntities.length; i++) {
-            const e = this.playerEntities[i];
-            if (typeof e.getVisionRange === "function") {
-              let v = e.getVisionRange();
-              if (v > 0 && p.distSq(e.pos) <= v * v) return true;
-            }
-          }
-          return false;
-        },
-        canPlaceBuilding(x, y, radius) {
-          const clamped = GameBounds.clamp(x, y, radius);
-          if (clamped.x !== x || clamped.y !== y) return false;
-
-          const pos = new Vec2(x, y);
-          for (let i = 0; i < this.playerEntities.length; i++) {
+        } else if (!this.isPaused && !this.gameOver) {
+            UI.setDisplay('game-over', 'none');
+        }
+        UI.setClass(document.body, 'is-paused', this.isPaused); 
+    },
+    isPosVisible(p) { return VisionGrid.isVisible(p); },
+    canPlaceBuilding(x, y, radius) {
+        const clamped = GameBounds.clamp(x, y, radius);
+        if (clamped.x !== x || clamped.y !== y) return false;
+        
+        const pos = new Vec2(x, y);
+        for (let i = 0; i < this.playerEntities.length; i++) {
             const e = this.playerEntities[i];
             if (BUILDING_CONFIG[e.type]) {
               const minDistance = radius + e.radius + 15;
@@ -6126,265 +6183,82 @@
             ["Hero Deaths", this.heroDeaths],
             ["Buildings Lost", this.buildingDeaths],
             ["Monster Spawners Killed", this.spawnersKilled],
-            [
-              "Emergency Triage Costs",
-              `<span style="color:#e53e3e">${Math.floor(this.emergencyMedicalCosts)}g</span>`,
-            ],
-          ];
-          stats.forEach(
-            (s) =>
-              (html += `<div class="stat-row"><span class="stat-label">${s[0]}</span><span class="stat-val">${s[1]}</span></div>`),
-          );
-          html += `</div><button class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
+            ["Emergency Triage Costs", `<span style="color:#e53e3e">${Math.floor(this.emergencyMedicalCosts)}g</span>`]
+        ];
+        stats.forEach(s => html += `<div class="stat-row"><span class="stat-label">${s[0]}</span><span class="stat-val">${s[1]}</span></div>`);
+        html += `</div><button class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
+        
+        const go = document.getElementById('game-over'); go.innerHTML = html; go.style.borderColor = themeColor; go.style.display = 'flex';
+    }
+};
 
-          const go = document.getElementById("game-over");
-          go.innerHTML = html;
-          go.style.borderColor = themeColor;
-          go.style.display = "flex";
-        },
-      };
+function switchMenu(m) { UI.setDisplay('menu-build', m==='BUILD'?'flex':'none'); UI.setDisplay('menu-command', m==='COMMAND'?'flex':'none'); }
+function setMode(m) { 
+    if (m === 'FLAG_GROUP_ATTACK') {
+        Game.cycleGroupQuestTavern();
+        if (!Game.selectedTavernForGroupQuest) return; 
+    } else {
+        Game.selectedTavernForGroupQuest = null;
+    }
+    Game.mode = m; 
+    if (m !== 'NONE' && Game.selectedEntity) { Game.selectedEntity = null; Game.hideTooltip(); Game.updateUI(true); }
+    document.querySelectorAll('#bottom-bar button').forEach(b => UI.setClass(b, 'active', false)); 
+    const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','FLAG_EXPLORE':'btn-flag-explore','FLAG_DEFEND':'btn-flag-defend','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack'}[m]; 
+    if(id) UI.setClass(id, 'active', true); 
+}
 
-      function switchMenu(m) {
-        UI.setDisplay("menu-build", m === "BUILD" ? "flex" : "none");
-        UI.setDisplay("menu-command", m === "COMMAND" ? "flex" : "none");
-      }
-      function setMode(m) {
-        if (m === "FLAG_GROUP_ATTACK") {
-          Game.cycleGroupQuestTavern();
-          if (!Game.selectedTavernForGroupQuest) return;
-        } else {
-          Game.selectedTavernForGroupQuest = null;
-        }
-        Game.mode = m;
-        if (m !== "NONE" && Game.selectedEntity) {
-          Game.selectedEntity = null;
-          Game.hideTooltip();
-          Game.updateUI(true);
-        }
-        document
-          .querySelectorAll("#bottom-bar button")
-          .forEach((b) => UI.setClass(b, "active", false));
-        const id = {
-          BUILD_WARRIOR: "btn-warrior-guild",
-          BUILD_ROGUE: "btn-rogue-guild",
-          BUILD_DRUID: "btn-druid-guild",
-          BUILD_SHOP: "btn-shop",
-          BUILD_FARM: "btn-farm",
-          BUILD_TOWER: "btn-tower",
-          BUILD_TAVERN: "btn-tavern",
-          FLAG_EXPLORE: "btn-flag-explore",
-          FLAG_DEFEND: "btn-flag-defend",
-          FLAG_ATTACK: "btn-flag-attack",
-          FLAG_GROUP_ATTACK: "btn-flag-group-attack",
-        }[m];
-        if (id) UI.setClass(id, "active", true);
-      }
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('mouseleave', () => { screenMousePos.x = canvas.width/2; screenMousePos.y = canvas.height/2; isPanning = false; });
+window.addEventListener('wheel', e => { if(Game.isPaused) return; e.preventDefault(); const z = 1.1; if(e.deltaY > 0) Camera.targetZoom /= z; else Camera.targetZoom *= z; Camera.targetZoom = Math.max(0.3, Math.min(2.5, Camera.targetZoom)); }, { passive: false });
+window.addEventListener('mouseup', e => { if (e.button === 1 || e.button === 2) isPanning = false; });
+canvas.addEventListener('mousedown', e => {
+    if (Game.gameOver || Game.isPaused) return;
+    if (e.button === 1 || e.button === 2) { isPanning = true; panStart = new Vec2(e.clientX, e.clientY); cameraStart = new Vec2(Camera.x, Camera.y); if(e.button===2) { if(Game.mode!=='NONE') setMode('NONE'); else { Game.selectedEntity=null; Game.updateUI(true); } } return; }
+    const r = canvas.getBoundingClientRect(); const cp = screenToWorld(e.clientX-r.left, e.clientY-r.top);
+    let clE = null; for(let i=Game.entities.length-1;i>=0;i--) { const ent=Game.entities[i]; if(ent.faction==='ENEMY'&&ent.isVisible===false) continue; const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0); const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0); if((cp.x - hx)**2 + (cp.y - hy)**2 <= (ent.radius+10)**2) { clE=ent; break; } }
+    if (Game.mode === 'NONE') { Game.selectedEntity = clE; Game.updateUI(true); return; }
+    const bM = {'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN'};
+    if (bM[Game.mode]) {
+        const bt = bM[Game.mode], cnf = BUILDING_CONFIG[bt], c = Game.getGuildCost(bt);
+        const pop = Game.getPopulation();
+        if (bt==='TOWER' && pop.cur >= pop.max) return; if (Game.gold >= c && Game.canPlaceBuilding(cp.x, cp.y, cnf.radius)) { Game.gold-=c; Game.addEntity(new Building(cp.x, cp.y, bt)); setMode('NONE'); }
+        return;
+    }
+    const clampedFlag = GameBounds.clamp(cp.x, cp.y, 0);
+    if (Game.mode==='FLAG_EXPLORE' && Game.gold>=25) { Game.gold-=25; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, 'FLAG_EXPLORE')); setMode('NONE'); Game.updateUI(true); }
+    else if (Game.mode==='FLAG_DEFEND' && Game.gold>=50 && clE && clE.faction==='PLAYER' && !['HERO','TRAP'].includes(clE.type)) { Game.gold-=50; Game.addEntity(new Flag(cp.x,cp.y,'FLAG_DEFEND',clE)); setMode('NONE'); Game.updateUI(true); }
+    else if (Game.mode==='FLAG_ATTACK' && Game.gold>=75) { Game.gold-=75; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, 'FLAG_ATTACK')); setMode('NONE'); Game.updateUI(true); }
+    else if (Game.mode==='FLAG_GROUP_ATTACK' && Game.gold>=75 && Game.selectedTavernForGroupQuest) { Game.gold-=75; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, 'FLAG_GROUP_ATTACK', null, Game.selectedTavernForGroupQuest)); setMode('NONE'); Game.updateUI(true); }
+});
+canvas.addEventListener('mousemove', e => { 
+    const r = canvas.getBoundingClientRect(); screenMousePos.x=e.clientX-r.left; screenMousePos.y=e.clientY-r.top; 
+    if(isPanning){const dx=(e.clientX-panStart.x)/Camera.zoom,dy=(e.clientY-panStart.y)/Camera.zoom; Camera.x=cameraStart.x-dx; Camera.y=cameraStart.y-dy;} 
+    const wp=screenToWorld(screenMousePos.x,screenMousePos.y); mousePos.x=wp.x; mousePos.y=wp.y; 
+    let hE = null;
+    for(let i=Game.entities.length-1;i>=0;i--) {
+        const ent=Game.entities[i];
+        if(ent.faction==='ENEMY'&&ent.isVisible===false) continue;
+        const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0);
+        const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0);
+        if((wp.x - hx)**2 + (wp.y - hy)**2 <= (ent.radius+10)**2) { hE = ent; break; }
+    }
+    Game.hoveredEntity = hE;
+});
 
-      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-      document.addEventListener("mouseleave", () => {
-        screenMousePos.x = canvas.width / 2;
-        screenMousePos.y = canvas.height / 2;
-        isPanning = false;
-      });
-      window.addEventListener(
-        "wheel",
-        (e) => {
-          if (Game.isPaused) return;
-          e.preventDefault();
-          const z = 1.1;
-          if (e.deltaY > 0) Camera.targetZoom /= z;
-          else Camera.targetZoom *= z;
-          Camera.targetZoom = Math.max(0.3, Math.min(2.5, Camera.targetZoom));
-        },
-        { passive: false },
-      );
-      window.addEventListener("mouseup", (e) => {
-        if (e.button === 1 || e.button === 2) isPanning = false;
-      });
-      canvas.addEventListener("mousedown", (e) => {
-        if (Game.gameOver || Game.isPaused) return;
-        if (e.button === 1 || e.button === 2) {
-          isPanning = true;
-          panStart = new Vec2(e.clientX, e.clientY);
-          cameraStart = new Vec2(Camera.x, Camera.y);
-          if (e.button === 2) {
-            if (Game.mode !== "NONE") setMode("NONE");
-            else {
-              Game.selectedEntity = null;
-              Game.updateUI(true);
-            }
-          }
-          return;
-        }
-        const r = canvas.getBoundingClientRect();
-        const cp = screenToWorld(e.clientX - r.left, e.clientY - r.top);
-        let clE = null;
-        for (let i = Game.entities.length - 1; i >= 0; i--) {
-          const ent = Game.entities[i];
-          if (ent.faction === "ENEMY" && ent.isVisible === false) continue;
-          const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0);
-          const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0);
-          if ((cp.x - hx) ** 2 + (cp.y - hy) ** 2 <= (ent.radius + 10) ** 2) {
-            clE = ent;
-            break;
-          }
-        }
-        if (Game.mode === "NONE") {
-          Game.selectedEntity = clE;
-          Game.updateUI(true);
-          return;
-        }
-        const bM = {
-          BUILD_WARRIOR: "WARRIOR_GUILD",
-          BUILD_ROGUE: "ROGUE_GUILD",
-          BUILD_DRUID: "DRUID_GUILD",
-          BUILD_SHOP: "SHOP",
-          BUILD_FARM: "FARM",
-          BUILD_TOWER: "TOWER",
-          BUILD_TAVERN: "TAVERN",
-        };
-        if (bM[Game.mode]) {
-          const bt = bM[Game.mode],
-            cnf = BUILDING_CONFIG[bt],
-            c = Game.getGuildCost(bt);
-          const pop = Game.getPopulation();
-          if (bt === "TOWER" && pop.cur >= pop.max) return;
-          if (Game.gold >= c && Game.canPlaceBuilding(cp.x, cp.y, cnf.radius)) {
-            Game.gold -= c;
-            Game.addEntity(new Building(cp.x, cp.y, bt));
-            setMode("NONE");
-          }
-          return;
-        }
-        const clampedFlag = GameBounds.clamp(cp.x, cp.y, 0);
-        if (Game.mode === "FLAG_EXPLORE" && Game.gold >= 25) {
-          Game.gold -= 25;
-          Game.addEntity(
-            new Flag(clampedFlag.x, clampedFlag.y, "FLAG_EXPLORE"),
-          );
-          setMode("NONE");
-          Game.updateUI(true);
-        } else if (
-          Game.mode === "FLAG_DEFEND" &&
-          Game.gold >= 50 &&
-          clE &&
-          clE.faction === "PLAYER" &&
-          !["HERO", "TRAP"].includes(clE.type)
-        ) {
-          Game.gold -= 50;
-          Game.addEntity(new Flag(cp.x, cp.y, "FLAG_DEFEND", clE));
-          setMode("NONE");
-          Game.updateUI(true);
-        } else if (Game.mode === "FLAG_ATTACK" && Game.gold >= 75) {
-          Game.gold -= 75;
-          Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, "FLAG_ATTACK"));
-          setMode("NONE");
-          Game.updateUI(true);
-        } else if (
-          Game.mode === "FLAG_GROUP_ATTACK" &&
-          Game.gold >= 75 &&
-          Game.selectedTavernForGroupQuest
-        ) {
-          Game.gold -= 75;
-          Game.addEntity(
-            new Flag(
-              clampedFlag.x,
-              clampedFlag.y,
-              "FLAG_GROUP_ATTACK",
-              null,
-              Game.selectedTavernForGroupQuest,
-            ),
-          );
-          setMode("NONE");
-          Game.updateUI(true);
-        }
-      });
-      canvas.addEventListener("mousemove", (e) => {
-        const r = canvas.getBoundingClientRect();
-        screenMousePos.x = e.clientX - r.left;
-        screenMousePos.y = e.clientY - r.top;
-        if (isPanning) {
-          const dx = (e.clientX - panStart.x) / Camera.zoom,
-            dy = (e.clientY - panStart.y) / Camera.zoom;
-          Camera.x = cameraStart.x - dx;
-          Camera.y = cameraStart.y - dy;
-        }
-        const wp = screenToWorld(screenMousePos.x, screenMousePos.y);
-        mousePos.x = wp.x;
-        mousePos.y = wp.y;
-        let hE = null;
-        for (let i = Game.entities.length - 1; i >= 0; i--) {
-          const ent = Game.entities[i];
-          if (ent.faction === "ENEMY" && ent.isVisible === false) continue;
-          const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0);
-          const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0);
-          if ((wp.x - hx) ** 2 + (wp.y - hy) ** 2 <= (ent.radius + 10) ** 2) {
-            hE = ent;
-            break;
-          }
-        }
-        Game.hoveredEntity = hE;
-      });
+let lastTimestamp = 0, accumulator = 0; const TIME_STEP = 1000/60, visionCache = {};
+const fogCanvas = document.createElement('canvas'); const fogCtx = fogCanvas.getContext('2d');
+function getVisionImage(r) { if(visionCache[r]) return visionCache[r]; const c=document.createElement('canvas'); c.width=r*2; c.height=r*2; const ctx=c.getContext('2d'), g=ctx.createRadialGradient(r,r,r*0.4,r,r,r); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,r*2,r*2); visionCache[r]=c; return c; }
+function init() { VisionGrid.init(WORLD_WIDTH + 2000, WORLD_HEIGHT + 2000, 1000, 1000); generateTerrain(); Game.base = new Building(WORLD_WIDTH/2, WORLD_HEIGHT/2, 'CASTLE'); Game.addEntity(Game.base); Game.spawnHole(); requestAnimationFrame(loop); }
+function loop(timestamp) {
+    if (Game.gameOver) return; requestAnimationFrame(loop); if(!lastTimestamp) lastTimestamp=timestamp; let dt=timestamp-lastTimestamp; lastTimestamp=timestamp; if(Game.isPaused) return; if(dt>250) dt=250; accumulator+=dt; let updated=false;
+    while (accumulator >= TIME_STEP) {
+        Game.frames++; const dtS = TIME_STEP/1000; Game.timeMs+=TIME_STEP; Camera.zoom+=(Camera.targetZoom-Camera.zoom)*0.1;
+        if (!isPanning) { const ps=15/Camera.zoom; if(keys['w']||keys['arrowup']) Camera.y-=ps; if(keys['s']||keys['arrowdown']) Camera.y+=ps; if(keys['a']||keys['arrowleft']) Camera.x-=ps; if(keys['d']||keys['arrowright']) Camera.x+=ps; }
+        Camera.x=Math.max(-800,Math.min(WORLD_WIDTH+800,Camera.x)); Camera.y=Math.max(-800,Math.min(WORLD_HEIGHT+800,Camera.y));
+        Game.dayTimer-=dtS; if(Game.dayTimer<=0) { 
+            Game.day++; Game.dayTimer=65.0; 
 
-      let lastTimestamp = 0,
-        accumulator = 0;
-      const TIME_STEP = 1000 / 60,
-        visionCache = {};
-      const fogCanvas = document.createElement("canvas");
-      const fogCtx = fogCanvas.getContext("2d");
-      function getVisionImage(r) {
-        if (visionCache[r]) return visionCache[r];
-        const c = document.createElement("canvas");
-        c.width = r * 2;
-        c.height = r * 2;
-        const ctx = c.getContext("2d"),
-          g = ctx.createRadialGradient(r, r, r * 0.4, r, r, r);
-        g.addColorStop(0, "rgba(0,0,0,1)");
-        g.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, r * 2, r * 2);
-        visionCache[r] = c;
-        return c;
-      }
-      function init() {
-        generateTerrain();
-        Game.base = new Building(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, "CASTLE");
-        Game.addEntity(Game.base);
-        Game.spawnHole();
-        requestAnimationFrame(loop);
-      }
-      function loop(timestamp) {
-        if (Game.gameOver) return;
-        requestAnimationFrame(loop);
-        if (!lastTimestamp) lastTimestamp = timestamp;
-        let dt = timestamp - lastTimestamp;
-        lastTimestamp = timestamp;
-        if (Game.isPaused) return;
-        if (dt > 250) dt = 250;
-        accumulator += dt;
-        let updated = false;
-        while (accumulator >= TIME_STEP) {
-          Game.frames++;
-          const dtS = TIME_STEP / 1000;
-          Game.timeMs += TIME_STEP;
-          Camera.zoom += (Camera.targetZoom - Camera.zoom) * 0.1;
-          if (!isPanning) {
-            const ps = 15 / Camera.zoom;
-            if (keys["w"] || keys["arrowup"]) Camera.y -= ps;
-            if (keys["s"] || keys["arrowdown"]) Camera.y += ps;
-            if (keys["a"] || keys["arrowleft"]) Camera.x -= ps;
-            if (keys["d"] || keys["arrowright"]) Camera.x += ps;
-          }
-          Camera.x = Math.max(-800, Math.min(WORLD_WIDTH + 800, Camera.x));
-          Camera.y = Math.max(-800, Math.min(WORLD_HEIGHT + 800, Camera.y));
-          Game.dayTimer -= dtS;
-          if (Game.dayTimer <= 0) {
-            Game.day++;
-            Game.dayTimer = 65.0;
-
-            let eRats = 0,
-              eSpiders = 0,
-              eSnakes = 0;
+            let eRats=0, eSpiders=0, eSnakes=0;
             const mainB = GameBounds.getMain();
             Game.entities.forEach((e) => {
               if (e.type === "SPAWNER" && e.spawnerType !== "VOLCANO") {
@@ -6544,21 +6418,12 @@
               continue;
             }
             Grid.insert(e);
-            if (e.faction === "PLAYER") Game.playerEntities.push(e);
-            else if (e.faction === "ENEMY") {
-              Game.enemyEntities.push(e);
-              e.isVisible = !Game.fogOfWar || Game.isPosVisible(e.pos);
-            }
-            if (e.classType) Game.activeHeroes.push(e);
-            if (e.type === "SHOP") {
-              Game.activeShops.push(e);
-              Game.shops.push(e);
-            }
-            if (e.type.startsWith("FLAG_")) {
-              Game.activeFlags.push(e);
-              Game.flags.push(e);
-            }
-            if (e.type === "SPAWNER") Game.activeSpawners.push(e);
+            if(e.faction==='PLAYER') Game.playerEntities.push(e);
+            else if(e.faction==='ENEMY') { Game.enemyEntities.push(e); e.isVisible = VisionGrid.isVisible(e.pos); }
+            if(e.classType) Game.activeHeroes.push(e);
+            if(e.type==='SHOP') { Game.activeShops.push(e); Game.shops.push(e); }
+            if(e.type.startsWith('FLAG_')) { Game.activeFlags.push(e); Game.flags.push(e); }
+            if(e.type==='SPAWNER') Game.activeSpawners.push(e);
 
             if (e.isStatic) {
               if (updateStatic) Game.renderStatic.push(e);
@@ -6613,8 +6478,52 @@
           accumulator -= TIME_STEP;
           updated = true;
         }
-        if (!updated) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        Game.renderDynamic.sort((a,b) => a.pos.y - b.pos.y);
+
+        Game.updateUI(); for(let i=0; i<Game.entities.length; i++) Game.entities[i].update(dtS); 
+        Game.projectiles.forEach(p=>p.update(dtS)); 
+        for(let i=Game.projectiles.length-1; i>=0; i--) {
+            if(!Game.projectiles[i].active) { 
+                Game.projectiles[i] = Game.projectiles[Game.projectiles.length - 1];
+                Game.projectiles.pop();
+            }
+        }
+        for(let i=Game.particles.length-1; i>=0; i--) { 
+            const p = Game.particles[i]; 
+            p.pos.x += p.vel.x; p.pos.y += p.vel.y; p.life -= dtS; 
+            if(p.life <= 0) { 
+                Game.particles[i] = Game.particles[Game.particles.length - 1];
+                Game.particles.pop();
+            } 
+        }
+        for(let i=Game.floatingTexts.length-1; i>=0; i--) { 
+            const ft = Game.floatingTexts[i]; 
+            ft.pos.x += ft.vel.x; ft.pos.y += ft.vel.y; ft.life -= dtS; 
+            if(ft.life <= 0) { 
+                ft.el.remove();
+                Game.floatingTexts[i] = Game.floatingTexts[Game.floatingTexts.length - 1];
+                Game.floatingTexts.pop();
+            } 
+        }
+        VisionGrid.update(Game.playerEntities);
+        Game.entities.forEach(e=>{if(e.faction==='ENEMY')e.isVisible = VisionGrid.isVisible(e.pos);});
+        accumulator-=TIME_STEP; updated=true;
+    }
+    if (!updated) return; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.save(); ctx.translate(canvas.width/2,canvas.height/2); ctx.scale(Camera.zoom,Camera.zoom); ctx.translate(-Camera.x,-Camera.y); 
+    
+    ctx.drawImage(bgCanvas, Game.bgBounds.x, Game.bgBounds.y); 
+    
+    if (Game.fogOfWar) {
+        fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
+        fogCtx.fillStyle='rgba(0,0,0,0.7)'; fogCtx.fillRect(0, 0, canvas.width, canvas.height); 
+        fogCtx.globalCompositeOperation='destination-out'; 
+        fogCtx.save();
+        fogCtx.translate(canvas.width/2,canvas.height/2); fogCtx.scale(Camera.zoom,Camera.zoom); fogCtx.translate(-Camera.x,-Camera.y);
+        for(let e of Game.playerEntities){let v=e.getVisionRange(); if(v>0)fogCtx.drawImage(getVisionImage(v),e.pos.x-v,e.pos.y-v);} 
+        fogCtx.restore();
+        fogCtx.globalCompositeOperation='source-over'; 
+        ctx.restore();
+        ctx.drawImage(fogCanvas, 0, 0);
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.scale(Camera.zoom, Camera.zoom);
@@ -6675,157 +6584,58 @@
               dEnt.draw(ctx);
               dIdx++;
             }
-          } else if (sEnt) {
-            sEnt.draw(ctx);
-            sIdx++;
-          } else {
-            dEnt.draw(ctx);
-            dIdx++;
-          }
+        } else if (sEnt) {
+            sEnt.draw(ctx); sIdx++;
+        } else {
+            dEnt.draw(ctx); dIdx++;
         }
+    }
 
-        Game.projectiles.forEach((p) => p.draw(ctx));
-        Game.particles.forEach((p) => {
-          if (!Game.isPosVisible(p.pos)) return;
-          ctx.globalAlpha = p.life / p.maxLife;
-          ctx.fillStyle = p.color;
-          ctx.beginPath();
-          ctx.arc(p.pos.x, p.pos.y, 3, 0, Math.PI * 2);
-          ctx.fill();
-        });
-
-        ctx.globalAlpha = 1.0;
-        if (Game.mode !== "NONE") {
-          const bM = {
-            BUILD_WARRIOR: "WARRIOR_GUILD",
-            BUILD_ROGUE: "ROGUE_GUILD",
-            BUILD_DRUID: "DRUID_GUILD",
-            BUILD_SHOP: "SHOP",
-            BUILD_FARM: "FARM",
-            BUILD_TOWER: "TOWER",
-            BUILD_TAVERN: "TAVERN",
-          };
-          if (bM[Game.mode]) {
-            const bt = bM[Game.mode],
-              cnf = BUILDING_CONFIG[bt];
-            let canP = Game.canPlaceBuilding(
-              mousePos.x,
-              mousePos.y,
-              cnf.radius,
-            );
-            if (bt === "TOWER") {
-              const pop = Game.getPopulation();
-              if (pop.cur >= pop.max) canP = false;
-            }
-            ctx.globalAlpha = canP ? 0.8 : 0.3;
-            ctx.strokeStyle = canP ? "#39ff14" : "#ff0000";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.rect(
-              mousePos.x - cnf.radius,
-              mousePos.y - cnf.radius,
-              cnf.radius * 2,
-              cnf.radius * 2,
-            );
-            ctx.stroke();
-            if (!canP) {
-              ctx.fillStyle = "rgba(255,0,0,0.15)";
-              ctx.fill();
-            }
-            ctx.font = cnf.fontSize + " Arial";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(cnf.icon, mousePos.x, mousePos.y);
-            if (bt === "TOWER") {
-              ctx.save();
-              const hY = Math.sin(Game.timeMs * 0.006) * 4;
-              ctx.translate(mousePos.x, mousePos.y - 20 + hY);
-              ctx.font = "26px Arial";
-              ctx.fillText("🖲️", 0, 0);
-              ctx.restore();
-            }
-            if (bt === "TAVERN") {
-              ctx.save();
-              ctx.font = "28px Arial";
-              ctx.fillText("🍻", mousePos.x, mousePos.y + 10);
-              ctx.restore();
-            }
-          } else if (
-            [
-              "FLAG_EXPLORE",
-              "FLAG_ATTACK",
-              "FLAG_DEFEND",
-              "FLAG_GROUP_ATTACK",
-            ].includes(Game.mode)
-          ) {
-            ctx.globalAlpha = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(mousePos.x, mousePos.y);
-            ctx.lineTo(mousePos.x, mousePos.y - 30);
-            ctx.strokeStyle = "#fff";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.fillStyle =
-              Game.mode === "FLAG_ATTACK" || Game.mode === "FLAG_GROUP_ATTACK"
-                ? "#e53e3e"
-                : Game.mode === "FLAG_DEFEND"
-                  ? "#3182ce"
-                  : "#ecc94b";
-            ctx.beginPath();
-            ctx.moveTo(mousePos.x, mousePos.y - 30);
-            ctx.lineTo(mousePos.x + 15, mousePos.y - 22);
-            ctx.lineTo(mousePos.x, mousePos.y - 15);
-            ctx.fill();
-            if (Game.mode === "FLAG_GROUP_ATTACK") {
-              ctx.fillStyle = "white";
-              ctx.font = "16px Arial";
-              ctx.textAlign = "left";
-              ctx.textBaseline = "middle";
-              ctx.fillText("🍻", mousePos.x + 18, mousePos.y - 22);
-            }
-            if (Game.mode === "FLAG_DEFEND") {
-              ctx.beginPath();
-              ctx.arc(mousePos.x, mousePos.y, 40, 0, Math.PI * 2);
-              ctx.setLineDash([5, 5]);
-              ctx.strokeStyle = "rgba(49,130,206,0.5)";
-              ctx.lineWidth = 1;
-              ctx.stroke();
-              ctx.setLineDash([]);
-              ctx.fillStyle = "white";
-              ctx.font = "12px Arial";
-              ctx.fillText("Click Building", mousePos.x + 30, mousePos.y - 15);
-            }
-
-            if (
-              Game.mode === "FLAG_GROUP_ATTACK" &&
-              Game.selectedTavernForGroupQuest
-            ) {
-              ctx.globalAlpha = 1.0;
-              const t = Game.selectedTavernForGroupQuest;
-              const bounceY = Math.sin(Game.timeMs * 0.01) * 8;
-              ctx.save();
-              ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
-              ctx.shadowBlur = 15;
-              ctx.font = "30px Arial";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.fillText("👇", t.pos.x, t.pos.y - t.radius - 40 + bounceY);
-              ctx.restore();
-            }
-          }
-          ctx.globalAlpha = 1.0;
+    Game.projectiles.forEach(p=>p.draw(ctx)); 
+    Game.particles.forEach(p=>{if(!VisionGrid.isVisible(p.pos))return; ctx.globalAlpha=p.life/p.maxLife; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.pos.x,p.pos.y,3,0,Math.PI*2); ctx.fill();});
+    
+    ctx.globalAlpha=1.0;
+    if (Game.mode!=='NONE'){
+        const bM={'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN'};
+        if(bM[Game.mode]){
+            const bt=bM[Game.mode],cnf=BUILDING_CONFIG[bt]; 
+            let canP=Game.canPlaceBuilding(mousePos.x,mousePos.y,cnf.radius); 
+            if(bt==='TOWER'){
+                const pop = Game.getPopulation();
+                if(pop.cur>=pop.max)canP=false;
+            } 
+            ctx.globalAlpha=canP?0.8:0.3; ctx.strokeStyle=canP?'#39ff14':'#ff0000'; ctx.lineWidth=2; ctx.beginPath(); ctx.rect(mousePos.x-cnf.radius, mousePos.y-cnf.radius, cnf.radius*2, cnf.radius*2); ctx.stroke(); if(!canP){ctx.fillStyle='rgba(255,0,0,0.15)'; ctx.fill();} ctx.font=cnf.fontSize+' Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(cnf.icon,mousePos.x,mousePos.y); if(bt==='TOWER'){ctx.save();const hY=Math.sin(Game.timeMs*0.006)*4;ctx.translate(mousePos.x,mousePos.y-20+hY);ctx.font='26px Arial';ctx.fillText('🖲️',0,0);ctx.restore();} if(bt==='TAVERN'){ctx.save();ctx.font='28px Arial';ctx.fillText('🍻',mousePos.x,mousePos.y+10);ctx.restore();} 
         }
-        ctx.restore();
-
-        Game.floatingTexts.forEach((ft) => {
-          if (!Game.isPosVisible(ft.pos)) {
-            ft.el.style.display = "none";
-          } else {
-            ft.el.style.display = "block";
-            const screenX =
-              (ft.pos.x - Camera.x) * Camera.zoom + canvas.width / 2;
-            const screenY =
-              (ft.pos.y - Camera.y) * Camera.zoom + canvas.height / 2;
+        else if(['FLAG_EXPLORE','FLAG_ATTACK','FLAG_DEFEND','FLAG_GROUP_ATTACK'].includes(Game.mode)){
+            ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(mousePos.x,mousePos.y);ctx.lineTo(mousePos.x,mousePos.y-30);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=(Game.mode==='FLAG_ATTACK'||Game.mode==='FLAG_GROUP_ATTACK')?'#e53e3e':(Game.mode==='FLAG_DEFEND'?'#3182ce':'#ecc94b');ctx.beginPath();ctx.moveTo(mousePos.x,mousePos.y-30);ctx.lineTo(mousePos.x+15,mousePos.y-22);ctx.lineTo(mousePos.x,mousePos.y-15);ctx.fill(); 
+            if (Game.mode === 'FLAG_GROUP_ATTACK') { ctx.fillStyle='white'; ctx.font='16px Arial'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText('🍻', mousePos.x + 18, mousePos.y - 22); }
+            if(Game.mode==='FLAG_DEFEND'){ctx.beginPath();ctx.arc(mousePos.x,mousePos.y,40,0,Math.PI*2);ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(49,130,206,0.5)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='white';ctx.font='12px Arial';ctx.fillText("Click Building",mousePos.x+30,mousePos.y-15);}
+            
+            if (Game.mode === 'FLAG_GROUP_ATTACK' && Game.selectedTavernForGroupQuest) {
+                ctx.globalAlpha=1.0;
+                const t = Game.selectedTavernForGroupQuest;
+                const bounceY = Math.sin(Game.timeMs * 0.01) * 8;
+                ctx.save();
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
+                ctx.shadowBlur = 15;
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('👇', t.pos.x, t.pos.y - t.radius - 40 + bounceY);
+                ctx.restore();
+            }
+        } 
+        ctx.globalAlpha=1.0;
+    }
+    ctx.restore(); 
+    
+    Game.floatingTexts.forEach(ft => { 
+        if(!VisionGrid.isVisible(ft.pos)) {
+            ft.el.style.display = 'none'; 
+        } else { 
+            ft.el.style.display = 'block'; 
+            const screenX = (ft.pos.x - Camera.x) * Camera.zoom + canvas.width / 2;
+            const screenY = (ft.pos.y - Camera.y) * Camera.zoom + canvas.height / 2;
             ft.el.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%) scale(${Camera.zoom})`;
             ft.el.style.opacity = ft.life / ft.maxLife;
           }
