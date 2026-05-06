@@ -1,0 +1,819 @@
+Sketchit
+sketchits
+Online
+
+Sketchit — 4/20/26, 12:43 AM
+
+Sketchit — 4/21/26, 12:55 PM
+
+Sketchit — 4/21/26, 1:52 PM
+The Sandy Hook
+Before you say something to your bro, always THINK:
+
+How can you make it Tender?
+How can you make it Homoerotic?
+How can you make it Implicitly intimate?
+How can you make it Noticeably a metaphor for sex?
+How can you make it Kind of gay?
+Sketchit — 4/27/26, 2:18 PM
+I want to rename the commands to "Quests"
+
+
+
+Once a hero accepts a quest, it locks them into it until it is finished.
+
+
+
+I want a symbol to show above the heroes head if they're on that quest, so for scouting, I want a green flag.
+
+
+
+They should only get side tracked from the quest if they are attacked. But being attack does not remove them from doing the quest. 
+
+
+
+I think that's why it fluctuates up and down, and when sometimes there is more than 3 heroes. I also just want it to recuit the nearest heroes if so
+Sketchit — 4/30/26, 11:10 AM
+Can you make it so that with Explore quests - heroes will still aggro spawners if they are near the hero?
+
+I also noticed with attack quests, if one Hero is attacked or attacks, the other 2 members of the group just stop in place, rather than going and attacking / helping the other group member.
+Sketchit — 5/1/26, 10:37 AM
+🕵️‍♂️"Rogue's Disguise" used by rogues only, costs 250, has the same stats as leather armor, but makes it so that Monsters will ignore a rogue until the rogue deals damage to it.  Rogues can swap leather armor for this item (like how warriors swap leather armor for chainmail)
+Sketchit — 5/4/26, 9:58 AM
+When you press 4 for the Group Quest, make it so that a big 👇with a faint white glow around it pops up about a Tavern.
+
+Each time the player presses 4, it moves the pointer to a different Tavern, if there is more than one time. 
+
+So if a player presses 4, he knows that when he places the group quest flag down, he knows that a group from that Tavern will be going on that quest, but he can cycle through if he wants to select another tavern.
+Sketchit — Yesterday at 6:56 AM
+757-298-6685
+Sketchit — Yesterday at 11:55 PM
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign: Indirect Control Strategy</title>... (137 KB left)
+
+message.txt
+187 KB
+Sketchit — 7:47 AM
+Github
+
+thesketchit
+ElderScrolls2o23@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovereign: Indirect Control Strategy</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1e3a23;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .panel {
+            position: absolute;
+            background: rgba(20, 25, 30, 0.9);
+            border: 1px solid #4a5568;
+            color: #e2e8f0;
+            padding: 15px;
+            pointer-events: auto;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        #top-bar {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 28px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-sizing: border-box;
+            border-radius: 0;
+            border: none;
+            border-bottom: 2px solid #4a5568;
+            background: #1a202c;
+        }
+        #bottom-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: auto;
+            background: rgba(20, 25, 30, 0.95);
+            border-top: 2px solid #4a5568;
+            padding: 22px 10px 25px 10px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            pointer-events: auto;
+        }
+        .menu-group {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #info-panel {
+            width: 260px;
+            padding: 12px;
+            display: none;
+            z-index: 50;
+        }
+        #info-panel h3 { margin: 0; color: #63b3ed; font-size: 0.95rem; }
+        .stat-line { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 0.85rem; }
+        
+        .shop-slot-btn {
+            background: #3182ce; border: 2px solid #2b6cb0; border-radius: 4px;
+            width: 65px; height: 65px; color: white; font-size: 0.85rem; font-weight: bold;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .shop-slot-btn:hover { background: #4299e1; box-shadow: 0 0 8px #63b3ed; }
+        .shop-slot-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        
+        .shop-item-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
+        .shop-item-btn {
+            background: #2d3748; border: 1px solid #4a5568; border-radius: 4px;
+            padding: 5px; color: white; display: flex; flex-direction: column; align-items: center;
+            cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s;
+            box-sizing: border-box; overflow: hidden; width: 100%;
+        }
+        .shop-item-btn:hover:not(:disabled) { background: #4a5568; border-color: #718096; }
+        .shop-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .shop-item-btn.selected { border-color: #63b3ed; box-shadow: 0 0 8px #3182ce; background: #3a4a63; }
+        .item-icon { font-size: 1.5rem; }
+        .item-cost { font-size: 0.8rem; color: #ecc94b; margin: 2px 0; font-weight: bold; }
+        .item-classes { font-size: 0.7rem; letter-spacing: -2px; }
+
+        .btn {
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            color: #e2e8f0;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 3px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn:hover:not(:disabled) { background: #4a5568; }
+        .btn.active { background: #3182ce; border-color: #63b3ed; }
+        .btn:disabled { background: #1a202c; color: #718096; cursor: not-allowed; border-color: #2d3748; }
+        
+        .tax-btn {
+            background: #2d3748;
+            border: 1px solid #4a5568;
+            color: #a0aec0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 2px;
+        }
+        .tax-btn:hover { background: #4a5568; color: #e2e8f0; }
+        .tax-btn.active { background: #3182ce; border-color: #63b3ed; color: #fff; font-weight: bold; }
+
+        .menu-btn {
+            background: #2d3748;
+            border: 3px solid #4a5568;
+            color: #e2e8f0;
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: block;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+            transition: transform 0.1s, border-color 0.2s, filter 0.2s;
+            padding: 0;
+            margin: 0 3px;
+        }
+        #bottom-bar .menu-btn { width: 76px; height: 76px; margin: 0 6px; }
+        .menu-btn:hover:not(:disabled) { transform: translateY(-2px); }
+        .menu-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(80%); }
+
+        .build-btn:hover:not(:disabled) { border-color: #63b3ed; }
+        .build-btn.active { border-color: #63b3ed; background: #3182ce; }
+        
+        .build-btn-header {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0;
+            z-index: 2;
+        }
+
+        .build-btn-title { 
+            background: #4a5568;
+            color: #e2e8f0;
+            padding: 1px 6px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            border: 1px solid #000;
+            border-left: none;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+        .menu-btn.active .build-btn-title,
+        .menu-btn:hover:not(:disabled) .build-btn-title {
+            background: #63b3ed;
+            color: #1a202c;
+            border-color: #000;
+        }
+        #bottom-bar .build-btn-title { font-size: 0.75rem; padding: 2px 8px; }
+
+        .build-btn-hotkey {
+            background: #ecc94b;
+            color: #1a202c;
+            padding: 1px 5px;
+            border-radius: 4px 0 0 4px;
+            font-weight: 900;
+            font-size: 0.65rem;
+            border: 1px solid #000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        #bottom-bar .build-btn-hotkey { font-size: 0.75rem; padding: 2px 6px; }
+
+        .build-btn-icon { 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2.0rem;
+            line-height: 1;
+            text-align: center;
+            width: 100%;
+        }
+        #bottom-bar .build-btn-icon { font-size: 2.3rem; }
+
+        .build-btn-cost-badge {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a202c;
+            border: 2px solid #4a5568;
+            padding: 1px 6px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 2;
+            transition: 0.2s;
+        }
+        #bottom-bar .build-btn-cost-badge { bottom: -14px; padding: 2px 8px; }
+
+        .build-btn-cost { font-size: 0.65rem; font-weight: bold; color: #ecc94b; }
+        #bottom-bar .build-btn-cost { font-size: 0.75rem; }
+
+        .nav-btn { background: #5c4530; border-color: #8b6b4a; }
+        .nav-btn .build-btn-title { background: #8b6b4a; border-color: #000; }
+        .nav-btn .build-btn-cost-badge { background: #3e2723; border-color: #8b6b4a; }
+        .nav-btn:hover:not(:disabled) { border-color: #ecc94b; }
+        .nav-btn:hover:not(:disabled) .build-btn-title { background: #ecc94b; color: #1a202c; border-color: #000; }
+        .nav-btn:hover:not(:disabled) .build-btn-cost-badge { border-color: #ecc94b; }
+        .nav-btn .build-btn-icon { text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
+
+        .panel-btn-grid {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        .panel-btn-grid .menu-btn { margin: 0; }
+        
+        #pause-overlay {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: bold;
+            text-shadow: 0px 4px 15px rgba(0,0,0,1);
+            pointer-events: none;
+            letter-spacing: 8px;
+            z-index: 10;
+        }
+        
+        body.is-paused #bottom-bar,
+        body.is-paused #info-panel {
+            pointer-events: none;
+            opacity: 0.5;
+            filter: grayscale(80%);
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 15, 20, 0.98);
+            border: 3px solid #e53e3e;
+            padding: 12px;
+            width: 85%;
+            max-width: 800px;
+            height: auto;
+            max-height: 98vh;
+            color: #e2e8f0;
+            pointer-events: auto;
+            z-index: 1000;
+            border-radius: 8px;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            flex-direction: column;
+        }
+        .go-title { font-size: 1.4rem; text-align: center; margin-bottom: 5px; font-weight: bold; border-bottom: 2px solid; padding-bottom: 5px; flex-shrink: 0; }
+        .score-grid { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-height: 0; }
+        .go-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 2px; }
+        .go-table th { background: #2d3748; padding: 4px; text-align: left; color: #ecc94b; border-bottom: 2px solid #4a5568; }
+        .go-table td { padding: 3px 4px; border-bottom: 1px solid #2d3748; }
+        .go-table tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+        .stat-box { background: #1a202c; border: 1px solid #4a5568; padding: 6px 10px; border-radius: 4px; display: flex; flex-direction: column; min-height: 0; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dashed #2d3748; padding-bottom: 2px; }
+        .stat-label { color: #a0aec0; }
+        .stat-val { font-weight: bold; color: #63b3ed; }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(15, 15, 20, 0.8);
+            border: 1px solid #718096;
+            padding: 6px;
+            pointer-events: none;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6);
+            display: none;
+            z-index: 100;
+            text-align: left;
+            min-width: 50px;
+            width: fit-content;
+            max-width: 150px;
+        }
+        .tooltip-title { font-weight: bold; font-size: 0.88rem; margin-bottom: 3px; color: #ffffff; }
+        .tooltip-desc { color: #ecc94b; font-size: 0.77rem; line-height: 1.2; }
+        #tooltip.building-tooltip { min-width: 210px; max-width: 270px; padding: 10px; }
+        .pop-icon-glow { text-shadow: 0 0 4px white, 0 0 6px white; }
+        
+        #guild-roster-icons { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
+        .roster-icon { display: inline-flex; justify-content: center; align-items: center; background: #2d3748; border: 1px solid #4a5568; border-radius: 4px; width: 28px; height: 28px; font-size: 1.1rem; cursor: help; transition: background 0.2s, border-color 0.2s, transform 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .roster-icon:hover { background: #4a5568; border-color: #63b3ed; transform: translateY(-2px); }
+        
+        .scrollable-grid::-webkit-scrollbar { width: 6px; }
+        .scrollable-grid::-webkit-scrollbar-track { background: #1a202c; border-radius: 3px; }
+        .scrollable-grid::-webkit-scrollbar-thumb { background: #3182ce; border-radius: 3px; }
+
+        #floating-text-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 40;
+            overflow: hidden;
+        }
+        .floating-text {
+            position: absolute;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black, -1px -1px 2px black, 1px -1px 2px black, -1px 1px 2px black;
+            transform-origin: center center;
+            will-change: transform, opacity;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui-layer">
+    <div id="floating-text-layer"></div>
+    <div id="tooltip"></div>
+    <div id="top-bar" class="panel">
+        <span>🪙: <span id="gold-display" style="color: #ecc94b;">500</span></span>
+        <span style="margin: 0 15px;">|</span>
+        <span>🫂 <span id="pop-display">0/5</span></span>
+        <span style="margin: 0 15px;">|</span>
+        <span style="display: flex; align-items: center; margin-right: 15px;">
+            <span style="margin-right: 5px;">Tax Rate ⚖️</span>
+            <button class="tax-btn" id="btn-tax-0" onclick="Game.setTaxRate(0)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>0%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">0%</button>
+            <button class="tax-btn" id="btn-tax-25" onclick="Game.setTaxRate(0.25)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>25%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">25%</button>
+            <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>50%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">50%</button>
+            <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>75%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">75%</button>
+            <button class="tax-btn" id="btn-tax-100" onclick="Game.setTaxRate(1)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>100%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">100%</button>
+        </span>
+        <span style="margin: 0 15px; margin-left: auto;">|</span>
+        <span>
+            <span id="day-text" style="color: #63b3ed; font-weight: bold; text-shadow: 0 0 3px rgba(99,179,237,0.5);">Day 1:</span> 
+            <span id="day-timer-display" style="background: #1a202c; border: 1px solid #4a5568; padding: 2px 8px; border-radius: 4px; color: #ffffff; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 1px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); display: inline-block; min-width: 24px; text-align: center;">60</span>
+        </span>
+        <button id="btn-pause" onclick="Game.togglePause()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #e2e8f0; padding: 0;">⏸️</button>
+    </div>
+
+    <div id="pause-overlay">PAUSED</div>
+
+    <div id="info-panel" class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <h3 id="info-name" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">Entity Name</h3>
+            <div style="display: flex;">
+                <button id="btn-repair" class="btn" style="display:none; margin-left: 10px; padding: 2px 6px; font-size: 0.9rem;" onclick="Game.toggleRepair()" onmouseenter="Game.showTooltip(event, 'Repair [F]', 'Heal the building for 30 HP every 2 seconds.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 10g per tick.</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">🛠️</button>
+                <button id="btn-abandon" class="btn" style="display:none; margin-left: 10px; padding: 2px 6px; font-size: 0.9rem;" onclick="Game.abandonQuest()" onmouseenter="Game.showTooltip(event, 'Abandon Quest [A]', 'Cancel this quest and recall the heroes.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">🛑</button>
+            </div>
+        </div>
+        
+        <div id="info-stats">
+            <div id="stat-tombstone" style="font-style: italic; color: #a0aec0; margin-bottom: 10px; line-height: 1.4; display:none;"></div>
+            <div id="stat-level" class="stat-line" style="display:none;"><span>Level:</span> <span id="val-level"></span></div>
+            <div id="stat-xp" class="stat-line" style="display:none;"><span>XP:</span> <span id="val-xp"></span></div>
+            <div id="stat-gold" class="stat-line" style="display:none;"><span>Personal Gold:</span> <span id="val-gold" style="color:#ecc94b"></span></div>
+            <div id="stat-kills" class="stat-line" style="display:none;"><span>Kills:</span> <span id="val-kills"></span></div>
+            <div id="stat-dmg" class="stat-line" style="display:none;"><span>Damage:</span> <span id="val-dmg"></span></div>
+            <div id="stat-items" class="stat-line" style="display:none;"><span>Items:</span> <span id="val-items"></span></div>
+            <div id="stat-state" class="stat-line" style="display:none;"><span>State:</span> <span id="val-state"></span></div>
+            <div id="stat-tower-dmg" class="stat-line" style="display:none;"><span>Damage:</span> <span id="val-tower-dmg" style="color:#63b3ed;">20 (Magic)</span></div>
+        </div>
+        
+        <div id="shop-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
+            <div id="shop-select-ui" style="display:none;">
+                <h4 style="margin: 0 0 5px 0; color: #ecc94b; display: flex; justify-content: space-between; align-items: center;">
+                    Select Item <button class="btn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="Game.shopActiveSlot = null; Game.hideTooltip(); Game.updateUI(true)">Cancel</button>
+                </h4>
+                <div class="shop-item-grid">
+                    <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showTooltip(event, 'Health Potion', 'Restores 50 HP when health drops below 30%')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚</span>
+                    </button>
+                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 100)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">⚔️</span><span class="item-cost">100g</span><span class="item-classes">🧌</span>
+                    </button>
+                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 75)" onmouseenter="Game.showTooltip(event, 'Dagger', 'Increases attack damage by 3. 5% chance to deal double damage.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🗡️</span><span class="item-cost">75g</span><span class="item-classes">🥷</span>
+                    </button>
+                    <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showTooltip(event, 'Wand', 'Increases attack damage by 8 and attack range by 25%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚</span>
+                    </button>
+                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 2.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷🧚</span>
+                    </button>
+                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌</span>
+                    </button>
+                    <button id="btn-shop-ROBE_OF_THORNS" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_THORNS', 200)" onmouseenter="Game.showTooltip(event, 'Robe of Thorns', 'Increases max HP by 50 and reduces damage taken by 2. Returns 20% of incoming damage to the attacker. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">👘</span><span class="item-cost">200g</span><span class="item-classes">🧚</span>
+                    </button>
+                    <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showTooltip(event, 'Rogue\'s Disguise', 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🕵️‍♂️</span><span class="item-cost">250g</span><span class="item-classes">🥷</span>
+                    </button>
+                    <button id="btn-shop-ANKH" class="shop-item-btn" onclick="Game.buyShopItem('ANKH', 300)" onmouseenter="Game.showTooltip(event, 'Ankh', 'Revives the hero with full HP upon taking a fatal blow.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">☥️</span><span class="item-cost">300g</span><span class="item-classes">🧌🥷🧚</span>
+                    </button>
+                </div>
+            </div>
+            <div id="shop-slots-ui" style="display:none;">
+                <h4 style="margin: 0 0 5px 0; color: #ecc94b;">Goods for Sale</h4>
+                <div class="shop-slot-row">
+                    <button id="shop-slot-0" class="shop-slot-btn" onclick="Game.shopActiveSlot = 0; Game.updateUI(true)"></button>
+                    <button id="shop-slot-1" class="shop-slot-btn" onclick="Game.shopActiveSlot = 1; Game.updateUI(true)"></button>
+                    <button id="shop-slot-2" class="shop-slot-btn" onclick="Game.shopActiveSlot = 2; Game.updateUI(true)"></button>
+                </div>
+            </div>
+        </div>
+
+        <div id="guild-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
+            <div id="guild-roster" style="margin-bottom: 4px; font-size: 0.8rem; text-align: center;"></div>
+            <div id="guild-roster-icons"></div>
+            <div class="panel-btn-grid" id="guild-upgrades">
+                <button class="menu-btn build-btn" id="btn-recruit" onclick="Game.recruitHero()" onmouseenter="Game.showTooltip(event, 'Train Hero', 'Recruit a new hero to join this guild.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Requires 1 🫂 (Population)</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">T</div>
+                        <div class="build-btn-title">Train</div>
+                    </div>
+                    <div class="build-btn-icon" id="recruit-icon">🧌</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="recruit-cost">🪙100 | 1 🫂</span></div>
+                </button>
+                <button id="btn-adopt" class="menu-btn build-btn" onclick="Game.adoptHero()" style="display: none;" onmouseenter="Game.showTooltip(event, 'Adopt Hero', 'Assign a homeless hero of this class to this guild hall.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">A</div>
+                        <div class="build-btn-title">Adopt</div>
+                    </div>
+                    <div class="build-btn-icon">🤝</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" style="color: #e2e8f0;">Free</span></div>
+                </button>
+                <button id="btn-upg-CHARGE" class="menu-btn build-btn" onclick="Game.researchUpgrade('CHARGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Charge', 'Warriors will charge at distant enemies, dealing damage and stunning them.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">R</div>
+                        <div class="build-btn-title">Charge</div>
+                    </div>
+                    <div class="build-btn-icon">⚡</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
+                </button>
+                <button id="btn-upg-RAT_TRAP" class="menu-btn build-btn" onclick="Game.researchUpgrade('RAT_TRAP')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Rat Trap', 'Rogues will occasionally place traps when killing rats.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">R</div>
+                        <div class="build-btn-title">Rat Trap</div>
+                    </div>
+                    <div class="build-btn-icon">🪤</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
+                </button>
+                <button id="btn-upg-REGROWTH" class="menu-btn build-btn" onclick="Game.researchUpgrade('REGROWTH')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Regrowth', 'Druids occasionally cast a powerful healing spell on heavily injured allies.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">R</div>
+                        <div class="build-btn-title">Regrowth</div>
+                    </div>
+                    <div class="build-btn-icon">🌱</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+                </button>
+                <button id="btn-upg-MED_TENT" class="menu-btn build-btn" onclick="Game.researchUpgrade('MED_TENT')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Medical Tent', 'Injured heroes can return here to rest and recover.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">M</div>
+                        <div class="build-btn-title">Med Tent</div>
+                    </div>
+                    <div class="build-btn-icon">⛺</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙125</span></div>
+                </button>
+            </div>
+        </div>
+
+        <div id="tavern-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
+            <div id="tavern-select-ui" style="display:none;">
+                <h4 style="margin: 0 0 5px 0; color: #ecc94b; display: flex; justify-content: space-between; align-items: center;">
+                    Select Heroes (2-4) <button class="btn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="Game.tavernActiveSlot = null; Game.updateUI(true)">Cancel</button>
+                </h4>
+                <div id="tavern-hero-grid" class="shop-item-grid scrollable-grid" style="max-height: 260px; overflow-y: auto; overflow-x: hidden;">
+                </div>
+                <button id="btn-form-group" class="btn" style="width: 100%; margin-top: 10px; padding: 8px; font-size: 1rem;" onclick="Game.formTavernGroup()" disabled>Form Group</button>
+            </div>
+            <div id="tavern-slots-ui" style="display:none;">
+                <h4 style="margin: 0 0 5px 0; color: #ecc94b;">Hero Groups</h4>
+                <div id="tavern-groups-container" style="display: flex; flex-direction: column; gap: 8px;">
+                </div>
+            </div>
+        </div>
+
+        <div id="farm-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
+            <div class="panel-btn-grid" id="farm-upgrades">
+                <button id="btn-upg-farm" class="menu-btn build-btn" onclick="Game.upgradeFarm()" onmouseenter="Game.showTooltip(event, 'Upgrade Farm', 'Increases the farm\'s hitpoints and provides an additional 3 🫂.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Cost 150</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">U</div>
+                        <div class="build-btn-title">Upgrade</div>
+                    </div>
+                    <div class="build-btn-icon">🏘️</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="farm-upg-cost">🪙150</span></div>
+                </button>
+            </div>
+        </div>
+        
+        <div id="tower-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
+            <div class="panel-btn-grid" id="tower-upgrades">
+                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 800g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <div class="build-btn-header">
+                        <div class="build-btn-hotkey">U</div>
+                        <div class="build-btn-title">Upgrade</div>
+                    </div>
+                    <div class="build-btn-icon">🚦</div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙800 | 1 🫂</span></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-bar">
+        <div id="menu-build" class="menu-group" style="display: flex;">
+            <button class="menu-btn nav-btn" onclick="switchMenu('COMMAND')" onmouseenter="Game.showTooltip(event, 'Quests', '', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">Q</div></div>
+                <div class="build-btn-icon">📜</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost" style="color: #e2e8f0;">Quests</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-warrior-guild" onclick="setMode('BUILD_WARRIOR')" onmouseenter="Game.showTooltip(event, 'Warrior Guild', 'Recruit up to 3 Warriors per guild hall.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Warriors have more health and are usually in the thick of the fighting.</span>', true, '<i>+100🪙 per 🛖</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">1</div><div class="build-btn-title">Warriors</div></div>
+                <div class="build-btn-icon">🛖</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-rogue-guild" onclick="setMode('BUILD_ROGUE')" onmouseenter="Game.showTooltip(event, 'Rogue Guild', 'Recruit up to 3 Rogues per guild hall.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Rogues aren\'t as strong as warriors, but have other tricks up their sleeves.</span>', true, '<i>+100🪙 per 🏚️</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Rogues</div></div>
+                <div class="build-btn-icon">🏚️</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
+                <div class="build-btn-icon">🪵</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Gold spent by Heroes for items goes back to the Kingdom.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">4</div><div class="build-btn-title">Shop</div></div>
+                <div class="build-btn-icon">🏦</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-farm" onclick="setMode('BUILD_FARM')" onmouseenter="Game.showTooltip(event, 'Farm', 'Expand your <span class=&quot;pop-icon-glow&quot;>🫂</span> by 3.', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">5</div><div class="build-btn-title">Farm</div></div>
+                <div class="build-btn-icon">🏡</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-tower" onclick="setMode('BUILD_TOWER')" onmouseenter="Game.showTooltip(event, 'Tower', 'A defensive structure that shoots magic missiles at oncoming enemies.', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">6</div><div class="build-btn-title">Tower</div></div>
+                <div class="build-btn-icon" style="font-size: 1.5rem; line-height: 1.1; margin-top: -2px;">🖲️<br>🔲</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙500 | 1 🫂</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-tavern" onclick="setMode('BUILD_TAVERN')" onmouseenter="Game.showTooltip(event, 'Tavern', '<span style=&quot;color:#ecc94b;&quot;>Enables groups of heroes to be formed. Hero groups will operate out of the Tavern, rather than their guild hall to heal.</span><br><span style=&quot;color:white;&quot;>Group quests can be issued from here.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">7</div><div class="build-btn-title">Tavern</div></div>
+                <div class="build-btn-icon">🎪</div>
+                <div style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); font-size: 1.2rem;">🍻</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
+            </button>
+        </div>
+        <div id="menu-command" class="menu-group" style="display: none;">
+            <button class="menu-btn nav-btn" onclick="switchMenu('BUILD')" onmouseenter="Game.showTooltip(event, 'Build', '', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">B</div></div>
+                <div class="build-btn-icon">⚒️</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost" style="color: #e2e8f0;">Build</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-flag-explore" onclick="setMode('FLAG_EXPLORE')" onmouseenter="Game.showTooltip(event, 'Explore Quest', 'Send 1 Hero to explore a location.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>First Hero to reach the flag claims the bounty.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">1</div><div class="build-btn-title">Explore</div></div>
+                <div class="build-btn-icon" style="color: #ecc94b; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;">⚑</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙25</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-flag-defend" onclick="setMode('FLAG_DEFEND')" onmouseenter="Game.showTooltip(event, 'Defend Quest', 'Send up to 3 Heroes to defend a building.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Defend for 20 seconds to split the bounty among defenders.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Defend</div></div>
+                <div class="build-btn-icon" style="color: #3182ce; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;">⚑</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙50</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-flag-attack" onclick="setMode('FLAG_ATTACK')" onmouseenter="Game.showTooltip(event, 'Attack Quest', 'Send 3 Heroes to a location.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Quest completes and bounty is split when all 3 arrive. Max 1 Druid.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Attack</div></div>
+                <div class="build-btn-icon" style="color: #e53e3e; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;">⚑</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙75</span></div>
+            </button>
+            <button class="menu-btn build-btn" id="btn-flag-group-attack" onclick="setMode('FLAG_GROUP_ATTACK')" onmouseenter="Game.showTooltip(event, 'Group Quest', 'Order a formed hero group to attack a location.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Requires an available Hero Group from a Tavern.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">4</div><div class="build-btn-title">Group Quest</div></div>
+                <div class="build-btn-icon" style="color: #e53e3e; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;">⚑<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -20%); font-size: 1.1rem; text-shadow: none;">🍻</div></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙75</span></div>
+            </button>
+        </div>
+    </div>
+    
+    <div id="game-over"></div>
+</div>
+
+<script>
+class Vec2 {
+    constructor(x, y) { this.x = x; this.y = y; }
+    add(v) { return new Vec2(this.x + v.x, this.y + v.y); }
+    sub(v) { return new Vec2(this.x - v.x, this.y - v.y); }
+    mag() { return Math.sqrt(this.x*this.x + this.y*this.y); }
+    norm() { const m = this.mag(); return m === 0 ? new Vec2(0,0) : new Vec2(this.x/m, this.y/m); }
+    mult(n) { return new Vec2(this.x * n, this.y * n); }
+    dist(v) { return this.sub(v).mag(); }
+    distSq(v) { return (this.x - v.x)**2 + (this.y - v.y)**2; }
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const WORLD_WIDTH = 1500;
+const WORLD_HEIGHT = 1000;
+
+const Camera = {
+    x: WORLD_WIDTH / 2,
+    y: WORLD_HEIGHT / 2,
+    zoom: 1.0,
+    targetZoom: 1.0
+};
+
+let screenMousePos = new Vec2(0, 0);
+let isPanning = false;
+let panStart = new Vec2(0,0);
+let cameraStart = new Vec2(0,0);
+let mousePos = new Vec2(0,0);
+const keys = {};
+
+window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (!Game.isPaused && !Game.gameOver) {
+        const k = e.key.toLowerCase();
+        if (k === 'escape') { Game.selectedEntity = null; setMode('NONE'); Game.updateUI(true); }
+        if (k === 'q') switchMenu('COMMAND');
+        if (k === 'b') switchMenu('BUILD');
+        if (k === 'f') Game.toggleRepair();
+        if (k === '\\') Game.fogOfWar = !Game.fogOfWar;
+        
+        if (Game.selectedEntity && Game.selectedEntity.active) {
+            const type = Game.selectedEntity.type;
+            if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD') {
+                const hasDead = Game.selectedEntity.heroes.some(h => h.isDead);
+                const hClass = BUILDING_CONFIG[type].heroClass;
+                const hasHomeless = Game.activeHeroes.some(h => !h.isDead && h.classType === hClass && !h.guild.active);
+                
+                if (k === 't' && !hasDead) Game.recruitHero();
+                else if (k === 'g' && hasDead) Game.reviveHero();
+                else if (k === 'a' && hasHomeless && Game.selectedEntity.heroes.length < Game.selectedEntity.maxHeroes) Game.adoptHero();
+                else if (k === 'r') {
+                    let upg = type === 'WARRIOR_GUILD' ? 'CHARGE' : (type === 'ROGUE_GUILD' ? 'RAT_TRAP' : (type === 'DRUID_GUILD' ? 'REGROWTH' : ''));
+                    if (upg) Game.researchUpgrade(upg);
+                } else if (k === 'm') {
+                    if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD') Game.researchUpgrade('MED_TENT');
+                }
+            } else if (type === 'FARM') {
+                if (k === 'u' && !Game.selectedEntity.isUpgraded) Game.upgradeFarm();
+            } else if (type === 'TOWER') {
+                if (k === 'u' && !Game.selectedEntity.isUpgraded) Game.upgradeTower();
+            } else if (type.startsWith('FLAG_')) {
+                if (k === 'a') Game.abandonQuest();
+            }
+        }
+        const buildMenuVisible = document.getElementById('menu-build').style.display !== 'none';
+        const commandMenuVisible = document.getElementById('menu-command').style.display !== 'none';
+        if (buildMenuVisible) {
+            let btnId = k === '1' ? 'btn-warrior-guild' : (k === '2' ? 'btn-rogue-guild' : (k === '3' ? 'btn-druid-guild' : (k === '4' ? 'btn-shop' : (k === '5' ? 'btn-farm' : (k === '6' ? 'btn-tower' : (k === '7' ? 'btn-tavern' : null))))));
+            if (btnId) { const btn = document.getElementById(btnId); if (btn && !btn.disabled) btn.click(); }
+        } else if (commandMenuVisible) {
+            let btnId = k === '1' ? 'btn-flag-explore' : (k === '2' ? 'btn-flag-defend' : (k === '3' ? 'btn-flag-attack' : (k === '4' ? 'btn-flag-group-attack' : null)));
+            if (btnId) { const btn = document.getElementById(btnId); if (btn && !btn.disabled) btn.click(); }
+        }
+    }
+});
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+function screenToWorld(sx, sy) {
+    return new Vec2((sx - canvas.width / 2) / Camera.zoom + Camera.x, (sy - canvas.height / 2) / Camera.zoom + Camera.y);
+}
+
+const GameBounds = {
+    getMain() { return { x1: 150, x2: WORLD_WIDTH - 150, y1: 150, y2: WORLD_HEIGHT - 150 }; },
+    getCorridor(dir) {
+        const mw = WORLD_WIDTH, mh = WORLD_HEIGHT;
+        const w = 400, h = 800; 
+        const cx = mw/2, cy = mh/2;
+        const overlap = 50;
+        switch(dir) {
+            case 'NORTH': return { x1: cx - w/2, x2: cx + w/2, y1: 150 - h, y2: 150 + overlap };
+            case 'SOUTH': return { x1: cx - w/2, x2: cx + w/2, y1: mh - 150 - overlap, y2: mh - 150 + h };
+            case 'WEST':  return { x1: 150 - h, x2: 150 + overlap, y1: cy - w/2, y2: cy + w/2 };
+            case 'EAST':  return { x1: mw - 150 - overlap, x2: mw - 150 + h, y1: cy - w/2, y2: cy + w/2 };
+        }
+    },
+    getAllRects() {
+        const rects = [this.getMain()];
+        Game.corridors.forEach(c => rects.push(this.getCorridor(c.dir)));
+        return rects;
+    },
+    clamp(x, y, radius = 0) {
+        const rects = this.getAllRects();
+        let insideAny = false;
+        for (let r of rects) {
+            if (x >= r.x1 + radius && x <= r.x2 - radius && y >= r.y1 + radius && y <= r.y2 - radius) {
+                insideAny = true; break;
+            }
+        }
+        if (insideAny) return new Vec2(x, y);
+
+        let bestDist = Infinity;
+        let bestPt = new Vec2(x, y);
+        for (let r of rects) {
+            const cx = Math.max(r.x1 + radius, Math.min(x, r.x2 - radius));
+            const cy = Math.max(r.y1 + radius, Math.min(y, r.y2 - radius));
+            const d = (x-cx)**2 + (y-cy)**2;
+            if (d < bestDist) {
+                bestDist = d;
+                bestP... (137 KB left)
+message.txt
+187 KB
