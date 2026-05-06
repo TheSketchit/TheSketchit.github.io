@@ -627,6 +627,7 @@
     <div id="game-over"></div>
 </div>
 
+<script src="hero-utils.js"></script>
 <script>
 class Vec2 {
     constructor(x, y) { this.x = x; this.y = y; }
@@ -978,7 +979,6 @@ const BUILDING_CONFIG = {
 const BASE_HERO_NAMES = ["Steven", "Gavin", "Lincoln", "Jeff", "Alex", "Daniel", "Beefaroni", "Tony", "Tasilogs", "Jody", "Javo", "Wolfgang", "Sean", "Rexba", "Squavin", "Naur", "Sipah", "Nippah", "Rathutch", "Jimmy", "Pam", "Don", "Patrick", "Shaybutters", "Shabusiness", "Mr. Stinky", "Snickers", "Cat Boy", "Dirtmorph", "Reverse Osmosis", "Romulus Stimuli", "Cantrop Fergusion", "Cluckster Stevens", "Purty McDavis", "Cousin Sam", "Cornhole Jackson", "Homunculus Michael", "Tasty Nomenclature", "Allen Akbar", "Delicious Virgil", "George McSexy", "Laquisha Washington", "Georgio Armani", "Korpo Tendons", "Zucchini Fritz", "Marcus Farcus", "Debbie Snacks", "Snozzberry Twist", "Andrew Sand", "Timmy Silverback", "Klinger", "Vecna", "Vindaloo", "Harshburger", "Kelli", "Markus Winnius"];
 let availableHeroNames = [...BASE_HERO_NAMES];
 let heroGeneration = 1;
-function getHeroSuffix(gen) { if (gen === 1) return ""; if (gen === 2) return " Jr"; let j = gen % 10, k = gen % 100; if (j == 1 && k != 11) return " the " + gen + "st"; if (j == 2 && k != 12) return " the " + gen + "nd"; if (j == 3 && k != 13) return " the " + gen + "rd"; return " the " + gen + "th"; }
 
 class Entity {
     constructor(x, y) { this.id = Math.random().toString(36).substr(2, 9); this.pos = new Vec2(x, y); this.active = true; this.faction = 'NEUTRAL'; this.type = 'ENTITY'; this.radius = 10; this.hitboxOffset = {x: 0, y: 0}; this.hp = 10; this.maxHp = 10; this.lastAttacker = null; this.stunTimer = 0; this.attackers = new Set(); this.isStatic = false; }
