@@ -890,6 +890,46 @@ const Grid = {
 };
 Grid.init();
 
+const VisionGrid = {
+    cellSize: 40, width: 0, height: 0, cols: 0, rows: 0, data: null, offsetX: 1000, offsetY: 1000,
+    init(w, h, offX, offY) {
+        this.width = w; this.height = h; this.offsetX = offX; this.offsetY = offY;
+        this.cols = Math.ceil(w / this.cellSize); this.rows = Math.ceil(h / this.cellSize);
+        this.data = new Uint8Array(this.cols * this.rows);
+    },
+    reset() { if (this.data) this.data.fill(0); },
+    update(playerEntities) {
+        this.reset();
+        for (let i = 0; i < playerEntities.length; i++) {
+            const e = playerEntities[i];
+            const r = e.getVisionRange();
+            if (r <= 0) continue;
+            const cx = (e.pos.x + this.offsetX) / this.cellSize;
+            const cy = (e.pos.y + this.offsetY) / this.cellSize;
+            const cr = r / this.cellSize;
+            const minX = Math.max(0, Math.floor(cx - cr)), maxX = Math.min(this.cols - 1, Math.floor(cx + cr));
+            const minY = Math.max(0, Math.floor(cy - cr)), maxY = Math.min(this.rows - 1, Math.floor(cy + cr));
+            const crSq = cr * cr;
+            for (let y = minY; y <= maxY; y++) {
+                const dy = y - cy;
+                const dySq = dy * dy;
+                const rowOff = y * this.cols;
+                for (let x = minX; x <= maxX; x++) {
+                    const dx = x - cx;
+                    if (dx * dx + dySq <= crSq) this.data[rowOff + x] = 1;
+                }
+            }
+        }
+    },
+    isVisible(pos) {
+        if (!this.data || !Game.fogOfWar) return true;
+        const x = Math.floor((pos.x + this.offsetX) / this.cellSize);
+        const y = Math.floor((pos.y + this.offsetY) / this.cellSize);
+        if (x < 0 || x >= this.cols || y < 0 || y >= this.rows) return false;
+        return this.data[y * this.cols + x] === 1;
+    }
+};
+
 const UI = {
     setText(id, text) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(text); if (el && el._lastText !== str) { el.innerText = str; el._lastText = str; } },
     setHTML(id, html) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(html); if (el && el._lastHTML !== str) { el.innerHTML = str; el._lastHTML = str; } },
@@ -2458,7 +2498,7 @@ const Game = {
         }
         UI.setClass(document.body, 'is-paused', this.isPaused); 
     },
-    isPosVisible(p) { for (let i = 0; i < this.playerEntities.length; i++) { const e = this.playerEntities[i]; if (typeof e.getVisionRange === 'function') { let v = e.getVisionRange(); if (v > 0 && p.distSq(e.pos) <= v * v) return true; } } return false; },
+    isPosVisible(p) { return VisionGrid.isVisible(p); },
     canPlaceBuilding(x, y, radius) {
         const clamped = GameBounds.clamp(x, y, radius);
         if (clamped.x !== x || clamped.y !== y) return false;
@@ -2659,7 +2699,7 @@ canvas.addEventListener('mousemove', e => {
 let lastTimestamp = 0, accumulator = 0; const TIME_STEP = 1000/60, visionCache = {};
 const fogCanvas = document.createElement('canvas'); const fogCtx = fogCanvas.getContext('2d');
 function getVisionImage(r) { if(visionCache[r]) return visionCache[r]; const c=document.createElement('canvas'); c.width=r*2; c.height=r*2; const ctx=c.getContext('2d'), g=ctx.createRadialGradient(r,r,r*0.4,r,r,r); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,r*2,r*2); visionCache[r]=c; return c; }
-function init() { generateTerrain(); Game.base = new Building(WORLD_WIDTH/2, WORLD_HEIGHT/2, 'CASTLE'); Game.addEntity(Game.base); Game.spawnHole(); requestAnimationFrame(loop); }
+function init() { VisionGrid.init(WORLD_WIDTH + 2000, WORLD_HEIGHT + 2000, 1000, 1000); generateTerrain(); Game.base = new Building(WORLD_WIDTH/2, WORLD_HEIGHT/2, 'CASTLE'); Game.addEntity(Game.base); Game.spawnHole(); requestAnimationFrame(loop); }
 function loop(timestamp) {
     if (Game.gameOver) return; requestAnimationFrame(loop); if(!lastTimestamp) lastTimestamp=timestamp; let dt=timestamp-lastTimestamp; lastTimestamp=timestamp; if(Game.isPaused) return; if(dt>250) dt=250; accumulator+=dt; let updated=false;
     while (accumulator >= TIME_STEP) {
@@ -2764,7 +2804,7 @@ function loop(timestamp) {
             }
             Grid.insert(e);
             if(e.faction==='PLAYER') Game.playerEntities.push(e);
-            else if(e.faction==='ENEMY') { Game.enemyEntities.push(e); e.isVisible = !Game.fogOfWar || Game.isPosVisible(e.pos); }
+            else if(e.faction==='ENEMY') { Game.enemyEntities.push(e); e.isVisible = VisionGrid.isVisible(e.pos); }
             if(e.classType) Game.activeHeroes.push(e);
             if(e.type==='SHOP') { Game.activeShops.push(e); Game.shops.push(e); }
             if(e.type.startsWith('FLAG_')) { Game.activeFlags.push(e); Game.flags.push(e); }
@@ -2808,7 +2848,8 @@ function loop(timestamp) {
                 Game.floatingTexts.pop();
             } 
         }
-        Game.entities.forEach(e=>{if(e.faction==='ENEMY')e.isVisible = !Game.fogOfWar || Game.isPosVisible(e.pos);}); 
+        VisionGrid.update(Game.playerEntities);
+        Game.entities.forEach(e=>{if(e.faction==='ENEMY')e.isVisible = VisionGrid.isVisible(e.pos);});
         accumulator-=TIME_STEP; updated=true;
     }
     if (!updated) return; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.save(); ctx.translate(canvas.width/2,canvas.height/2); ctx.scale(Camera.zoom,Camera.zoom); ctx.translate(-Camera.x,-Camera.y); 
@@ -2854,7 +2895,7 @@ function loop(timestamp) {
     }
 
     Game.projectiles.forEach(p=>p.draw(ctx)); 
-    Game.particles.forEach(p=>{if(!Game.isPosVisible(p.pos))return; ctx.globalAlpha=p.life/p.maxLife; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.pos.x,p.pos.y,3,0,Math.PI*2); ctx.fill();}); 
+    Game.particles.forEach(p=>{if(!VisionGrid.isVisible(p.pos))return; ctx.globalAlpha=p.life/p.maxLife; ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.pos.x,p.pos.y,3,0,Math.PI*2); ctx.fill();});
     
     ctx.globalAlpha=1.0;
     if (Game.mode!=='NONE'){
@@ -2892,7 +2933,7 @@ function loop(timestamp) {
     ctx.restore(); 
     
     Game.floatingTexts.forEach(ft => { 
-        if(!Game.isPosVisible(ft.pos)) { 
+        if(!VisionGrid.isVisible(ft.pos)) {
             ft.el.style.display = 'none'; 
         } else { 
             ft.el.style.display = 'block'; 
