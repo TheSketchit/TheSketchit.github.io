@@ -6478,36 +6478,6 @@ function loop(timestamp) {
           accumulator -= TIME_STEP;
           updated = true;
         }
-        Game.renderDynamic.sort((a,b) => a.pos.y - b.pos.y);
-
-        Game.updateUI(); for(let i=0; i<Game.entities.length; i++) Game.entities[i].update(dtS); 
-        Game.projectiles.forEach(p=>p.update(dtS)); 
-        for(let i=Game.projectiles.length-1; i>=0; i--) {
-            if(!Game.projectiles[i].active) { 
-                Game.projectiles[i] = Game.projectiles[Game.projectiles.length - 1];
-                Game.projectiles.pop();
-            }
-        }
-        for(let i=Game.particles.length-1; i>=0; i--) { 
-            const p = Game.particles[i]; 
-            p.pos.x += p.vel.x; p.pos.y += p.vel.y; p.life -= dtS; 
-            if(p.life <= 0) { 
-                Game.particles[i] = Game.particles[Game.particles.length - 1];
-                Game.particles.pop();
-            } 
-        }
-        for(let i=Game.floatingTexts.length-1; i>=0; i--) { 
-            const ft = Game.floatingTexts[i]; 
-            ft.pos.x += ft.vel.x; ft.pos.y += ft.vel.y; ft.life -= dtS; 
-            if(ft.life <= 0) { 
-                ft.el.remove();
-                Game.floatingTexts[i] = Game.floatingTexts[Game.floatingTexts.length - 1];
-                Game.floatingTexts.pop();
-            } 
-        }
-        VisionGrid.update(Game.playerEntities);
-        Game.entities.forEach(e=>{if(e.faction==='ENEMY')e.isVisible = VisionGrid.isVisible(e.pos);});
-        accumulator-=TIME_STEP; updated=true;
     }
     if (!updated) return; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.save(); ctx.translate(canvas.width/2,canvas.height/2); ctx.scale(Camera.zoom,Camera.zoom); ctx.translate(-Camera.x,-Camera.y); 
     
@@ -6529,32 +6499,6 @@ function loop(timestamp) {
         ctx.scale(Camera.zoom, Camera.zoom);
         ctx.translate(-Camera.x, -Camera.y);
 
-        ctx.drawImage(bgCanvas, Game.bgBounds.x, Game.bgBounds.y);
-
-        if (Game.fogOfWar) {
-          fogCanvas.width = canvas.width;
-          fogCanvas.height = canvas.height;
-          fogCtx.fillStyle = "rgba(0,0,0,0.7)";
-          fogCtx.fillRect(0, 0, canvas.width, canvas.height);
-          fogCtx.globalCompositeOperation = "destination-out";
-          fogCtx.save();
-          fogCtx.translate(canvas.width / 2, canvas.height / 2);
-          fogCtx.scale(Camera.zoom, Camera.zoom);
-          fogCtx.translate(-Camera.x, -Camera.y);
-          for (let e of Game.playerEntities) {
-            let v = e.getVisionRange();
-            if (v > 0)
-              fogCtx.drawImage(getVisionImage(v), e.pos.x - v, e.pos.y - v);
-          }
-          fogCtx.restore();
-          fogCtx.globalCompositeOperation = "source-over";
-          ctx.restore();
-          ctx.drawImage(fogCanvas, 0, 0);
-          ctx.save();
-          ctx.translate(canvas.width / 2, canvas.height / 2);
-          ctx.scale(Camera.zoom, Camera.zoom);
-          ctx.translate(-Camera.x, -Camera.y);
-        }
 
         let sIdx = 0,
           dIdx = 0;
