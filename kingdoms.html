@@ -4,358 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sovereign: Indirect Control Strategy</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #1e3a23;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
-        canvas {
-            display: block;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        .panel {
-            position: absolute;
-            background: rgba(20, 25, 30, 0.9);
-            border: 1px solid #4a5568;
-            color: #e2e8f0;
-            padding: 15px;
-            pointer-events: auto;
-            border-radius: 4px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-        #top-bar {
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 28px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            box-sizing: border-box;
-            border-radius: 0;
-            border: none;
-            border-bottom: 2px solid #4a5568;
-            background: #1a202c;
-        }
-        #bottom-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: auto;
-            background: rgba(20, 25, 30, 0.95);
-            border-top: 2px solid #4a5568;
-            padding: 22px 10px 25px 10px;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center;
-            pointer-events: auto;
-        }
-        .menu-group {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        #info-panel {
-            width: 260px;
-            padding: 12px;
-            display: none;
-            z-index: 50;
-        }
-        #info-panel h3 { margin: 0; color: #63b3ed; font-size: 0.95rem; }
-        .stat-line { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 0.85rem; }
-        
-        .shop-slot-btn {
-            background: #3182ce; border: 2px solid #2b6cb0; border-radius: 4px;
-            width: 65px; height: 65px; color: white; font-size: 0.85rem; font-weight: bold;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-        }
-        .shop-slot-btn:hover { background: #4299e1; box-shadow: 0 0 8px #63b3ed; }
-        .shop-slot-row { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        
-        .shop-item-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
-        .shop-item-btn {
-            background: #2d3748; border: 1px solid #4a5568; border-radius: 4px;
-            padding: 5px; color: white; display: flex; flex-direction: column; align-items: center;
-            cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: 0.2s;
-            box-sizing: border-box; overflow: hidden; width: 100%;
-        }
-        .shop-item-btn:hover:not(:disabled) { background: #4a5568; border-color: #718096; }
-        .shop-item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .shop-item-btn.selected { border-color: #63b3ed; box-shadow: 0 0 8px #3182ce; background: #3a4a63; }
-        .item-icon { font-size: 1.5rem; }
-        .item-cost { font-size: 0.8rem; color: #ecc94b; margin: 2px 0; font-weight: bold; }
-        .item-classes { font-size: 0.7rem; letter-spacing: -2px; }
-
-        .btn {
-            background: #2d3748;
-            border: 1px solid #4a5568;
-            color: #e2e8f0;
-            padding: 4px 8px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            border-radius: 3px;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        .btn:hover:not(:disabled) { background: #4a5568; }
-        .btn.active { background: #3182ce; border-color: #63b3ed; }
-        .btn:disabled { background: #1a202c; color: #718096; cursor: not-allowed; border-color: #2d3748; }
-        
-        .tax-btn {
-            background: #2d3748;
-            border: 1px solid #4a5568;
-            color: #a0aec0;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-left: 2px;
-        }
-        .tax-btn:hover { background: #4a5568; color: #e2e8f0; }
-        .tax-btn.active { background: #3182ce; border-color: #63b3ed; color: #fff; font-weight: bold; }
-
-        .menu-btn {
-            background: #2d3748;
-            border: 3px solid #4a5568;
-            color: #e2e8f0;
-            width: 64px;
-            height: 64px;
-            border-radius: 10px;
-            cursor: pointer;
-            display: block;
-            position: relative;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-            transition: transform 0.1s, border-color 0.2s, filter 0.2s;
-            padding: 0;
-            margin: 0 3px;
-        }
-        #bottom-bar .menu-btn { width: 76px; height: 76px; margin: 0 6px; }
-        .menu-btn:hover:not(:disabled) { transform: translateY(-2px); }
-        .menu-btn:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(80%); }
-
-        .build-btn:hover:not(:disabled) { border-color: #63b3ed; }
-        .build-btn.active { border-color: #63b3ed; background: #3182ce; }
-        
-        .build-btn-header {
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 0;
-            z-index: 2;
-        }
-
-        .build-btn-title { 
-            background: #4a5568;
-            color: #e2e8f0;
-            padding: 1px 6px;
-            border-radius: 0 4px 4px 0;
-            font-size: 0.65rem;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            border: 1px solid #000;
-            border-left: none;
-            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            transition: 0.2s;
-        }
-        .menu-btn.active .build-btn-title,
-        .menu-btn:hover:not(:disabled) .build-btn-title {
-            background: #63b3ed;
-            color: #1a202c;
-            border-color: #000;
-        }
-        #bottom-bar .build-btn-title { font-size: 0.75rem; padding: 2px 8px; }
-
-        .build-btn-hotkey {
-            background: #ecc94b;
-            color: #1a202c;
-            padding: 1px 5px;
-            border-radius: 4px 0 0 4px;
-            font-weight: 900;
-            font-size: 0.65rem;
-            border: 1px solid #000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        #bottom-bar .build-btn-hotkey { font-size: 0.75rem; padding: 2px 6px; }
-
-        .build-btn-icon { 
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 2.0rem;
-            line-height: 1;
-            text-align: center;
-            width: 100%;
-        }
-        #bottom-bar .build-btn-icon { font-size: 2.3rem; }
-
-        .build-btn-cost-badge {
-            position: absolute;
-            bottom: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #1a202c;
-            border: 2px solid #4a5568;
-            padding: 1px 6px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 2;
-            transition: 0.2s;
-        }
-        #bottom-bar .build-btn-cost-badge { bottom: -14px; padding: 2px 8px; }
-
-        .build-btn-cost { font-size: 0.65rem; font-weight: bold; color: #ecc94b; }
-        #bottom-bar .build-btn-cost { font-size: 0.75rem; }
-
-        .nav-btn { background: #5c4530; border-color: #8b6b4a; }
-        .nav-btn .build-btn-title { background: #8b6b4a; border-color: #000; }
-        .nav-btn .build-btn-cost-badge { background: #3e2723; border-color: #8b6b4a; }
-        .nav-btn:hover:not(:disabled) { border-color: #ecc94b; }
-        .nav-btn:hover:not(:disabled) .build-btn-title { background: #ecc94b; color: #1a202c; border-color: #000; }
-        .nav-btn:hover:not(:disabled) .build-btn-cost-badge { border-color: #ecc94b; }
-        .nav-btn .build-btn-icon { text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
-
-        .panel-btn-grid {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 12px;
-            justify-content: center;
-            margin-top: 25px;
-            margin-bottom: 15px;
-        }
-        .panel-btn-grid .menu-btn { margin: 0; }
-        
-        #pause-overlay {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 4rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: bold;
-            text-shadow: 0px 4px 15px rgba(0,0,0,1);
-            pointer-events: none;
-            letter-spacing: 8px;
-            z-index: 10;
-        }
-        
-        body.is-paused #bottom-bar,
-        body.is-paused #info-panel {
-            pointer-events: none;
-            opacity: 0.5;
-            filter: grayscale(80%);
-        }
-
-        #game-over {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(10, 15, 20, 0.98);
-            border: 3px solid #e53e3e;
-            padding: 12px;
-            width: 85%;
-            max-width: 800px;
-            height: auto;
-            max-height: 98vh;
-            color: #e2e8f0;
-            pointer-events: auto;
-            z-index: 1000;
-            border-radius: 8px;
-            box-shadow: 0 0 50px rgba(0,0,0,1);
-            flex-direction: column;
-        }
-        .go-title { font-size: 1.4rem; text-align: center; margin-bottom: 5px; font-weight: bold; border-bottom: 2px solid; padding-bottom: 5px; flex-shrink: 0; }
-        .score-grid { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-height: 0; }
-        .go-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 2px; }
-        .go-table th { background: #2d3748; padding: 4px; text-align: left; color: #ecc94b; border-bottom: 2px solid #4a5568; }
-        .go-table td { padding: 3px 4px; border-bottom: 1px solid #2d3748; }
-        .go-table tr:nth-child(even) { background: rgba(255,255,255,0.03); }
-        .stat-box { background: #1a202c; border: 1px solid #4a5568; padding: 6px 10px; border-radius: 4px; display: flex; flex-direction: column; min-height: 0; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px dashed #2d3748; padding-bottom: 2px; }
-        .stat-label { color: #a0aec0; }
-        .stat-val { font-weight: bold; color: #63b3ed; }
-
-        #tooltip {
-            position: absolute;
-            background: rgba(15, 15, 20, 0.8);
-            border: 1px solid #718096;
-            padding: 6px;
-            pointer-events: none;
-            border-radius: 4px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.6);
-            display: none;
-            z-index: 100;
-            text-align: left;
-            min-width: 50px;
-            width: fit-content;
-            max-width: 150px;
-        }
-        .tooltip-title { font-weight: bold; font-size: 0.88rem; margin-bottom: 3px; color: #ffffff; }
-        .tooltip-desc { color: #ecc94b; font-size: 0.77rem; line-height: 1.2; }
-        #tooltip.building-tooltip { min-width: 210px; max-width: 270px; padding: 10px; }
-        .pop-icon-glow { text-shadow: 0 0 4px white, 0 0 6px white; }
-        
-        #guild-roster-icons { display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; }
-        .roster-icon { display: inline-flex; justify-content: center; align-items: center; background: #2d3748; border: 1px solid #4a5568; border-radius: 4px; width: 28px; height: 28px; font-size: 1.1rem; cursor: help; transition: background 0.2s, border-color 0.2s, transform 0.1s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .roster-icon:hover { background: #4a5568; border-color: #63b3ed; transform: translateY(-2px); }
-        
-        .scrollable-grid::-webkit-scrollbar { width: 6px; }
-        .scrollable-grid::-webkit-scrollbar-track { background: #1a202c; border-radius: 3px; }
-        .scrollable-grid::-webkit-scrollbar-thumb { background: #3182ce; border-radius: 3px; }
-
-        #floating-text-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 40;
-            overflow: hidden;
-        }
-        .floating-text {
-            position: absolute;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px black, -1px -1px 2px black, 1px -1px 2px black, -1px 1px 2px black;
-            transform-origin: center center;
-            will-change: transform, opacity;
-            white-space: nowrap;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -382,7 +31,7 @@
             <span id="day-text" style="color: #63b3ed; font-weight: bold; text-shadow: 0 0 3px rgba(99,179,237,0.5);">Day 1:</span> 
             <span id="day-timer-display" style="background: #1a202c; border: 1px solid #4a5568; padding: 2px 8px; border-radius: 4px; color: #ffffff; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 1px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); display: inline-block; min-width: 24px; text-align: center;">60</span>
         </span>
-        <button id="btn-pause" onclick="Game.togglePause()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #e2e8f0; padding: 0;">⏸️</button>
+        <button id="btn-pause" aria-label="Pause Game" onclick="Game.togglePause()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #e2e8f0; padding: 0;">⏸️</button>
     </div>
 
     <div id="pause-overlay">PAUSED</div>
@@ -391,8 +40,8 @@
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
             <h3 id="info-name" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">Entity Name</h3>
             <div style="display: flex;">
-                <button id="btn-repair" class="btn" style="display:none; margin-left: 10px; padding: 2px 6px; font-size: 0.9rem;" onclick="Game.toggleRepair()" onmouseenter="Game.showTooltip(event, 'Repair [F]', 'Heal the building for 30 HP every 2 seconds.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 10g per tick.</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">🛠️</button>
-                <button id="btn-abandon" class="btn" style="display:none; margin-left: 10px; padding: 2px 6px; font-size: 0.9rem;" onclick="Game.abandonQuest()" onmouseenter="Game.showTooltip(event, 'Abandon Quest [A]', 'Cancel this quest and recall the heroes.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">🛑</button>
+                <button id="btn-repair" aria-label="Repair Building" class="btn" style="display:none; margin-left: 10px; padding: 2px 6px; font-size: 0.9rem;" onclick="Game.toggleRepair()" onmouseenter="Game.showTooltip(event, 'Repair [F]', 'Heal the building for 30 HP every 2 seconds.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 10g per tick.</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">🛠️</button>
+                <button id="btn-abandon" aria-label="Abandon Quest" class="btn" style="display:none; margin-left: 10px; padding: 2px 6px; font-size: 0.9rem;" onclick="Game.abandonQuest()" onmouseenter="Game.showTooltip(event, 'Abandon Quest [A]', 'Cancel this quest and recall the heroes.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">🛑</button>
             </div>
         </div>
         
@@ -526,7 +175,7 @@
 
         <div id="farm-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
             <div class="panel-btn-grid" id="farm-upgrades">
-                <button id="btn-upg-farm" class="menu-btn build-btn" onclick="Game.upgradeFarm()" onmouseenter="Game.showTooltip(event, 'Upgrade Farm', 'Increases the farm\'s hitpoints and provides an additional 3 🫂.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Cost 150</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <button id="btn-upg-farm" class="menu-btn build-btn" onclick="Game.upgradeFarm()" onmouseenter="Game.showTooltip(event, 'Upgrade Farm', 'Increases the farm\'s hitpoints and provides an additional 3 🫂.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Cost 125</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                     <div class="build-btn-header">
                         <div class="build-btn-hotkey">U</div>
                         <div class="build-btn-title">Upgrade</div>
@@ -860,8 +509,8 @@ const Grid = {
         const cx = Math.floor((e.pos.x + this.offsetX)/this.cellSize), cy = Math.floor((e.pos.y + this.offsetY)/this.cellSize);
         if(cx>=0 && cx<this.cols && cy>=0 && cy<this.rows) this.cells[cy*this.cols+cx].push(e);
     },
-    getNearby(pos, rSq, faction=null) {
-        const res = [], r = Math.sqrt(rSq);
+    getNearby(pos, rSq, cb, faction=null) {
+        const r = Math.sqrt(rSq);
         const minX = Math.max(0, Math.floor((pos.x - r + this.offsetX)/this.cellSize));
         const maxX = Math.min(this.cols-1, Math.floor((pos.x + r + this.offsetX)/this.cellSize));
         const minY = Math.max(0, Math.floor((pos.y - r + this.offsetY)/this.cellSize));
@@ -871,11 +520,10 @@ const Grid = {
             for(let x=minX; x<=maxX; x++) {
                 const c = this.cells[off+x];
                 for(let i=0; i<c.length; i++) {
-                    if (c[i].active && (!faction || c[i].faction===faction) && pos.distSq(c[i].pos) <= rSq) res.push(c[i]);
+                    if (c[i].active && (!faction || c[i].faction===faction)) { const dSq = pos.distSq(c[i].pos); if (dSq <= rSq) cb(c[i], dSq); }
                 }
             }
         }
-        return res;
     }
 };
 Grid.init();
@@ -904,7 +552,7 @@ const ITEM_CONFIG = {
 const HERO_CONFIG = {
     WARRIOR: { maxHp: 120, speed: 1.2, damage: 15, maxAttackCooldown: 0.833, radius: 12, icon: '🧌', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'SWORD', 'CHAINMAIL'] },
     ROGUE: { maxHp: 80, speed: 1.32, damage: 20, maxAttackCooldown: 0.666, radius: 10, icon: '🥷', recruitCost: 75, requiredItems: ['POTION', 'ANKH', 'DAGGER', 'ROGUES_DISGUISE'] },
-    DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.0, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'WAND', 'ROBE_OF_THORNS'] }
+    DRUID: { maxHp: 85, speed: 1.5, damage: 14, maxAttackCooldown: 0.8, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'WAND', 'ROBE_OF_THORNS'] }
 };
 
 const UPGRADE_CONFIG = {
@@ -920,7 +568,7 @@ const BUILDING_CONFIG = {
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
     DRUID_GUILD: { baseCost: 175, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
-    FARM: { baseCost: 150, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false },
+    FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false },
     TOWER: { baseCost: 500, hp: 300, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false },
     TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false }
 };
@@ -949,20 +597,18 @@ class Unit extends Entity {
         return false; 
     }
     applySoftCollision() {
-        const neighbors = Grid.getNearby(this.pos, 400); 
         let pushX = 0, pushY = 0;
-        for (let i = 0; i < neighbors.length; i++) {
-            const other = neighbors[i];
-            if (other === this || !other.active || !(other instanceof Unit)) continue;
+        Grid.getNearby(this.pos, 400, (other, distSq) => {
+            if (other === this || !other.active || !(other instanceof Unit)) return;
             const minDist = this.radius + other.radius;
-            const distSq = this.pos.distSq(other.pos);
+
             if (distSq < minDist * minDist && distSq > 0) {
                 const dist = Math.sqrt(distSq);
                 const overlap = minDist - dist;
                 pushX += ((this.pos.x - other.pos.x) / dist) * overlap * 0.15;
                 pushY += ((this.pos.y - other.pos.y) / dist) * overlap * 0.15;
             }
-        }
+        });
         this.pos.x += pushX;
         this.pos.y += pushY;
     }
@@ -1020,14 +666,14 @@ class Tombstone extends Entity {
 class Trap extends Entity { 
     constructor(x, y) { super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = 'TRAP'; this.hp = this.maxHp = 1; this.radius = 10; } 
     update(dtSec) {
-        const rats = Grid.getNearby(this.pos, 900, 'ENEMY');
-        for (let i = 0; i < rats.length; i++) {
-            if (rats[i].monsterType === 'RAT') {
-                rats[i].takeDamage(rats[i].hp, this);
+        let triggered = false;
+        Grid.getNearby(this.pos, 900, (rat, distSq) => {
+            if (!triggered && rat.monsterType === 'RAT') {
+                rat.takeDamage(rat.hp, this);
                 this.die();
-                break;
+                triggered = true;
             }
-        }
+        }, 'ENEMY');
     }
     takeDamage(amt, source) { if (!this.active) return; if (source && source.monsterType === 'RAT') source.takeDamage(source.hp, this); super.takeDamage(amt, source); } 
     draw(ctx) { 
@@ -1049,9 +695,10 @@ class Monster extends Unit {
         this.buffStacks = bS + (inCorridor ? 2 : 0);
         const sc = Math.pow(1.1, this.buffStacks); 
 
-        if (mT==='SNAKE') { this.hp=this.maxHp=140*sc; this.speed=1.1; this.damage=20*sc; this.radius=15*sc; }
-        else if (mT==='SPIDER') { this.hp=this.maxHp=100*sc; this.speed=1.0; this.damage=15*sc; this.radius=12*sc; }
-        else { this.hp=this.maxHp=40*sc; this.speed=0.8; this.damage=5*sc; this.radius=8*sc; }
+        if (mT==='SNAKE') { this.maxHp=Math.floor(140*sc); this.speed=1.1; this.damage=Math.floor(20*sc); this.radius=15*sc; }
+        else if (mT==='SPIDER') { this.maxHp=Math.floor(80*sc); this.speed=1.0; this.damage=Math.floor(15*sc); this.radius=12*sc; }
+        else { this.maxHp=Math.floor(40*sc); this.speed=0.8; this.damage=Math.floor(5*sc); this.radius=8*sc; }
+        this.hp=this.maxHp;
         
         if (inCorridor) { 
             this.maxHp += 25; this.hp += 25; 
@@ -1062,6 +709,11 @@ class Monster extends Unit {
         this.cachedDefaultTarget = Game.base;
         this.state = 'ATTACK_BASE'; 
         this.target = Game.base;
+
+        this.isFeral = this.inCorridor || Game.day >= 15;
+        if (this.isFeral) {
+            this.name = 'Feral ' + this.name;
+        }
     }
     takeDamage(a, s) { if (!this.active) return; if (this.monsterType === 'SNAKE' && s && s.type === 'TOWER') a *= 0.75; super.takeDamage(a, s); }
     getClosestBuilding() {
@@ -1086,14 +738,12 @@ class Monster extends Unit {
             }
         }
         if (!nT) {
-            const targs = Grid.getNearby(this.pos, 22500, 'PLAYER');
-            for (let i = 0; i < targs.length; i++) {
-                const targ = targs[i];
-                if (targ.classType === 'ROGUE' && targ.items.includes('ROGUES_DISGUISE') && !this.attackers.has(targ)) continue;
-                const ds = this.pos.distSq(targ.pos); 
-                if (this.monsterType==='RAT'&&targ.type==='TRAP'&&ds<62500) { nT=targ; nD=ds; break; }
-                if (ds < nD) { nD = ds; nT = targ; }
-            }
+            Grid.getNearby(this.pos, 22500, (targ, ds) => {
+                if (targ.classType === 'ROGUE' && targ.items.includes('ROGUES_DISGUISE') && !this.attackers.has(targ)) return;
+
+                if (this.monsterType==='RAT'&&targ.type==='TRAP'&&ds<62500) { nT=targ; nD=ds; } // Note: can't break early easily, so just overwrite
+                else if (ds < nD) { nD = ds; nT = targ; }
+            }, 'PLAYER');
         }
         
         if (this.repathTimer <= 0) {
@@ -1122,11 +772,11 @@ class Monster extends Unit {
         const validAttackers = [];
         this.attackers.forEach(a => { if (a.active) validAttackers.push(a); });
         
-        if (validAttackers.length > 0) {
+        Game.monstersKilled++; if (validAttackers.length > 0) {
             const gY = Math.floor(15 * Math.pow(1.1, this.buffStacks));
             const tA = Math.floor(gY * Game.taxRate);
             const hA = gY - tA;
-            Game.gold += tA;
+            Game.gold += tA; Game.totalTaxCollected += tA;
             
             const sharedGold = Math.floor(hA / validAttackers.length);
             const sharedXpBase = Math.floor(25 / validAttackers.length) || 1;
@@ -1164,7 +814,15 @@ class Monster extends Unit {
         
         const outC = Game.hoveredEntity === this ? '#90ee90' : (Game.selectedEntity === this ? '#ecc94b' : null);
         const sp = SpriteCache.get(ic, this.baseFontSize, true, true, outC); 
+
+        ctx.save();
+        if (this.isFeral) {
+            ctx.shadowColor = 'darkred';
+            ctx.shadowBlur = 15;
+        }
         ctx.drawImage(sp.img, dX - sp.ox, dY - sp.oy);
+        ctx.restore();
+
         this.drawHP(ctx, -20);
     }
 }
@@ -1174,7 +832,7 @@ class Hero extends Unit {
         super(x, y); this.faction = 'PLAYER'; this.classType = cT; this.guild = g; this.state = 'IDLE'; this.wanderAngle = Math.random()*Math.PI*2; this.stateTimer = 0;
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.ratTrapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.purchasedItemVfxTimer = 0; this.purchasedItemIcon = ''; this.levelUpVfxTimer = 0;
-        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.items = []; this.checkThreatTimer = 0;
+        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.checkThreatTimer = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null;
         
         if (availableHeroNames.length === 0) { availableHeroNames = [...BASE_HERO_NAMES]; heroGeneration++; }
@@ -1204,7 +862,7 @@ class Hero extends Unit {
         let red = this.items.includes('CHAINMAIL')?5:(this.items.includes('ARMOR') || this.items.includes('ROBE_OF_THORNS') || this.items.includes('ROGUES_DISGUISE')?2:0); 
         let final = Math.max(1, amt - red); 
         if (this.hp - final <= 0 && this.items.includes('ANKH')) { 
-            this.items.splice(this.items.indexOf('ANKH'),1); 
+            this.items.splice(this.items.indexOf('ANKH'),1); this.ankhsUsed++;
             this.hp=this.maxHp; 
             this.purchasedItemVfxTimer = 2.0;
             this.purchasedItemIcon = '☥️';
@@ -1246,7 +904,7 @@ class Hero extends Unit {
         super.die(); 
         this.isDead = true;
         Game.heroDeaths++; 
-        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold }); 
+        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, ankhs: this.ankhsUsed });
         let gN = this.guild.type === 'TAVERN' ? 'Tavern' : (this.guild.type === 'WARRIOR_GUILD' ? 'Warrior' : (this.guild.type === 'ROGUE_GUILD' ? 'Rogue' : 'Druid')); 
         if (!this.guild.active) gN = 'Ruined ' + gN;
         this.tombstoneEntity = new Tombstone(this.pos.x, this.pos.y, this.name, gN, this.level, this.kills);
@@ -1358,7 +1016,7 @@ class Hero extends Unit {
                         if (reached || this.pos.distSq(Game.base.pos) < 2500) { this.pos.x += Math.cos(this.wanderAngle)*0.5; this.pos.y += Math.sin(this.wanderAngle)*0.5; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); }
                     } else {
                         const tPos = this.currentQuest.targetEntity ? this.currentQuest.targetEntity.pos : this.currentQuest.pos;
-                        if (this.currentQuest.type==='FLAG_EXPLORE' && this.questPhase==='DO_QUEST' && (reached || this.pos.distSq(tPos)<400)) { this.personalGold += this.currentQuest.bounty; this.lifetimeGold += this.currentQuest.bounty; this.gainXp(10); Game.spawnParticle(this.pos.x,this.pos.y,'#ecc94b'); this.currentQuest.active=false; this.currentQuest=null; this.questPhase='NONE'; this.state='IDLE'; }
+                        if (this.currentQuest.type==='FLAG_EXPLORE' && this.questPhase==='DO_QUEST' && (reached || this.pos.distSq(tPos)<400)) { this.personalGold += this.currentQuest.bounty; this.lifetimeGold += this.currentQuest.bounty; this.gainXp(10); Game.spawnParticle(this.pos.x,this.pos.y,'#ecc94b'); this.currentQuest.active=false; Game.questsCompleted++; this.currentQuest=null; this.questPhase='NONE'; this.state='IDLE'; }
                         else if (this.currentQuest.type==='FLAG_DEFEND' && (reached || this.pos.distSq(tPos)<1600)) { 
                             if(this.pos.distSq(tPos)>900) { const dx=tPos.x-this.pos.x, dy=tPos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){this.pos.x+=(dx/d)*0.5; this.pos.y+=(dy/d)*0.5;} } else { this.pos.x += Math.cos(this.wanderAngle)*0.5; this.pos.y += Math.sin(this.wanderAngle)*0.5; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); } 
                         }
@@ -1376,12 +1034,11 @@ class Hero extends Unit {
                     if(this.checkThreatTimer<=0) { 
                         this.checkThreatTimer=0.1; 
                         let aggroSq = 40000;
-                        const enemies = Grid.getNearby(this.pos, aggroSq, 'ENEMY'); 
-                        for(let i=0; i<enemies.length; i++) { 
-                            if(enemies[i].isVisible || this.pos.distSq(enemies[i].pos) <= 22500) { 
-                                this.target=enemies[i]; this.state='MOVE'; break; 
-                            } 
-                        } 
+                        Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
+                            if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
+                                this.target=enemy; this.state='MOVE';
+                            }
+                        }, 'ENEMY');
                     } 
                 }
                 if (this.stateTimer <= 0) { this.evaluateGoals(myBase, hasHeal); this.stateTimer = 1.0; }
@@ -1423,14 +1080,13 @@ class Hero extends Unit {
         }
         
         let bS = -1, bT = null, isQ = false;
-        const enemies = Grid.getNearby(this.pos, 40000, 'ENEMY');
-        for(let i=0; i<enemies.length; i++) { 
-            if(!enemies[i].isVisible && this.pos.distSq(enemies[i].pos) > 22500) continue; 
-            const ds = this.pos.distSq(enemies[i].pos); 
+        Grid.getNearby(this.pos, 40000, (enemy, ds) => {
+            if(!enemy.isVisible && ds > 22500) return;
+
             let s = 1000/Math.sqrt(ds); 
             if(this.classType==='WARRIOR') s*=2; 
-            if(s>bS) { bS=s; bT=enemies[i]; } 
-        }
+            if(s>bS) { bS=s; bT=enemy; }
+        }, 'ENEMY');
         if(bT) { this.target=bT; this.state='MOVE'; return; } if(this.currentQuest) return;
         if(this.hp<this.maxHp*0.6 && hasHeal) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=((this.maxHp-this.hp)/this.maxHp)*3000/Math.max(d,10); if(s>bS) { bS=s; bT=myBase; } }
         for(let i=0; i<Game.activeFlags.length; i++) {
@@ -1487,7 +1143,7 @@ class Hero extends Unit {
             if (item.downgradeOf && item.downgradeOf.some(u => this.items.includes(u))) continue;
             
             this.personalGold -= item.cost; 
-            Game.gold += item.cost; 
+            Game.gold += item.cost; Game.itemsPurchased++;
             
             if (item.replaces && this.items.includes(item.replaces)) {
                 this.items.splice(this.items.indexOf(item.replaces), 1);
@@ -1582,14 +1238,12 @@ class Building extends Entity {
             if (this.attackCooldown > 0) this.attackCooldown -= dtSec;
             
             if (this.attackCooldown <= 0) {
-                const enemies = Grid.getNearby(this.pos, this.attackRange**2, 'ENEMY');
                 let validEnemies = [];
-                for (let i = 0; i < enemies.length; i++) { 
-                    const e = enemies[i]; 
-                    if (e.isVisible && e.type !== 'SPAWNER' && this.pos.distSq(e.pos) <= this.attackRange**2) {
+                Grid.getNearby(this.pos, this.attackRange**2, (e, distSq) => {
+                    if (e.isVisible && e.type !== 'SPAWNER' && distSq <= this.attackRange**2) {
                         validEnemies.push(e);
                     }
-                }
+                }, 'ENEMY');
                 
                 if (validEnemies.length > 0) {
                     validEnemies.sort((a,b) => this.pos.distSq(a.pos) - this.pos.distSq(b.pos));
@@ -1720,13 +1374,15 @@ class Flag extends Entity {
                     
                     if (atTargCount >= maxReq) {
                         const tp = this.targetEntity ? this.targetEntity.pos : this.pos;
-                        const threats = Grid.getNearby(tp, 40000, 'ENEMY');
-                        let isClear = true; for(let i=0; i<threats.length; i++) if(threats[i].isVisible) isClear = false;
+                        let isClear = true;
+                        Grid.getNearby(tp, 40000, (threat, distSq) => {
+                            if (threat.isVisible) isClear = false;
+                        }, 'ENEMY');
                         
                         if (isClear) {
                             const s = Math.floor(this.bounty / Math.max(1, ass.length));
                             ass.forEach(a => { a.personalGold += s; a.lifetimeGold += s; a.gainXp(15); Game.spawnParticle(a.pos.x, a.pos.y, '#e53e3e'); a.currentQuest = null; a.questPhase = 'NONE'; a.state = 'IDLE'; });
-                            this.active = false;
+                            this.active = false; Game.questsCompleted++;
                         }
                     }
                 }
@@ -1763,7 +1419,7 @@ class Flag extends Entity {
                 }
             }
             if (this.type === 'FLAG_DEFEND') {
-                if (defs.length > 0) { this.defendTimer -= dtSec; if (this.defendTimer <= 0) { const s = Math.floor(this.bounty / defs.length); defs.forEach(d => { d.personalGold += s; d.lifetimeGold += s; d.gainXp(15); Game.spawnParticle(d.pos.x, d.pos.y, '#ecc94b'); d.currentQuest = null; d.questPhase = 'NONE'; d.state = 'IDLE'; }); this.active = false; } }
+                if (defs.length > 0) { this.defendTimer -= dtSec; if (this.defendTimer <= 0) { const s = Math.floor(this.bounty / defs.length); defs.forEach(d => { d.personalGold += s; d.lifetimeGold += s; d.gainXp(15); Game.spawnParticle(d.pos.x, d.pos.y, '#ecc94b'); d.currentQuest = null; d.questPhase = 'NONE'; d.state = 'IDLE'; }); this.active = false; Game.questsCompleted++; } }
             } else if (this.type === 'FLAG_ATTACK') {
                 const fleeLimit = maxReq === 3 ? 2 : 1;
                 if (fleeingCount >= fleeLimit) { 
@@ -1776,13 +1432,15 @@ class Flag extends Entity {
                     
                     if (atTargCount >= maxReq) {
                         const tp = this.targetEntity ? this.targetEntity.pos : this.pos;
-                        const threats = Grid.getNearby(tp, 40000, 'ENEMY');
-                        let isClear = true; for(let i=0; i<threats.length; i++) if(threats[i].isVisible) isClear = false;
+                        let isClear = true;
+                        Grid.getNearby(tp, 40000, (threat, distSq) => {
+                            if (threat.isVisible) isClear = false;
+                        }, 'ENEMY');
                         
                         if (isClear) {
                             const s = Math.floor(this.bounty / Math.max(1, ass.length));
                             ass.forEach(a => { a.personalGold += s; a.lifetimeGold += s; a.gainXp(15); Game.spawnParticle(a.pos.x, a.pos.y, '#e53e3e'); a.currentQuest = null; a.questPhase = 'NONE'; a.state = 'IDLE'; });
-                            this.active = false;
+                            this.active = false; Game.questsCompleted++;
                         }
                     }
                 }
@@ -1838,7 +1496,8 @@ class Spawner extends Entity {
         const inBlackout = Game.dayTimer <= 10.0;
         if (!inBlackout) {
             this.spawnTimer += dtSec; 
-            if (this.spawnTimer >= this.spawnRate) { 
+            const currentSpawnRate = this.spawnRate + (this.daysSurvived * 1.5);
+            if (this.spawnTimer >= currentSpawnRate) {
                 this.spawnTimer = 0; 
                 const spawnCount = this.inCorridor ? 1 : 1 + Math.floor(Math.random() * (this.daysSurvived + 1));
                 for (let i = 0; i < spawnCount; i++) {
@@ -1859,7 +1518,7 @@ class Spawner extends Entity {
             const gY = 50;
             const tA = Math.floor(gY * Game.taxRate);
             const hA = gY - tA;
-            Game.gold += tA;
+            Game.gold += tA; Game.totalTaxCollected += tA;
             
             const sharedGold = Math.floor(hA / validAttackers.length);
             const sharedXpBase = Math.floor(50 / validAttackers.length) || 1;
@@ -1930,13 +1589,12 @@ class Volcano extends Entity {
             let possibleTargets = [];
             let backupTargets = [];
             const arSq = this.attackRange ** 2;
-            for (let i = 0; i < Game.activeHeroes.length; i++) {
-                const h = Game.activeHeroes[i];
-                if (!h.isDead && h.state !== 'FLEE' && this.pos.distSq(h.pos) <= arSq) {
+            Grid.getNearby(this.pos, arSq, (h, distSq) => {
+                if (h.classType && !h.isDead && h.state !== 'FLEE') {
                     backupTargets.push(h);
                     if (h !== this.lastTowerTarget) possibleTargets.push(h);
                 }
-            }
+            }, 'PLAYER');
             if (possibleTargets.length === 0) possibleTargets = backupTargets;
             
             if (possibleTargets.length > 0) {
@@ -1954,7 +1612,7 @@ class Volcano extends Entity {
         
         if (validAttackers.length > 0) {
             const gY = 200; 
-            const tA = Math.floor(gY * Game.taxRate); const hA = gY - tA; Game.gold += tA;
+            const tA = Math.floor(gY * Game.taxRate); const hA = gY - tA; Game.gold += tA; Game.totalTaxCollected += tA;
             const sharedGold = Math.floor(hA / validAttackers.length);
             const sharedXpBase = Math.floor(200 / validAttackers.length) || 1;
             validAttackers.forEach(hero => {
@@ -1998,7 +1656,7 @@ const Game = {
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], corridors: [], bgBounds: {x: 0, y: 0},
     guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false,
-    heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
+    heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
     addEntity(ent) {
         this.entities.push(ent);
@@ -2043,7 +1701,7 @@ const Game = {
             const e = this.playerEntities[i];
             if (e.classType || e.type === 'TOWER') cur++;
             if (e.type === 'TOWER' && e.isUpgraded) cur++;
-            if (e.type === 'CASTLE') max += 5;
+            if (e.type === 'CASTLE') max += 6;
             else if (e.type === 'FARM') max += (e.isUpgraded ? 6 : 3);
         }
         return { cur, max };
@@ -2287,9 +1945,9 @@ const Game = {
                     UI.setText('farm-upg-cost', 'Upgraded');
                     UI.setColor('farm-upg-cost', '#a0aec0');
                 } else {
-                    UI.setDisabled(upgBtn, this.gold < 150);
-                    UI.setText('farm-upg-cost', '🪙150');
-                    UI.setColor('farm-upg-cost', this.gold >= 150 ? '#ecc94b' : '#e53e3e');
+                    UI.setDisabled(upgBtn, this.gold < 125);
+                    UI.setText('farm-upg-cost', '🪙125');
+                    UI.setColor('farm-upg-cost', this.gold >= 125 ? '#ecc94b' : '#e53e3e');
                 }
             } else { if (Game.shopActiveSlot !== null || Game.tavernActiveSlot !== null) Game.hideTooltip(); Game.shopActiveSlot = null; Game.tavernActiveSlot = null; }
             this.positionUI();
@@ -2338,8 +1996,8 @@ const Game = {
     },
     upgradeFarm() {
         const e = this.selectedEntity;
-        if (e && e.type === 'FARM' && !e.isUpgraded && this.gold >= 150) {
-            this.gold -= 150;
+        if (e && e.type === 'FARM' && !e.isUpgraded && this.gold >= 125) {
+            this.gold -= 125;
             e.isUpgraded = true;
             e.maxHp *= 2;
             e.hp += BUILDING_CONFIG.FARM.hp;
@@ -2411,7 +2069,7 @@ const Game = {
             
             if (this.gold >= cost && curP < maxP) {
                 this.gold -= cost; 
-                deadHero.isDead = false;
+                deadHero.isDead = false; deadHero.timesRevived++;
                 deadHero.active = true;
                 deadHero.hp = deadHero.maxHp;
                 deadHero.items = [];
@@ -2437,7 +2095,8 @@ const Game = {
     researchUpgrade(u) { if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.selectedEntity.type)) { const c = UPGRADE_CONFIG[u].cost; if (this.gold >= c && !this.selectedEntity.upgrades.includes(u)) { this.gold -= c; this.selectedEntity.upgrades.push(u); this.updateUI(true); } } },
     togglePause() { 
         this.isPaused = !this.isPaused; 
-        UI.setText('btn-pause', this.isPaused ? '▶️' : '⏸️'); 
+        UI.setText('btn-pause', this.isPaused ? '▶️' : '⏸️');
+        document.getElementById('btn-pause').setAttribute('aria-label', this.isPaused ? 'Play Game' : 'Pause Game');
         UI.setDisplay('pause-overlay', 'none'); 
         if (this.isPaused && !this.gameOver) {
             this.showStatsScreen(false);
@@ -2446,7 +2105,7 @@ const Game = {
         }
         UI.setClass(document.body, 'is-paused', this.isPaused); 
     },
-    isPosVisible(p) { for (let i = 0; i < this.playerEntities.length; i++) { const e = this.playerEntities[i]; if (typeof e.getVisionRange === 'function') { let v = e.getVisionRange(); if (v > 0 && p.distSq(e.pos) <= v * v) return true; } } return false; },
+    isPosVisible(p) { let vis = false; Grid.getNearby(p, 90000, (e, dSq) => { if (vis) return; if (typeof e.getVisionRange === 'function') { let v = e.getVisionRange(); if (v > 0 && dSq <= v * v) vis = true; } }, 'PLAYER'); return vis; },
     canPlaceBuilding(x, y, radius) {
         const clamped = GameBounds.clamp(x, y, radius);
         if (clamped.x !== x || clamped.y !== y) return false;
@@ -2562,7 +2221,7 @@ const Game = {
     },
     hideTooltip() { document.getElementById('tooltip').style.display = 'none'; },
     showStatsScreen(isGameOver) {
-        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold }))];
+        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, ankhs: h.ankhsUsed || 0 }))];
         hall.sort((a,b) => b.level - a.level || b.kills - a.kills);
         const top10 = hall.slice(0, 10);
         
@@ -2572,13 +2231,13 @@ const Game = {
         const themeColor = isGameOver ? "#e53e3e" : "#3182ce";
 
         let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div><div class="score-grid">`;
-        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Highest Level Heroes</h3><div class="go-table-container"><table class="go-table"><tr><th>Hero</th><th>Class</th><th>Level</th><th>Monsters Killed</th><th>Gold Generated</th></tr>`;
+        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Highest Level Heroes</h3><div class="go-table-container"><table class="go-table"><tr><th>Hero</th><th>Class</th><th>Level</th><th>Monsters Killed</th><th>Gold Generated</th><th>Revives</th><th>Ankhs</th></tr>`;
         const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid' };
-        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td></tr>`);
+        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${h.revives || 0}</td><td>${h.ankhs || 0}</td></tr>`);
         html += `</table></div></div>`;
         html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Statistics</h3>`;
         const stats = [
-            ["Days Lasted", this.day],
+            ["Days Lasted", this.day], ["Quests Completed", this.questsCompleted], ["Monsters Slain", this.monstersKilled], ["Taxes Collected", Math.floor(this.totalTaxCollected) + "g"], ["Items Bought", this.itemsPurchased],
             ["Hero Deaths", this.heroDeaths],
             ["Buildings Lost", this.buildingDeaths],
             ["Monster Spawners Killed", this.spawnersKilled],
