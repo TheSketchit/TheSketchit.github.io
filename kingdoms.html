@@ -45,6 +45,33 @@
             </div>
         </div>
         
+
+        <div id="hero-info-container" style="display:none;">
+            <div class="hero-top-row">
+                <span id="hero-name" class="hero-name"></span>
+                <span id="hero-class-level" class="hero-class-level"></span>
+            </div>
+            
+            <div class="hero-bar-container" title="Health">
+                <div id="hero-hp-fill" class="hero-bar-fill health"></div>
+                <div id="hero-hp-text" class="hero-bar-text"></div>
+            </div>
+            
+            <div class="hero-bar-container" title="Experience">
+                <div id="hero-xp-fill" class="hero-bar-fill xp"></div>
+                <div id="hero-xp-text" class="hero-bar-text"></div>
+            </div>
+            
+            <div id="hero-inventory" class="hero-inventory-grid">
+                <!-- Slots will be injected via JS -->
+            </div>
+            
+            <div class="hero-bottom-row">
+                <span title="Monsters Killed">💀 <span id="hero-kills">0</span></span>
+                <span title="Personal Gold">🪙 <span id="hero-gold">0</span></span>
+            </div>
+        </div>
+        
         <div id="info-stats">
             <div id="stat-tombstone" style="font-style: italic; color: #a0aec0; margin-bottom: 10px; line-height: 1.4; display:none;"></div>
             <div id="stat-level" class="stat-line" style="display:none;"><span>Level:</span> <span id="val-level"></span></div>
@@ -1847,13 +1874,56 @@ const Game = {
                 }
                 UI.setHTML('info-name', `<span style="width:100%; display:flex; justify-content:space-between;"><span>${displayName} <span style="font-size: 0.75rem; color: #a0aec0;">[${Math.floor(e.hp)}/${e.maxHp} HP]</span></span>${bountyStr}</span>`);
             }
+
+
             if (e.faction === 'PLAYER' && e.classType) {
-                UI.setText('val-level', e.level); UI.setText('val-xp', `${e.xp} / ${e.level * 100}`);
-                UI.setText('val-gold', `${Math.floor(e.personalGold)}g`); UI.setColor('val-gold', e.personalGold < 0 ? '#e53e3e' : '#ecc94b');
-                UI.setText('val-kills', e.kills); UI.setText('val-dmg', e.damage);
-                UI.setText('val-items', e.items.length > 0 ? e.items.join(', ') : 'None'); UI.setText('val-state', e.getDisplayState());
-                ['stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state'].forEach(id => toggle(id, true));
-            } else if (e.type === 'TEMPLE') {
+                UI.setClass('info-panel', 'hero-panel', true);
+                UI.setDisplay('info-name', 'none');
+                UI.setDisplay('info-stats', 'none');
+                UI.setDisplay('hero-info-container', 'block');
+                
+                const hConf = HERO_CONFIG[e.classType];
+                UI.setText('hero-name', e.name || 'Hero');
+                UI.setHTML('hero-class-level', `Lvl ${e.level} ${hConf.icon || ''}`);
+                
+                // HP Bar
+                const hpPct = Math.max(0, Math.min(100, (e.hp / e.maxHp) * 100));
+                document.getElementById('hero-hp-fill').style.width = hpPct + '%';
+                UI.setText('hero-hp-text', `${Math.floor(e.hp)} / ${e.maxHp}`);
+                
+                // XP Bar
+                const xpReq = e.level * 100;
+                const xpPct = Math.max(0, Math.min(100, (e.xp / xpReq) * 100));
+                document.getElementById('hero-xp-fill').style.width = xpPct + '%';
+                UI.setText('hero-xp-text', `${e.xp} / ${xpReq} XP`);
+                
+                // Inventory
+                let invHTML = '';
+                const maxItems = 4; // Display 4 slots
+                for (let i = 0; i < maxItems; i++) {
+                    if (i < e.items.length) {
+                        const itemIcon = ITEM_CONFIG[e.items[i]].icon;
+                        invHTML += `<div class="hero-inventory-slot" title="${e.items[i]}">${itemIcon}</div>`;
+                    } else {
+                        invHTML += `<div class="hero-inventory-slot empty"></div>`;
+                    }
+                }
+                UI.setHTML('hero-inventory', invHTML);
+                
+                // Bottom Row
+                UI.setText('hero-kills', e.kills);
+                UI.setText('hero-gold', Math.floor(e.personalGold));
+                
+                ['stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state'].forEach(id => toggle(id, false));
+            } else {
+                UI.setClass('info-panel', 'hero-panel', false);
+                UI.setDisplay('info-name', 'flex');
+                UI.setDisplay('info-stats', 'block');
+                UI.setDisplay('hero-info-container', 'none');
+                
+                if (e.type === 'TEMPLE') {
+
+
                 UI.setDisplay('temple-config', 'block');
                 const deadHeroes = Game.entities.filter(ent => ent.type === 'TOMBSTONE' && ent.heroRef);
                 deadHeroes.sort((a, b) => b.heroRef.level - a.heroRef.level);
