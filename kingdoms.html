@@ -594,6 +594,18 @@ const BUILDING_CONFIG = {
     TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false }
 };
 
+const MONSTER_CONFIG = {
+    RAT: { name: 'Rat', maxHp: 40, speed: 0.8, damage: 5, radius: 8, icon: '🐀' },
+    SPIDER: { name: 'Spider', maxHp: 80, speed: 1.0, damage: 15, radius: 12, icon: '🕷️' },
+    SNAKE: { name: 'Snake', maxHp: 140, speed: 1.1, damage: 20, radius: 15, icon: '🐍' }
+};
+
+const SPAWNER_CONFIG = {
+    RAT_HOLE: { name: 'Rat Hole', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕳️' },
+    WEB: { name: 'Spider Web', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕸️' },
+    SNAKE_NEST: { name: 'Snake Nest', maxHp: 400, baseRadius: 15, spawnRate: 14.0, icon: '🪹' }
+};
+
 const BASE_HERO_NAMES = ["Steven", "Gavin", "Lincoln", "Jeff", "Alex", "Daniel", "Beefaroni", "Tony", "Tasilogs", "Jody", "Javo", "Wolfgang", "Sean", "Rexba", "Squavin", "Naur", "Sipah", "Nippah", "Rathutch", "Jimmy", "Pam", "Don", "Patrick", "Shaybutters", "Shabusiness", "Mr. Stinky", "Snickers", "Cat Boy", "Dirtmorph", "Reverse Osmosis", "Romulus Stimuli", "Cantrop Fergusion", "Cluckster Stevens", "Purty McDavis", "Cousin Sam", "Cornhole Jackson", "Homunculus Michael", "Tasty Nomenclature", "Allen Akbar", "Delicious Virgil", "George McSexy", "Laquisha Washington", "Georgio Armani", "Korpo Tendons", "Zucchini Fritz", "Marcus Farcus", "Debbie Snacks", "Snozzberry Twist", "Andrew Sand", "Timmy Silverback", "Klinger", "Vecna", "Vindaloo", "Harshburger", "Kelli", "Markus Winnius"];
 let availableHeroNames = [...BASE_HERO_NAMES];
 let heroGeneration = 1;
@@ -706,7 +718,10 @@ class Trap extends Entity {
 
 class Monster extends Unit {
     constructor(x, y, mT = 'RAT', bS = 0) {
-        super(x, y); this.type = 'MONSTER'; this.monsterType = mT; this.name = mT==='SPIDER'?'Spider':(mT==='SNAKE'?'Snake':'Rat'); this.faction = 'ENEMY'; 
+        super(x, y); this.type = 'MONSTER'; this.monsterType = mT; this.faction = 'ENEMY';
+
+        const conf = MONSTER_CONFIG[mT] || MONSTER_CONFIG['RAT'];
+        this.name = conf.name;
         
         const mainB = GameBounds.getMain();
         const inCorridor = (x < mainB.x1 || x > mainB.x2 || y < mainB.y1 || y > mainB.y2);
@@ -716,9 +731,11 @@ class Monster extends Unit {
         this.buffStacks = bS + (inCorridor ? 2 : 0);
         const sc = Math.pow(1.1, this.buffStacks); 
 
-        if (mT==='SNAKE') { this.maxHp=Math.floor(140*sc); this.speed=1.1; this.damage=Math.floor(20*sc); this.radius=15*sc; }
-        else if (mT==='SPIDER') { this.maxHp=Math.floor(80*sc); this.speed=1.0; this.damage=Math.floor(15*sc); this.radius=12*sc; }
-        else { this.maxHp=Math.floor(40*sc); this.speed=0.8; this.damage=Math.floor(5*sc); this.radius=8*sc; }
+        this.maxHp = Math.floor(conf.maxHp * sc);
+        this.speed = conf.speed;
+        this.damage = Math.floor(conf.damage * sc);
+        this.radius = conf.radius * sc;
+
         this.hp=this.maxHp;
         
         if (inCorridor) { 
@@ -831,7 +848,8 @@ class Monster extends Unit {
     }
     draw(ctx) {
         let dX=this.pos.x, dY=this.pos.y; if(this.attackCooldown>this.maxAttackCooldown-0.25) { if(this.monsterType==='SNAKE') dX+=Math.sin(this.attackCooldown*90)*6; else dY+=Math.sin(this.attackCooldown*90)*5; }
-        const ic = this.monsterType==='SPIDER'?'🕷️':(this.monsterType==='SNAKE'?'🐍':'🐀'); 
+        const conf = MONSTER_CONFIG[this.monsterType] || MONSTER_CONFIG['RAT'];
+        const ic = conf.icon;
         
         const outC = Game.hoveredEntity === this ? '#90ee90' : (Game.selectedEntity === this ? '#ecc94b' : null);
         const sp = SpriteCache.get(ic, this.baseFontSize, true, true, outC); 
@@ -1546,7 +1564,11 @@ class Flag extends Entity {
 
 class Spawner extends Entity {
     constructor(x, y, t = 'RAT_HOLE') {
-        super(x, y); this.isStatic = true; this.spawnerType = t; this.name = t==='WEB'?'Spider Web':(t==='SNAKE_NEST'?'Snake Nest':'Rat Hole'); this.faction = 'ENEMY'; this.type = 'SPAWNER'; this.hp = this.maxHp = t==='SNAKE_NEST'?400:150;
+        super(x, y); this.isStatic = true; this.spawnerType = t; this.faction = 'ENEMY'; this.type = 'SPAWNER';
+
+        const conf = SPAWNER_CONFIG[t] || SPAWNER_CONFIG['RAT_HOLE'];
+        this.name = conf.name;
+        this.hp = this.maxHp = conf.maxHp;
         
         const mainB = GameBounds.getMain();
         this.inCorridor = (x < mainB.x1 || x > mainB.x2 || y < mainB.y1 || y > mainB.y2);
@@ -1556,7 +1578,10 @@ class Spawner extends Entity {
         }
         this.daysSurvived = 0;
         
-        this.baseRadius = t==='SNAKE_NEST'?15:20; this.radius = this.baseRadius; this.spawnRate = t==='SNAKE_NEST'?14.0:8.0; this.spawnTimer = Math.random() * this.spawnRate;
+        this.baseRadius = conf.baseRadius;
+        this.radius = this.baseRadius;
+        this.spawnRate = conf.spawnRate;
+        this.spawnTimer = Math.random() * this.spawnRate;
     }
     update(dtSec) { 
         const inBlackout = Game.dayTimer <= 10.0;
@@ -1612,7 +1637,8 @@ class Spawner extends Entity {
     }
     draw(ctx) {
         const scale = this.radius / this.baseRadius; ctx.save(); ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(this.pos.x, this.pos.y+(15*scale), 25*scale, 10*scale, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
-        const ic = this.spawnerType==='WEB'?'🕸️':(this.spawnerType==='SNAKE_NEST'?'🪹':'🕳️'); 
+        const conf = SPAWNER_CONFIG[this.spawnerType] || SPAWNER_CONFIG['RAT_HOLE'];
+        const ic = conf.icon;
         
         const outC = Game.selectedEntity === this ? '#ecc94b' : (Game.hoveredEntity === this ? '#90ee90' : null);
         const sp = SpriteCache.get(ic, 40+(this.daysSurvived*4), true, true, outC); 
