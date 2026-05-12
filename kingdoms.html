@@ -2671,9 +2671,7 @@ function loop(timestamp) {
                         
                         generateTerrain();
                         Game.spawnFloatingText(WORLD_WIDTH/2, WORLD_HEIGHT/2 - 100, "A new path has opened!", "#ecc94b", 4.0, 30);
-                        
-                        Game.spawnVolcano(pick);
-                        
+
                         Game.spawnHole('RAT_HOLE', true, pick);
                         Game.spawnHole('WEB', true, pick);
                         Game.spawnHole('SNAKE_NEST', true, pick);
