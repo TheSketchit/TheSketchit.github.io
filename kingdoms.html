@@ -624,8 +624,8 @@ const Grid = {
 Grid.init();
 
 const UI = {
-    setText(id, text) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(text); if (el && el._lastText !== str) { el.innerText = str; el._lastText = str; } },
-    setHTML(id, html) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(html); if (el && el._lastHTML !== str) { el.innerHTML = str; el._lastHTML = str; } },
+    setText(id, text) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(text); if (el && el._lastText !== str) { el.innerText = str; el._lastText = str; el._lastHTML = undefined; } },
+    setHTML(id, html) { const el = typeof id === 'string' ? document.getElementById(id) : id; const str = String(html); if (el && el._lastHTML !== str) { el.innerHTML = str; el._lastHTML = str; el._lastText = undefined; } },
     setDisplay(id, display) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el && el.style.display !== display) el.style.display = display; },
     setColor(id, color) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el && el.style.color !== color) el.style.color = color; },
     setDisabled(id, disabled) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el && el.disabled !== disabled) el.disabled = disabled; },
@@ -635,12 +635,12 @@ const UI = {
 const ITEM_CONFIG = {
     POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#48bb78', icon: '🧪' },
     SWORD: { cost: 100, classes: ['WARRIOR'], color: '#e2e8f0', statBonus: { damage: 5 }, icon: '⚔️' },
-    DAGGER: { cost: 75, classes: ['ROGUE'], color: '#e2e8f0', statBonus: { damage: 3 }, icon: '🗡️' },
+    DAGGER: { cost: 75, classes: ['ROGUE'], color: '#e2e8f0', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️' },
     WAND: { cost: 120, classes: ['DRUID'], color: '#e2e8f0', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄' },
-    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#a0aec0', statBonus: { maxHp: 50, hp: 50 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥' },
-    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100 }, replaces: 'ARMOR', icon: '⛓️' },
-    ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50 }, replaces: 'ARMOR', icon: '👘' },
-    ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#718096', statBonus: { maxHp: 50, hp: 50 }, replaces: 'ARMOR', icon: '🕵️‍♂️' },
+    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#a0aec0', statBonus: { maxHp: 50, hp: 50, damageReduction: 2 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥' },
+    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️' },
+    ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, thornsPercent: 0.2 }, replaces: 'ARMOR', icon: '👘' },
+    ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#718096', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️' },
     ANKH: { cost: 300, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#ecc94b', icon: '☥️' }
 };
 
@@ -671,7 +671,7 @@ const BUILDING_CONFIG = {
 const MONSTER_CONFIG = {
     RAT: { name: 'Rat', maxHp: 40, speed: 0.8, damage: 5, radius: 8, icon: '🐀' },
     SPIDER: { name: 'Spider', maxHp: 80, speed: 1.0, damage: 15, radius: 12, icon: '🕷️' },
-    SNAKE: { name: 'Snake', maxHp: 140, speed: 1.1, damage: 20, radius: 15, icon: '🐍' }
+    SNAKE: { name: 'Snake', maxHp: 140, speed: 1.1, damage: 20, radius: 15, icon: '🐍', towerDamageTakenMult: 0.75 }
 };
 
 const SPAWNER_CONFIG = {
@@ -826,7 +826,7 @@ class Monster extends Unit {
             this.name = 'Feral ' + this.name;
         }
     }
-    takeDamage(a, s) { if (!this.active) return; if (this.monsterType === 'SNAKE' && s && s.type === 'TOWER') a *= 0.75; super.takeDamage(a, s); }
+    takeDamage(a, s) { if (!this.active) return; if (s && s.type === 'TOWER' && MONSTER_CONFIG[this.monsterType].towerDamageTakenMult) a *= MONSTER_CONFIG[this.monsterType].towerDamageTakenMult; super.takeDamage(a, s); }
     getClosestBuilding() {
         let best = Game.base;
         let bD = Infinity;
@@ -850,7 +850,7 @@ class Monster extends Unit {
         }
         if (!nT) {
             Grid.getNearby(this.pos, 22500, (targ, ds) => {
-                if (targ.classType === 'ROGUE' && targ.items.includes('ROGUES_DISGUISE') && !this.attackers.has(targ)) return;
+                if (targ.stealth === true && !this.attackers.has(targ)) return;
 
                 if (this.monsterType==='RAT'&&targ.type==='TRAP'&&ds<62500) { nT=targ; nD=ds; } // Note: can't break early easily, so just overwrite
                 else if (ds < nD) { nD = ds; nT = targ; }
@@ -947,6 +947,8 @@ class Hero extends Unit {
         this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
+        this.damageReduction = 0; this.thornsPercent = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
+
         if (availableHeroNames.length === 0) { availableHeroNames = [...BASE_HERO_NAMES]; heroGeneration++; }
         this.name = availableHeroNames.splice(Math.floor(Math.random()*availableHeroNames.length), 1)[0] + getHeroSuffix(heroGeneration);
         
@@ -971,7 +973,7 @@ class Hero extends Unit {
     getVisionRange() { return 150; }
     takeDamage(amt, src) { 
         if (!this.active) return; 
-        let red = this.items.includes('CHAINMAIL')?5:(this.items.includes('ARMOR') || this.items.includes('ROBE_OF_THORNS') || this.items.includes('ROGUES_DISGUISE')?2:0); 
+        let red = this.damageReduction || 0;
         let final = Math.max(1, amt - red); 
         if (this.hp - final <= 0 && this.items.includes('ANKH')) { 
             this.items.splice(this.items.indexOf('ANKH'),1); this.ankhsUsed++;
@@ -984,8 +986,8 @@ class Hero extends Unit {
         } 
         super.takeDamage(final, src); 
         
-        if (this.items.includes('ROBE_OF_THORNS') && src && src.active && src.faction === 'ENEMY') {
-            const thornsDmg = Math.max(1, Math.floor(amt * 0.2));
+        if (this.thornsPercent > 0 && src && src.active && src.faction === 'ENEMY') {
+            const thornsDmg = Math.max(1, Math.floor(amt * this.thornsPercent));
             src.takeDamage(thornsDmg, this);
         }
         
@@ -1204,7 +1206,7 @@ class Hero extends Unit {
             case 'ATTACK':
                 if (!this.target || !this.target.active) { this.state='IDLE'; break; }
                 if (this.pos.distSq(this.target.pos) > (this.attackRange+this.target.radius+5)**2) { this.state='MOVE'; break; }
-                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.classType==='ROGUE'&&this.items.includes('DAGGER')&&Math.random()<0.05) { d*=2; cr=true; } if(this.classType==='DRUID') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this)); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); } this.attackCooldown = this.maxAttackCooldown; }
+                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this)); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); } this.attackCooldown = this.maxAttackCooldown; }
                 break;
             case 'FLEE':
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
@@ -1330,6 +1332,11 @@ class Hero extends Unit {
                 if (oldItem.statBonus) {
                     if (oldItem.statBonus.maxHp) { this.maxHp -= oldItem.statBonus.maxHp; this.hp -= oldItem.statBonus.maxHp; }
                     if (oldItem.statBonus.damage) this.damage -= oldItem.statBonus.damage;
+                    if (oldItem.statBonus.damageReduction) this.damageReduction -= oldItem.statBonus.damageReduction;
+                    if (oldItem.statBonus.thornsPercent) this.thornsPercent -= oldItem.statBonus.thornsPercent;
+                    if (oldItem.statBonus.stealth) this.stealth = false;
+                    if (oldItem.statBonus.critChance) this.critChance -= oldItem.statBonus.critChance;
+                    if (oldItem.statBonus.critMult) this.critMult = 1.0;
                 }
             }
             
@@ -1339,6 +1346,11 @@ class Hero extends Unit {
                 if (item.statBonus.maxHp) { this.maxHp += item.statBonus.maxHp; this.hp += item.statBonus.hp || item.statBonus.maxHp; }
                 if (item.statBonus.damage) this.damage += item.statBonus.damage;
                 if (item.statBonus.attackRange) this.attackRange += item.statBonus.attackRange;
+                if (item.statBonus.damageReduction) this.damageReduction += item.statBonus.damageReduction;
+                if (item.statBonus.thornsPercent) this.thornsPercent += item.statBonus.thornsPercent;
+                if (item.statBonus.stealth) this.stealth = item.statBonus.stealth;
+                if (item.statBonus.critChance) this.critChance += item.statBonus.critChance;
+                if (item.statBonus.critMult) this.critMult = item.statBonus.critMult;
             }
             
             Game.spawnParticle(this.pos.x, this.pos.y, item.color || '#e2e8f0'); 
@@ -2671,7 +2683,7 @@ function loop(timestamp) {
                         
                         generateTerrain();
                         Game.spawnFloatingText(WORLD_WIDTH/2, WORLD_HEIGHT/2 - 100, "A new path has opened!", "#ecc94b", 4.0, 30);
-
+                        
                         Game.spawnHole('RAT_HOLE', true, pick);
                         Game.spawnHole('WEB', true, pick);
                         Game.spawnHole('SNAKE_NEST', true, pick);
