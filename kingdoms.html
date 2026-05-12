@@ -1820,10 +1820,11 @@ class Volcano extends Entity {
             }
             if (targets.length > 0) {
                 targets.sort(() => Math.random() - 0.5);
-                const hitCount = Math.min(3, targets.length);
+                const hitCount = 3;
                 const dmg = 40; 
                 for (let i = 0; i < hitCount; i++) {
-                    Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, targets[i], dmg, this, 'FIREBALL'));
+                    const target = targets[i % targets.length];
+                    Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, target, dmg, this, 'FIREBALL'));
                 }
                 Game.spawnFloatingText(this.pos.x, this.pos.y - 60, "ERUPTION!", "#e53e3e", 2.0, 24);
             }
@@ -2722,12 +2723,13 @@ function loop(timestamp) {
         Game.renderDynamic.length = 0;
 
         Game.playerEntities.length = 0; Game.enemyEntities.length = 0; Game.activeHeroes.length = 0; Game.activeShops.length = 0; Game.activeFlags.length = 0; Game.activeSpawners.length = 0; Game.shops.length = 0; Game.flags.length = 0; Grid.clear();
-        for(let i = Game.entities.length - 1; i >= 0; i--) {
+        for(let i = 0; i < Game.entities.length; i++) {
             const e = Game.entities[i];
             if(!e.active) { 
                 if (e.isStatic) Game.staticDirty = true;
                 Game.entities[i] = Game.entities[Game.entities.length - 1]; 
                 Game.entities.pop(); 
+                i--;
                 continue; 
             }
             Grid.insert(e);
