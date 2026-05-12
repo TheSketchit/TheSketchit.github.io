@@ -66,6 +66,7 @@
             <div id="stat-kills" class="stat-line" style="display:none;"><span>Kills:</span> <span id="val-kills"></span></div>
             <div id="stat-dmg" class="stat-line" style="display:none;"><span>Damage:</span> <span id="val-dmg"></span></div>
             <div id="stat-items" class="stat-line" style="display:none;"><span>Items:</span> <span id="val-items"></span></div>
+            <div id="stat-skills" class="stat-line" style="display:none;"><span>Training:</span> <span id="val-skills"></span></div>
             <div id="stat-state" class="stat-line" style="display:none;"><span>State:</span> <span id="val-state"></span></div>
             <div id="stat-tower-dmg" class="stat-line" style="display:none;"><span>Damage:</span> <span id="val-tower-dmg" style="color:#63b3ed;">20 (Magic)</span></div>
         </div>
@@ -135,31 +136,44 @@
                     <div class="build-btn-icon">🤝</div>
                     <div class="build-btn-cost-badge"><span class="build-btn-cost" style="color: #e2e8f0;">Free</span></div>
                 </button>
-                <button id="btn-upg-CHARGE" class="menu-btn build-btn" onclick="Game.researchUpgrade('CHARGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Charge', 'Warriors will charge at distant enemies, dealing damage and stunning them.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                    <div class="build-btn-header">
-                        <div class="build-btn-hotkey">R</div>
-                        <div class="build-btn-title">Charge</div>
-                    </div>
-                    <div class="build-btn-icon">⚡</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
-                </button>
-                <button id="btn-upg-RAT_TRAP" class="menu-btn build-btn" onclick="Game.researchUpgrade('RAT_TRAP')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Rat Trap', 'Rogues will occasionally place traps when killing rats.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                    <div class="build-btn-header">
-                        <div class="build-btn-hotkey">R</div>
-                        <div class="build-btn-title">Rat Trap</div>
-                    </div>
-                    <div class="build-btn-icon">🪤</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
-                </button>
-                <button id="btn-upg-REGROWTH" class="menu-btn build-btn" onclick="Game.researchUpgrade('REGROWTH')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Regrowth', 'Druids occasionally cast a powerful healing spell on heavily injured allies.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                    <div class="build-btn-header">
-                        <div class="build-btn-hotkey">R</div>
-                        <div class="build-btn-title">Regrowth</div>
-                    </div>
-                    <div class="build-btn-icon">🌱</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
-                </button>
+            </div>
 
+            <div id="guild-select-ui" style="display:none; margin-top: 10px;">
+                <h4 style="margin: 0 0 5px 0; color: #ecc94b; display: flex; justify-content: space-between; align-items: center;">
+                    Select Training <button class="btn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="Game.guildActiveSlot = null; Game.hideTooltip(); Game.updateUI(true)">Cancel</button>
+                </h4>
+                <div class="panel-btn-grid">
+                    <button id="btn-upg-CHARGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CHARGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Charge', 'Warriors will charge at distant enemies, dealing damage and stunning them.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <div class="build-btn-header">
+                            <div class="build-btn-hotkey"></div>
+                            <div class="build-btn-title">Charge</div>
+                        </div>
+                        <div class="build-btn-icon">⚡</div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
+                    </button>
+                    <button id="btn-upg-RAT_TRAP" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('RAT_TRAP')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Rat Trap', 'Rogues will occasionally place traps when killing rats.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <div class="build-btn-header">
+                            <div class="build-btn-hotkey"></div>
+                            <div class="build-btn-title">Rat Trap</div>
+                        </div>
+                        <div class="build-btn-icon">🪤</div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
+                    </button>
+                    <button id="btn-upg-REGROWTH" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('REGROWTH')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Regrowth', 'Druids occasionally cast a powerful healing spell on heavily injured allies.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <div class="build-btn-header">
+                            <div class="build-btn-hotkey"></div>
+                            <div class="build-btn-title">Regrowth</div>
+                        </div>
+                        <div class="build-btn-icon">🌱</div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+                    </button>
+                </div>
+            </div>
+            <div id="guild-slots-ui" style="display:none; margin-top: 10px;">
+                <h4 style="margin: 0 0 5px 0; color: #ecc94b;">Training Offered</h4>
+                <div class="shop-slot-row">
+                    <button id="guild-slot-0" class="shop-slot-btn" onclick="Game.guildActiveSlot = 0; Game.updateUI(true)"></button>
+                </div>
             </div>
         </div>
 
@@ -493,6 +507,64 @@ const SpriteCache = {
         this.cache[key] = { img: c, ox: cx, oy: cy };
         return this.cache[key];
     },
+    getImage(src, size, drawShadow = true, stroke = true, outlineColor = null) {
+        const key = `img_${src}_${size}_${drawShadow}_${stroke}_${outlineColor}`;
+        if (this.cache[key] && this.cache[key].loaded) return this.cache[key];
+
+        if (!this.cache[key]) {
+            const img = new Image();
+            img.src = src;
+
+            // Create an empty canvas placeholder while it loads
+            const c = document.createElement('canvas');
+            const pad = drawShadow || outlineColor ? 15 : 5;
+            c.width = size + pad * 2; c.height = size + pad * 2;
+            const cx = c.width/2, cy = c.height/2;
+
+            this.cache[key] = { img: c, ox: cx, oy: cy, loaded: false };
+
+            img.onload = () => {
+                const ctx = c.getContext('2d');
+                ctx.clearRect(0, 0, c.width, c.height);
+
+                if (outlineColor) {
+                    const sil = document.createElement('canvas');
+                    sil.width = c.width; sil.height = c.height;
+                    const sCtx = sil.getContext('2d');
+                    // Draw image for silhouette
+                    sCtx.drawImage(img, cx - size/2, cy - size/2, size, size);
+                    sCtx.globalCompositeOperation = 'source-in';
+                    sCtx.fillStyle = outlineColor;
+                    sCtx.fillRect(0, 0, sil.width, sil.height);
+
+                    const offsets = [[-3,0],[3,0],[0,-3],[0,3],[-2,-2],[2,-2],[-2,2],[2,2]];
+                    for(let [ox, oy] of offsets) ctx.drawImage(sil, ox, oy);
+                } else if (drawShadow) {
+                    ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8; ctx.shadowOffsetX=3; ctx.shadowOffsetY=5;
+                }
+
+                if (stroke && !outlineColor) {
+                    const sil2 = document.createElement('canvas');
+                    sil2.width = c.width; sil2.height = c.height;
+                    const sCtx2 = sil2.getContext('2d');
+                    sCtx2.drawImage(img, cx - size/2, cy - size/2, size, size);
+                    sCtx2.globalCompositeOperation = 'source-in';
+                    sCtx2.fillStyle = 'rgba(0,0,0,0.8)';
+                    sCtx2.fillRect(0, 0, sil2.width, sil2.height);
+
+                    const strokeOffsets = [[-1,0],[1,0],[0,-1],[0,1]];
+                    for(let [ox, oy] of strokeOffsets) {
+                        ctx.drawImage(sil2, ox, oy);
+                    }
+                }
+
+                ctx.shadowColor = 'transparent';
+                ctx.drawImage(img, cx - size/2, cy - size/2, size, size);
+                this.cache[key].loaded = true;
+            };
+        }
+        return this.cache[key];
+    },
     getAshPit(radius) {
         const key = 'ashpit_' + radius;
         if (this.cache[key]) return this.cache[key];
@@ -536,12 +608,14 @@ const Grid = {
         const maxX = Math.min(this.cols-1, Math.floor((pos.x + r + this.offsetX)/this.cellSize));
         const minY = Math.max(0, Math.floor((pos.y - r + this.offsetY)/this.cellSize));
         const maxY = Math.min(this.rows-1, Math.floor((pos.y + r + this.offsetY)/this.cellSize));
+        // Optimization: Allowing the callback to return strictly `true` aborts further grid searching,
+        // saving redundant iterations for existence checks like visibility or aggro.
         for(let y=minY; y<=maxY; y++) {
             const off = y*this.cols;
             for(let x=minX; x<=maxX; x++) {
                 const c = this.cells[off+x];
                 for(let i=0; i<c.length; i++) {
-                    if (c[i].active && (!faction || c[i].faction===faction)) { const dSq = pos.distSq(c[i].pos); if (dSq <= rSq) cb(c[i], dSq); }
+                    if (c[i].active && (!faction || c[i].faction===faction)) { const dSq = pos.distSq(c[i].pos); if (dSq <= rSq) { if (cb(c[i], dSq) === true) return; } }
                 }
             }
         }
@@ -571,7 +645,7 @@ const ITEM_CONFIG = {
 };
 
 const HERO_CONFIG = {
-    WARRIOR: { maxHp: 120, speed: 1.2, damage: 15, maxAttackCooldown: 0.833, radius: 12, icon: '🧌', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'SWORD', 'CHAINMAIL'] },
+    WARRIOR: { maxHp: 120, speed: 1.2, damage: 15, maxAttackCooldown: 0.833, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'SWORD', 'CHAINMAIL'] },
     ROGUE: { maxHp: 80, speed: 1.32, damage: 20, maxAttackCooldown: 0.666, radius: 10, icon: '🥷', recruitCost: 75, requiredItems: ['POTION', 'ANKH', 'DAGGER', 'ROGUES_DISGUISE'] },
     DRUID: { maxHp: 85, speed: 1.5, damage: 14, maxAttackCooldown: 0.8, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'WAND', 'ROBE_OF_THORNS'] }
 };
@@ -664,7 +738,7 @@ class Projectile {
         } 
         else { 
             const dx = this.target.pos.x - this.pos.x, dy = this.target.pos.y - this.pos.y, d = Math.sqrt(dx*dx+dy*dy);
-            this.pos.x += (dx/d)*this.speed; this.pos.y += (dy/d)*this.speed; 
+            this.pos.x += (dx/d)*this.speed*dtSec*60; this.pos.y += (dy/d)*this.speed*dtSec*60;
             if (this.projType === 'MAGIC_MISSILE' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#3182ce'); 
             if (this.projType === 'FIREBALL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); 
         } 
@@ -699,12 +773,11 @@ class Tombstone extends Entity {
 class Trap extends Entity { 
     constructor(x, y) { super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = 'TRAP'; this.hp = this.maxHp = 1; this.radius = 10; } 
     update(dtSec) {
-        let triggered = false;
         Grid.getNearby(this.pos, 900, (rat, distSq) => {
-            if (!triggered && rat.monsterType === 'RAT') {
+            if (rat.monsterType === 'RAT') {
                 rat.takeDamage(rat.hp, this);
                 this.die();
-                triggered = true;
+                return true;
             }
         }, 'ENEMY');
     }
@@ -826,7 +899,7 @@ class Monster extends Unit {
                 hero.personalGold += sharedGold;
                 hero.lifetimeGold += sharedGold;
                 
-                if (this.monsterType === 'RAT' && hero.classType === 'ROGUE' && (hero.guild.active && hero.guild.upgrades.includes('RAT_TRAP')) && hero.ratTrapCooldown <= 0) { 
+                if (this.monsterType === 'RAT' && hero.classType === 'ROGUE' && hero.skills.includes('RAT_TRAP') && hero.ratTrapCooldown <= 0) {
                     hero.ratTrapCooldown = 20.0; 
                     Game.addEntity(new Trap(this.pos.x, this.pos.y)); 
                 }
@@ -871,7 +944,7 @@ class Hero extends Unit {
         super(x, y); this.faction = 'PLAYER'; this.classType = cT; this.guild = g; this.state = 'IDLE'; this.wanderAngle = Math.random()*Math.PI*2; this.stateTimer = 0;
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.ratTrapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.purchasedItemVfxTimer = 0; this.purchasedItemIcon = ''; this.levelUpVfxTimer = 0;
-        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.checkThreatTimer = 0;
+        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
         if (availableHeroNames.length === 0) { availableHeroNames = [...BASE_HERO_NAMES]; heroGeneration++; }
@@ -1051,7 +1124,7 @@ class Hero extends Unit {
                 let amt = Math.min(Game.guildBanks[this.classType], 300 - this.personalGold); this.personalGold += amt; Game.guildBanks[this.classType] -= amt; Game.spawnParticle(this.pos.x,this.pos.y,'#ecc94b'); 
             } 
         }
-        if (this.guild.active && this.classType==='DRUID' && this.regrowthCooldown<=0 && this.guild.upgrades.includes('REGROWTH')) {
+        if (this.classType==='DRUID' && this.regrowthCooldown<=0 && this.skills.includes('REGROWTH')) {
             let bestA = null, low = 1.0; for(let i=0; i<Game.activeHeroes.length; i++) { const e = Game.activeHeroes[i]; if(e.hp<e.maxHp && this.pos.distSq(e.pos)<=40000) { if(e.hp/e.maxHp < low) { low = e.hp/e.maxHp; bestA = e; } } }
             if (bestA) { bestA.hp=bestA.maxHp; this.regrowthCooldown=30.0; this.regrowthCastVfxTimer=1.5; bestA.regrowthHealVfxTimer=1.5; for(let i=0;i<5;i++) Game.spawnParticle(bestA.pos.x,bestA.pos.y,'#48bb78'); if(this.state==='MOVE' && this.target===bestA && !this.currentQuest) this.state='IDLE'; }
         }
@@ -1113,14 +1186,15 @@ class Hero extends Unit {
                     }
                 }
                 if (this.target.type === 'SHOP' && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); this.state='IDLE'; }
-                if (this.target.faction === 'ENEMY') { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && (this.guild.active && this.guild.upgrades.includes('CHARGE')) && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.radius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.radius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#a0aec0'); this.state='ATTACK'; } }
+                if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
+                if (this.target.faction === 'ENEMY') { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && this.skills.includes('CHARGE') && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.radius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.radius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#a0aec0'); this.state='ATTACK'; } }
                 else if (this.questPhase==='NONE'||this.questPhase==='DO_QUEST'||this.questPhase==='MOVE_TO_TARGET'||this.questPhase==='AT_TARGET') { 
                     if(this.checkThreatTimer<=0) { 
                         this.checkThreatTimer=0.1; 
                         let aggroSq = 40000;
                         Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
                             if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
-                                this.target=enemy; this.state='MOVE';
+                                this.target=enemy; this.state='MOVE'; return true;
                             }
                         }, 'ENEMY');
                     } 
@@ -1136,7 +1210,7 @@ class Hero extends Unit {
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
                 if (this.target === Game.base && hasHeal) this.target = myBase;
                 if (!this.target || !this.target.active) this.target = fallbackBase;
-                if (this.target && this.target.active) { const r = this.moveTowards(this.target.pos); if(this.target.type==='SHOP' && (r || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); if(this.hp<this.maxHp*0.4 && !this.items.includes('POTION')) this.target = fallbackBase; else this.state='IDLE'; } if(r || this.pos.distSq(this.target.pos)<(this.target.radius+15)**2) { this.pos.x += Math.cos(this.wanderAngle)*0.2; this.pos.y += Math.sin(this.wanderAngle)*0.2; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); if(this.target===myBase && hasHeal) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.target===Game.base) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.hp>=this.maxHp*0.6) this.state='IDLE'; } }
+                if (this.target && this.target.active) { const r = this.moveTowards(this.target.pos); if(this.target.type==='SHOP' && (r || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); if(this.hp<this.maxHp*0.4 && !this.items.includes('POTION')) this.target = fallbackBase; else this.state='IDLE'; } else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.target.type) && (r || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; } if(r || this.pos.distSq(this.target.pos)<(this.target.radius+15)**2) { this.pos.x += Math.cos(this.wanderAngle)*0.2; this.pos.y += Math.sin(this.wanderAngle)*0.2; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); if(this.target===myBase && hasHeal) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.target===Game.base) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.hp>=this.maxHp*0.6) this.state='IDLE'; } }
                 else this.state='IDLE';
                 break;
         }
@@ -1199,7 +1273,15 @@ class Hero extends Unit {
             
             const d=Math.sqrt(this.pos.distSq(f.pos)); let s=(f.bounty/Math.max(d,10))*10*(this.hp/this.maxHp); if(this.hp/this.maxHp<0.4) s*=0.1; if(this.classType==='ROGUE') s*=3; if(['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type) && this.classType==='WARRIOR') s*=2.5; if(s>bS && s>0.5) { bS=s; bT=f; isQ=true; }
         }
-        if(!isQ) { let sO = this.getDesiredShop(); if(sO) { const d=Math.sqrt(this.pos.distSq(sO.pos)); let s=500/Math.max(d,10); if(this.hp<this.maxHp*0.4) s*=5; if(s>bS) { bS=s; bT=sO; } } if(this.hasAllRequiredItems()&&this.personalGold>0 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=(this.personalGold/Math.max(d,10))*5; if(s>bS) { bS=s; bT=myBase; } } else if(!this.hasAllRequiredItems() && Game.guildBanks[this.classType]>0 && this.personalGold<300 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=250/Math.max(d,10); if(s>bS) { bS=s; bT=myBase; } } }
+        if(!isQ) {
+            let sO = this.getDesiredShop();
+            let tO = this.getDesiredTraining();
+
+            if(sO) { const d=Math.sqrt(this.pos.distSq(sO.pos)); let s=500/Math.max(d,10); if(this.hp<this.maxHp*0.4) s*=5; if(s>bS) { bS=s; bT=sO; } }
+            if(tO) { const d=Math.sqrt(this.pos.distSq(tO.pos)); let s=500/Math.max(d,10); if(s>bS) { bS=s; bT=tO; } }
+
+            if(this.hasAllRequiredItems()&&this.personalGold>0 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=(this.personalGold/Math.max(d,10))*5; if(s>bS) { bS=s; bT=myBase; } } else if(!this.hasAllRequiredItems() && Game.guildBanks[this.classType]>0 && this.personalGold<300 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=250/Math.max(d,10); if(s>bS) { bS=s; bT=myBase; } }
+        }
         if(bT) { this.target=bT; this.state='MOVE'; } else { const baseP = myBase.active ? myBase.pos : Game.base.pos; this.target = new Vec2(baseP.x+(Math.random()-0.5)*200, baseP.y+(Math.random()-0.5)*200); this.state='MOVE'; }
     }
     getDesiredShop() {
@@ -1217,6 +1299,19 @@ class Hero extends Unit {
             if(want) { const d=Math.sqrt(this.pos.distSq(s.pos)); let sc=500/Math.max(d,10); if(sc>bSc) { bSc=sc; bS=s; } }
         }
         return bS;
+    }
+    getDesiredTraining() {
+        if (!this.guild || !this.guild.active || !this.guild.slots) return null;
+        let want = false;
+        for (let tId of this.guild.slots) {
+            if (tId === 'NONE') continue;
+            const t = UPGRADE_CONFIG[tId];
+            if (t && !this.skills.includes(tId) && this.personalGold >= t.cost) {
+                want = true; break;
+            }
+        }
+        if (want) return this.guild;
+        return null;
     }
     hasAllRequiredItems() { return HERO_CONFIG[this.classType].requiredItems.every(i => this.items.includes(i)); }
     buyFromShop(s) {
@@ -1253,15 +1348,67 @@ class Hero extends Unit {
             break;
         }
     }
+    buyTraining(g) {
+        if (!g.slots) return;
+        for (let tId of g.slots) {
+            if (tId === 'NONE') continue;
+            const t = UPGRADE_CONFIG[tId];
+            if (t && !this.skills.includes(tId) && this.personalGold >= t.cost) {
+                this.personalGold -= t.cost;
+                this.skills.push(tId);
+
+                Game.spawnParticle(this.pos.x, this.pos.y, '#ecc94b');
+                this.purchasedItemVfxTimer = 2.0;
+                this.purchasedItemIcon = '🎓'; // or any suitable icon
+                Game.spawnFloatingText(g.pos.x, g.pos.y - 30, '🪙', '#e53e3e', 1.0, 22); // red to signify sunk cost
+                break;
+            }
+        }
+    }
     draw(ctx) {
         if (this.isHealingAt) return; 
-        const e = HERO_CONFIG[this.classType].icon; let dX=this.pos.x, dY=this.pos.y, rot=0;
+        const conf = HERO_CONFIG[this.classType];
+        const e = conf.icon; let dX=this.pos.x, dY=this.pos.y, rot=0;
         if(this.classType==='DRUID') dY+=Math.sin(Game.timeMs*0.006)*3;
+
+        // Determine facing direction
+        if (this.state === 'MOVE' && this.target && this.target.pos) {
+            this.facingLeft = this.target.pos.x < this.pos.x;
+        } else if (this.state === 'IDLE') {
+            this.facingLeft = Math.cos(this.wanderAngle) < 0;
+        } else if (this.state === 'FLEE' && this.target && this.target.pos) {
+            this.facingLeft = this.target.pos.x < this.pos.x;
+        } else if (this.state === 'ATTACK' && this.target) {
+            this.facingLeft = this.target.pos.x < this.pos.x;
+        }
+
+        if (this.classType === 'WARRIOR' && ['MOVE', 'IDLE', 'FLEE'].includes(this.state)) {
+            dY += Math.abs(Math.sin(Game.timeMs * 0.01)) * -4;
+            rot = Math.cos(Game.timeMs * 0.01) * 0.1;
+        }
+
         if(this.state==='ATTACK'&&this.attackCooldown>this.maxAttackCooldown-0.25) { if(this.classType==='ROGUE') dX+=Math.sin(this.attackCooldown*90)*5; else if(this.classType==='WARRIOR'&&this.target) { const dir=this.target.pos.x>this.pos.x?1:-1; rot=0.5*dir; dX+=dir*3; } }
-        ctx.save(); ctx.translate(dX, dY); if(rot) ctx.rotate(rot);
+        ctx.save(); ctx.translate(dX, dY);
+
+        if (!this.facingLeft && conf.imageSrc) {
+            ctx.scale(-1, 1);
+        }
+
+        if(rot) ctx.rotate(rot);
         
         const outC = Game.selectedEntity === this ? '#ecc94b' : (Game.hoveredEntity === this ? '#90ee90' : null);
-        const sp = SpriteCache.get(e, 30, true, true, outC); 
+        let sp;
+        if (conf.imageSrc) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(0, 15, 12, 4, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.restore();
+            sp = SpriteCache.getImage(conf.imageSrc, 32, false, true, outC);
+        } else {
+            sp = SpriteCache.get(e, 30, true, true, outC);
+        }
         ctx.drawImage(sp.img, -sp.ox, -sp.oy); ctx.restore();
         
         if (this.inAsh && Game.frames % 30 === 0) {
@@ -1285,9 +1432,9 @@ class Hero extends Unit {
 
 class Building extends Entity {
     constructor(x, y, t) {
-        super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = t; this.heroes = []; this.maxHeroes = 3; this.upgrades = []; const c = BUILDING_CONFIG[t]; this.hp = this.maxHp = c ? c.hp : 100; this.radius = c ? c.radius : 25;
+        super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = t; this.heroes = []; this.maxHeroes = 3; const c = BUILDING_CONFIG[t]; this.hp = this.maxHp = c ? c.hp : 100; this.radius = c ? c.radius : 25;
         this.isRepairing = false; this.repairTimer = 0; this.fireTimer = 0;
-        if (t === 'SHOP') this.slots = ['NONE', 'NONE', 'NONE']; else if (t === 'TOWER') { this.attackRange = 250; this.attackCooldown = 0; this.target = null; } else if (t === 'TAVERN') { this.groups = [null, null]; }
+        if (t === 'SHOP') this.slots = ['NONE', 'NONE', 'NONE']; else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(t)) this.slots = ['NONE']; else if (t === 'TOWER') { this.attackRange = 250; this.attackCooldown = 0; this.target = null; } else if (t === 'TAVERN') { this.groups = [null, null]; }
         this.isUpgraded = false;
         
         if (c && c.yOffset) {
@@ -1384,9 +1531,16 @@ class Building extends Entity {
         if (hH.length > 0) {
             const hY = Math.sin(Game.timeMs * 0.005) * 5;
             hH.forEach((h, i) => { 
-                const e = h.classType==='WARRIOR'?'🧌':(h.classType==='ROGUE'?'🥷':'🧚'); 
+                const hConf = HERO_CONFIG[h.classType];
+                const e = hConf.icon;
                 const off = (i - (hH.length-1)/2)*30, bX = this.pos.x + off, bY = this.pos.y + hpOff - 25 + hY; 
-                const hSp = SpriteCache.get(e, 24); ctx.drawImage(hSp.img, bX - hSp.ox, bY - hSp.oy);
+                let hSp;
+                if (hConf.imageSrc) {
+                    hSp = SpriteCache.getImage(hConf.imageSrc, 24, true, true);
+                } else {
+                    hSp = SpriteCache.get(e, 24);
+                }
+                ctx.drawImage(hSp.img, bX - hSp.ox, bY - hSp.oy);
                 const bSp = SpriteCache.get('🩹', 14, false, false); ctx.drawImage(bSp.img, bX + 12 - bSp.ox, bY - 5 - bSp.oy);
             });
         }
@@ -1460,7 +1614,7 @@ class Flag extends Entity {
                         const tp = this.targetEntity ? this.targetEntity.pos : this.pos;
                         let isClear = true;
                         Grid.getNearby(tp, 40000, (threat, distSq) => {
-                            if (threat.isVisible) isClear = false;
+                            if (threat.isVisible) { isClear = false; return true; }
                         }, 'ENEMY');
                         
                         if (isClear) {
@@ -1518,7 +1672,7 @@ class Flag extends Entity {
                         const tp = this.targetEntity ? this.targetEntity.pos : this.pos;
                         let isClear = true;
                         Grid.getNearby(tp, 40000, (threat, distSq) => {
-                            if (threat.isVisible) isClear = false;
+                            if (threat.isVisible) { isClear = false; return true; }
                         }, 'ENEMY');
                         
                         if (isClear) {
@@ -1744,7 +1898,7 @@ class Volcano extends Entity {
 
 const Game = {
     gold: 500, taxRate: 0.5, day: 1, dayTimer: 65.0, passiveGoldTimer: 10.0, frames: 0, timeMs: 0, mode: 'NONE', isPaused: false, fogOfWar: true,
-    shopActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [],
+    shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [],
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], corridors: [], bgBounds: {x: 0, y: 0},
     guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false,
@@ -1886,8 +2040,10 @@ const Game = {
                 UI.setText('val-level', e.level); UI.setText('val-xp-text', `${Math.floor(e.xp)} / ${e.level * 100}`); document.getElementById('val-xp-bar').style.width = (Math.min(1, e.xp / (e.level * 100)) * 100) + '%';
                 UI.setText('val-gold', `${Math.floor(e.personalGold)}g`); UI.setColor('val-gold', e.personalGold < 0 ? '#e53e3e' : '#ecc94b');
                 UI.setText('val-kills', e.kills); UI.setText('val-dmg', e.damage);
-                UI.setText('val-items', e.items.length > 0 ? e.items.join(', ') : 'None'); UI.setText('val-state', e.getDisplayState());
-                ['stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state'].forEach(id => toggle(id, true));
+                UI.setText('val-items', e.items.length > 0 ? e.items.join(', ') : 'None');
+                UI.setText('val-skills', e.skills.length > 0 ? e.skills.join(', ') : 'None');
+                UI.setText('val-state', e.getDisplayState());
+                ['stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-skills','stat-state'].forEach(id => toggle(id, true));
             } else if (e.type === 'TEMPLE') {
                 UI.setDisplay('temple-config', 'block');
                 const deadHeroes = Game.entities.filter(ent => ent.type === 'TOMBSTONE' && ent.heroRef);
@@ -1899,8 +2055,9 @@ const Game = {
                     const hConf = HERO_CONFIG[h.classType];
                     const cost = h.level * 100;
                     const canAfford = this.gold >= cost;
+                    const iconHTML = hConf.imageSrc ? `<img src="${hConf.imageSrc}" style="width: 24px; height: 24px; vertical-align: middle;">` : hConf.icon;
                     gridHTML += `<button class="shop-item-btn" style="border-width: 2px; padding: 4px; ${canAfford ? '' : 'opacity: 0.5'}" onclick="Game.resurrectHero('${t.id}')" ${canAfford ? '' : 'disabled'}>
-                        <span class="item-icon">${hConf.icon}</span>
+                        <span class="item-icon">${iconHTML}</span>
                         <span class="item-cost" style="color: white; font-size: 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; text-align: center; display: block;">${h.name}</span>
                         <span class="item-classes" style="color: ${canAfford ? '#ecc94b' : '#e53e3e'}; font-weight: bold;">🪙${cost}</span>
                     </button>`;
@@ -1951,7 +2108,11 @@ const Game = {
                 }
 
 
-                    UI.setText('recruit-icon', hConf.icon);
+                    if (hConf.imageSrc) {
+                        UI.setHTML('recruit-icon', `<img src="${hConf.imageSrc}" style="width: 32px; height: 32px; vertical-align: middle;">`);
+                    } else {
+                        UI.setText('recruit-icon', hConf.icon);
+                    }
                     UI.setText('recruit-cost', `🪙${btnCost} | 1 🫂`);
                     br.setAttribute('onclick', 'Game.recruitHero()');
                     
@@ -1965,20 +2126,74 @@ const Game = {
                 
                 let rosterHTML = '';
                 e.heroes.forEach(h => {
-                    const icon = h.isDead ? '🪦' : hConf.icon;
+                    const icon = h.isDead ? '🪦' : (hConf.imageSrc ? `<img src="${hConf.imageSrc}" style="width: 20px; height: 20px; vertical-align: middle;">` : hConf.icon);
                     rosterHTML += `<div class="roster-icon" onmouseenter="Game.showHeroTooltip(event, '${h.id}')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${icon}</div>`;
                 });
                 UI.setHTML('guild-roster-icons', rosterHTML);
 
-                const upgs = ['CHARGE','RAT_TRAP','REGROWTH']; upgs.forEach(u => UI.setDisplay(`btn-upg-${u}`, 'none'));
-                
-                const showUpg = (u) => { if (!e.upgrades.includes(u)) { UI.setDisplay(`btn-upg-${u}`, 'block'); UI.setDisabled(`btn-upg-${u}`, this.gold < UPGRADE_CONFIG[u].cost); } };
-                if (hClass === 'WARRIOR') { showUpg('CHARGE'); }
-                else if (hClass === 'ROGUE') { showUpg('RAT_TRAP'); }
-                else if (hClass === 'DRUID') { showUpg('REGROWTH'); }
+                if (Game.guildActiveSlot !== null) {
+                    UI.setDisplay('guild-select-ui', 'block');
+                    UI.setDisplay('guild-slots-ui', 'none');
+
+                    const upgs = ['CHARGE','RAT_TRAP','REGROWTH'];
+                    upgs.forEach(u => UI.setDisplay(`btn-upg-${u}`, 'none'));
+
+                    const showUpg = (u) => {
+                        UI.setDisplay(`btn-upg-${u}`, 'flex');
+                        UI.setDisabled(`btn-upg-${u}`, this.gold < UPGRADE_CONFIG[u].cost);
+                        const cs = document.getElementById(`btn-upg-${u}`).querySelector('.build-btn-cost');
+                        if (cs) UI.setColor(cs, this.gold >= UPGRADE_CONFIG[u].cost ? '#ecc94b' : '#e53e3e');
+                    };
+
+                    if (hClass === 'WARRIOR') { showUpg('CHARGE'); }
+                    else if (hClass === 'ROGUE') { showUpg('RAT_TRAP'); }
+                    else if (hClass === 'DRUID') { showUpg('REGROWTH'); }
+                } else {
+                    UI.setDisplay('guild-select-ui', 'none');
+                    UI.setDisplay('guild-slots-ui', 'block');
+                    let slotBtn = document.getElementById('guild-slot-0');
+                    if (e.slots[0] !== 'NONE' && UPGRADE_CONFIG[e.slots[0]]) {
+                        const upg = UPGRADE_CONFIG[e.slots[0]];
+                        let iStr = '🎓';
+                        let title = '';
+                        let desc = '';
+                        if (e.slots[0] === 'CHARGE') { iStr = '⚡'; title = 'Charge'; desc = 'Warriors will charge at distant enemies, dealing damage and stunning them.'; }
+                        else if (e.slots[0] === 'RAT_TRAP') { iStr = '🪤'; title = 'Rat Trap'; desc = 'Rogues will occasionally place traps when killing rats.'; }
+                        else if (e.slots[0] === 'REGROWTH') { iStr = '🥬'; title = 'Regrowth'; desc = 'Druids occasionally cast a powerful healing spell on heavily injured allies.'; }
+
+                        slotBtn.classList.add('menu-btn', 'build-btn');
+                        slotBtn.classList.remove('shop-slot-btn');
+
+                        const iconHTML = `
+                            <div class="build-btn-header">
+                                <div class="build-btn-hotkey"></div>
+                                <div class="build-btn-title">${title}</div>
+                            </div>
+                            <div class="build-btn-icon">${iStr}</div>
+                            <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙${upg.cost}</span></div>
+                        `;
+                        UI.setHTML(`guild-slot-0`, iconHTML);
+                        slotBtn.onmouseenter = (ev) => Game.showTooltip(ev, title, desc);
+                        slotBtn.onmousemove = (ev) => Game.moveTooltip(ev);
+                        slotBtn.onmouseleave = (ev) => Game.hideTooltip();
+                        slotBtn.onclick = null;
+                        slotBtn.style.cursor = 'default';
+                        slotBtn.style.boxShadow = 'none';
+                    } else {
+                        slotBtn.classList.add('shop-slot-btn');
+                        slotBtn.classList.remove('menu-btn', 'build-btn');
+                        UI.setHTML(`guild-slot-0`, 'Empty');
+                        slotBtn.onmouseenter = null;
+                        slotBtn.onmousemove = null;
+                        slotBtn.onmouseleave = null;
+                        slotBtn.onclick = () => { Game.guildActiveSlot = 0; Game.updateUI(true); };
+                        slotBtn.style.cursor = 'pointer';
+                        slotBtn.style.boxShadow = '';
+                    }
+                }
                 
                 const updateCostColor = (bId, c) => { const b = document.getElementById(bId); if(b && b.style.display !== 'none') { const cs = b.querySelector('.build-btn-cost'); if(cs) UI.setColor(cs, this.gold >= c ? '#ecc94b' : '#e53e3e'); } };
-                updateCostColor('btn-recruit', btnCost); upgs.forEach(u => updateCostColor(`btn-upg-${u}`, UPGRADE_CONFIG[u].cost));
+                updateCostColor('btn-recruit', btnCost);
             } else if (e.type === 'TAVERN') {
                 UI.setDisplay('tavern-config', 'block');
                 
@@ -1993,8 +2208,9 @@ const Game = {
                     availableHeroes.forEach(h => {
                         const isSelected = Game.tavernDraftGroup.includes(h.id);
                         const hConf = HERO_CONFIG[h.classType];
+                        const iconHTML = hConf.imageSrc ? `<img src="${hConf.imageSrc}" style="width: 24px; height: 24px; vertical-align: middle;">` : hConf.icon;
                         gridHTML += `<button class="shop-item-btn ${isSelected ? 'selected' : ''}" style="border-width: 2px; padding: 4px;" onclick="Game.toggleTavernHero('${h.id}')">
-                            <span class="item-icon">${hConf.icon}</span>
+                            <span class="item-icon">${iconHTML}</span>
                             <span class="item-cost" style="color: white; font-size: 0.65rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; text-align: center; display: block;">${h.name}</span>
                             <span class="item-classes" style="color: #ecc94b; font-weight: bold;">Lvl ${h.level}</span>
                         </button>`;
@@ -2022,7 +2238,7 @@ const Game = {
                             let iconsHTML = '';
                             grp.forEach(h => {
                                 const hConf = HERO_CONFIG[h.classType];
-                                const icon = h.isDead ? '🪦' : hConf.icon;
+                                const icon = h.isDead ? '🪦' : (hConf.imageSrc ? `<img src="${hConf.imageSrc}" style="width: 20px; height: 20px; vertical-align: middle;">` : hConf.icon);
                                 iconsHTML += `<div class="roster-icon" onmouseenter="Game.showHeroTooltip(event, '${h.id}')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${icon}</div>`;
                             });
                             slotsHTML += `<div style="display: flex; align-items: center; gap: 8px; background: #2d3748; padding: 6px; border: 1px solid #4a5568; border-radius: 4px; height: 50px; box-sizing: border-box; overflow-x: auto;">
@@ -2191,7 +2407,7 @@ const Game = {
     },
 
     buyShopItem(id, c) { if (this.selectedEntity && this.selectedEntity.type === 'SHOP' && this.shopActiveSlot !== null && this.gold >= ITEM_CONFIG[id].cost) { this.gold -= ITEM_CONFIG[id].cost; this.selectedEntity.slots[this.shopActiveSlot] = id; this.shopActiveSlot = null; this.hideTooltip(); this.updateUI(true); } },
-    researchUpgrade(u) { if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.selectedEntity.type)) { const c = UPGRADE_CONFIG[u].cost; if (this.gold >= c && !this.selectedEntity.upgrades.includes(u)) { this.gold -= c; this.selectedEntity.upgrades.push(u); this.updateUI(true); } } },
+    buyGuildUpgrade(id) { if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.selectedEntity.type) && this.guildActiveSlot !== null && this.gold >= UPGRADE_CONFIG[id].cost) { this.gold -= UPGRADE_CONFIG[id].cost; this.selectedEntity.slots[this.guildActiveSlot] = id; this.guildActiveSlot = null; this.hideTooltip(); this.updateUI(true); } },
     togglePause() { 
         this.isPaused = !this.isPaused; 
         UI.setText('btn-pause', this.isPaused ? '▶️' : '⏸️');
@@ -2204,7 +2420,7 @@ const Game = {
         }
         UI.setClass(document.body, 'is-paused', this.isPaused); 
     },
-    isPosVisible(p) { let vis = false; Grid.getNearby(p, 90000, (e, dSq) => { if (vis) return; if (typeof e.getVisionRange === 'function') { let v = e.getVisionRange(); if (v > 0 && dSq <= v * v) vis = true; } }, 'PLAYER'); return vis; },
+    isPosVisible(p) { let vis = false; Grid.getNearby(p, 90000, (e, dSq) => { if (typeof e.getVisionRange === 'function') { let v = e.getVisionRange(); if (v > 0 && dSq <= v * v) { vis = true; return true; } } }, 'PLAYER'); return vis; },
     canPlaceBuilding(x, y, radius) {
         const clamped = GameBounds.clamp(x, y, radius);
         if (clamped.x !== x || clamped.y !== y) return false;
@@ -2423,8 +2639,8 @@ function loop(timestamp) {
 
             let eRats=0, eSpiders=0, eSnakes=0;
             const mainB = GameBounds.getMain();
-            Game.entities.forEach(e=>{
-                if(e.type==='SPAWNER' && e.spawnerType !== 'VOLCANO'){
+            Game.activeSpawners.forEach(e=>{
+                if(e.spawnerType !== 'VOLCANO'){
                     e.daysSurvived++; e.radius=e.baseRadius+(e.daysSurvived*2);
                     e.maxHp += 50; e.hp += 50;
                     if (e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
@@ -2480,8 +2696,8 @@ function loop(timestamp) {
                 const area = GameBounds.getCorridor(c.dir);
                 let counts = { 'RAT_HOLE': 0, 'WEB': 0, 'SNAKE_NEST': 0, 'VOLCANO': 0 };
                 
-                Game.entities.forEach(s => {
-                    if (s.type === 'SPAWNER' && s.pos.x >= area.x1 && s.pos.x <= area.x2 && s.pos.y >= area.y1 && s.pos.y <= area.y2) {
+                Game.activeSpawners.forEach(s => {
+                    if (s.pos.x >= area.x1 && s.pos.x <= area.x2 && s.pos.y >= area.y1 && s.pos.y <= area.y2) {
                         if (s.spawnerType === 'VOLCANO') counts['VOLCANO']++;
                         else counts[s.spawnerType] = (counts[s.spawnerType] || 0) + 1;
                     }
