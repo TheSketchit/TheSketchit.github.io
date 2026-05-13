@@ -165,7 +165,7 @@
                             <div class="build-btn-title">Regrowth</div>
                         </div>
                         <div class="build-btn-icon">🌱</div>
-                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
                     </button>
                 </div>
             </div>
@@ -252,7 +252,7 @@
             <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
                 <div class="build-btn-icon">🪵</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>A percentage of the Gold spent by Heroes for items goes back to the Kingdom based on the Tax Rate.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">4</div><div class="build-btn-title">Shop</div></div>
@@ -664,14 +664,14 @@ const HERO_CONFIG = {
 const UPGRADE_CONFIG = {
     CHARGE: { cost: 100 },
     RAT_TRAP: { cost: 100 },
-    REGROWTH: { cost: 100 },
+    REGROWTH: { cost: 150 },
 };
 
 const BUILDING_CONFIG = {
     CASTLE: { baseCost: 0, hp: 1000, radius: 40, icon: '🏰', fontSize: '80px', foundationRx: 50, foundationRy: 15, yOffset: 35, vision: 300, name: 'Castle', isGuild: false },
     WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
-    DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
+    DRUID_GUILD: { baseCost: 175, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
     TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false },
     FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false },
@@ -687,7 +687,7 @@ const MONSTER_CONFIG = {
 
 const SPAWNER_CONFIG = {
     RAT_HOLE: { name: 'Rat Hole', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕳️' },
-    WEB: { name: 'Spider Web', maxHp: 200, baseRadius: 20, spawnRate: 10.0, icon: '🕸️' },
+    WEB: { name: 'Spider Web', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕸️' },
     SNAKE_NEST: { name: 'Snake Nest', maxHp: 400, baseRadius: 15, spawnRate: 14.0, icon: '🪹' }
 };
 
@@ -2575,7 +2575,10 @@ const Game = {
         if (!h) h = this.activeHeroes.find(x => x.id === heroId) || this.entities.find(x => x.id === heroId);
         
         if (h) {
-            const desc = `<span style="color:#ecc94b;">Currently ${h.getDisplayState()}</span><br><span style="color:#ecc94b; font-style:italic;">Level ${h.level}</span>`;
+            const hpPct = Math.max(0, h.hp / h.maxHp) * 100;
+            const hpBar = `<div style="width: 100%; height: 6px; background-color: #e53e3e; margin-top: 4px; border-radius: 2px; overflow: hidden;"><div style="width: ${hpPct}%; height: 100%; background-color: #48bb78;"></div></div>`;
+            const items = h.items && h.items.length > 0 ? h.items.map(i => ITEM_CONFIG[i].icon).join(' ') : 'None';
+            const desc = `<span style="color:#ecc94b;">Currently ${h.getDisplayState()}</span><br><span style="color:#ecc94b; font-style:italic;">Level ${h.level}</span><br><span style="color:#ecc94b;">Gold: 🪙${h.personalGold}</span><br><span style="color:#ecc94b;">Items: ${items}</span>${hpBar}`;
             this.showTooltip(e, h.name, desc);
         }
     },
