@@ -20,11 +20,11 @@
         <span style="margin: 0 15px;">|</span>
         <span style="display: flex; align-items: center; margin-right: 15px;">
             <span style="margin-right: 5px;">Tax Rate ⚖️</span>
-            <button class="tax-btn" id="btn-tax-0" onclick="Game.setTaxRate(0)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>0%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">0%</button>
-            <button class="tax-btn" id="btn-tax-25" onclick="Game.setTaxRate(0.25)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>25%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">25%</button>
-            <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>50%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">50%</button>
-            <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>75%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">75%</button>
-            <button class="tax-btn" id="btn-tax-100" onclick="Game.setTaxRate(1)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>100%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">100%</button>
+            <button class="tax-btn" id="btn-tax-0" onclick="Game.setTaxRate(0)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>0%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters or spends on items will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#a0aec0;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">0%</button>
+            <button class="tax-btn" id="btn-tax-25" onclick="Game.setTaxRate(0.25)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>25%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters or spends on items will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#a0aec0;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">25%</button>
+            <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>50%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters or spends on items will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#a0aec0;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">50%</button>
+            <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>75%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters or spends on items will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#a0aec0;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">75%</button>
+            <button class="tax-btn" id="btn-tax-100" onclick="Game.setTaxRate(1)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>100%</span> <span style=&quot;color:#ecc94b; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters or spends on items will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#a0aec0;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">100%</button>
         </span>
         <span style="margin: 0 15px; margin-left: auto;">|</span>
         <span>
@@ -215,13 +215,13 @@
         
         <div id="tower-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
             <div class="panel-btn-grid" id="tower-upgrades">
-                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 300g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 800g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                     <div class="build-btn-header">
                         <div class="build-btn-hotkey">U</div>
                         <div class="build-btn-title">Upgrade</div>
                     </div>
                     <div class="build-btn-icon">🚦</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙300 | 1 🫂</span></div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙800 | 1 🫂</span></div>
                 </button>
             </div>
         </div>
@@ -254,7 +254,7 @@
                 <div class="build-btn-icon">🪵</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Gold spent by Heroes for items goes back to the Kingdom.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>A percentage of the Gold spent by Heroes for items goes back to the Kingdom based on the Tax Rate.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">4</div><div class="build-btn-title">Shop</div></div>
                 <div class="build-btn-icon">🏦</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
@@ -346,6 +346,17 @@ window.addEventListener('keydown', e => {
         if (k === 'b') switchMenu('BUILD');
         if (k === 'f') setMode('REPAIR');
         if (k === '\\') Game.fogOfWar = !Game.fogOfWar;
+
+        if (k === 'e') {
+            const rates = [0, 0.25, 0.5, 0.75, 1];
+            const idx = rates.indexOf(Game.taxRate);
+            if (idx > 0) Game.setTaxRate(rates[idx - 1]);
+        }
+        if (k === 'r') {
+            const rates = [0, 0.25, 0.5, 0.75, 1];
+            const idx = rates.indexOf(Game.taxRate);
+            if (idx < rates.length - 1) Game.setTaxRate(rates[idx + 1]);
+        }
         
         if (Game.selectedEntity && Game.selectedEntity.active) {
             const type = Game.selectedEntity.type;
@@ -1359,7 +1370,7 @@ class Hero extends Unit {
             if (item.downgradeOf && item.downgradeOf.some(u => this.items.includes(u))) continue;
             
             this.personalGold -= item.cost; 
-            Game.gold += item.cost; Game.itemsPurchased++;
+            const tA = Math.floor(item.cost * Game.taxRate); Game.gold += tA; Game.totalTaxCollected += tA; Game.itemsPurchased++;
             
             if (item.replaces && this.items.includes(item.replaces)) {
                 this.items.splice(this.items.indexOf(item.replaces), 1);
@@ -2130,10 +2141,10 @@ const Game = {
                     UI.setText('tower-upg-cost', 'Upgraded');
                     UI.setColor('tower-upg-cost', '#a0aec0');
                 } else {
-                    const canAfford = this.gold >= 300 && currentPop < maxPop;
+                    const canAfford = this.gold >= 800 && currentPop < maxPop;
                     UI.setDisabled(upgBtn, !canAfford);
-                    UI.setText('tower-upg-cost', '🪙300 | 1 🫂');
-                    UI.setColor('tower-upg-cost', this.gold >= 300 ? '#ecc94b' : '#e53e3e');
+                    UI.setText('tower-upg-cost', '🪙800 | 1 🫂');
+                    UI.setColor('tower-upg-cost', this.gold >= 800 ? '#ecc94b' : '#e53e3e');
                 }
             }
 
@@ -2408,8 +2419,8 @@ const Game = {
         const e = this.selectedEntity;
         if (e && e.type === 'TOWER' && !e.isUpgraded) {
             const {cur: currentPop, max: maxPop} = this.getPopulation();
-            if (this.gold >= 300 && currentPop < maxPop) {
-                this.gold -= 300;
+            if (this.gold >= 800 && currentPop < maxPop) {
+                this.gold -= 800;
                 e.isUpgraded = true;
                 e.maxHp += 200;
                 e.hp += 200;
