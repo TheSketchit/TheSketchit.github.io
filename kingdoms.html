@@ -215,13 +215,13 @@
         
         <div id="tower-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
             <div class="panel-btn-grid" id="tower-upgrades">
-                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 800g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 300g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                     <div class="build-btn-header">
                         <div class="build-btn-hotkey">U</div>
                         <div class="build-btn-title">Upgrade</div>
                     </div>
                     <div class="build-btn-icon">🚦</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙800 | 1 🫂</span></div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙300 | 1 🫂</span></div>
                 </button>
             </div>
         </div>
@@ -2130,10 +2130,10 @@ const Game = {
                     UI.setText('tower-upg-cost', 'Upgraded');
                     UI.setColor('tower-upg-cost', '#a0aec0');
                 } else {
-                    const canAfford = this.gold >= 800 && currentPop < maxPop;
+                    const canAfford = this.gold >= 300 && currentPop < maxPop;
                     UI.setDisabled(upgBtn, !canAfford);
-                    UI.setText('tower-upg-cost', '🪙800 | 1 🫂');
-                    UI.setColor('tower-upg-cost', this.gold >= 800 ? '#ecc94b' : '#e53e3e');
+                    UI.setText('tower-upg-cost', '🪙300 | 1 🫂');
+                    UI.setColor('tower-upg-cost', this.gold >= 300 ? '#ecc94b' : '#e53e3e');
                 }
             }
 
@@ -2408,8 +2408,8 @@ const Game = {
         const e = this.selectedEntity;
         if (e && e.type === 'TOWER' && !e.isUpgraded) {
             const {cur: currentPop, max: maxPop} = this.getPopulation();
-            if (this.gold >= 800 && currentPop < maxPop) {
-                this.gold -= 800;
+            if (this.gold >= 300 && currentPop < maxPop) {
+                this.gold -= 300;
                 e.isUpgraded = true;
                 e.maxHp += 200;
                 e.hp += 200;
