@@ -669,14 +669,14 @@ const BUILDING_CONFIG = {
 };
 
 const MONSTER_CONFIG = {
-    RAT: { name: 'Rat', maxHp: 45, speed: 0.8, damage: 6, radius: 8, icon: '🐀' },
-    SPIDER: { name: 'Spider', maxHp: 85, speed: 1.0, damage: 15, radius: 12, icon: '🕷️' },
+    RAT: { name: 'Rat', maxHp: 40, speed: 0.8, damage: 5, radius: 8, icon: '🐀' },
+    SPIDER: { name: 'Spider', maxHp: 80, speed: 1.0, damage: 15, radius: 12, icon: '🕷️' },
     SNAKE: { name: 'Snake', maxHp: 140, speed: 1.1, damage: 20, radius: 15, icon: '🐍', towerDamageTakenMult: 0.75 }
 };
 
 const SPAWNER_CONFIG = {
-    RAT_HOLE: { name: 'Rat Hole', maxHp: 200, baseRadius: 20, spawnRate: 9.0, icon: '🕳️' },
-    WEB: { name: 'Spider Web', maxHp: 250, baseRadius: 20, spawnRate: 11.0, icon: '🕸️' },
+    RAT_HOLE: { name: 'Rat Hole', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕳️' },
+    WEB: { name: 'Spider Web', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕸️' },
     SNAKE_NEST: { name: 'Snake Nest', maxHp: 400, baseRadius: 15, spawnRate: 14.0, icon: '🪹' }
 };
 
@@ -1063,10 +1063,15 @@ class Hero extends Unit {
         const fallbackBase = hasHeal ? myBase : Game.base;
         this.isHealingAt = null;
 
-                let activeTemples = Game.playerEntities.filter(e => e.type === 'TEMPLE' && e.active);
         let nearestTemple = null;
-        if (activeTemples.length > 0) {
-            nearestTemple = activeTemples.reduce((closest, t) => (!closest || this.pos.distSq(t.pos) < this.pos.distSq(closest.pos)) ? t : closest, null);
+        let nearestTempleDistSq = Infinity;
+        for (let i = 0; i < Game.activeTemples.length; i++) {
+            const t = Game.activeTemples[i];
+            const distSq = this.pos.distSq(t.pos);
+            if (distSq < nearestTempleDistSq) {
+                nearestTempleDistSq = distSq;
+                nearestTemple = t;
+            }
         }
 
         let tavernOnCooldown = this.tavern && this.tavern.active && this.tavernHealCooldowns[this.tavern.id] === Game.day;
@@ -1279,8 +1284,20 @@ class Hero extends Unit {
             let sO = this.getDesiredShop();
             let tO = this.getDesiredTraining();
 
-            if(sO) { const d=Math.sqrt(this.pos.distSq(sO.pos)); let s=500/Math.max(d,10); if(this.hp<this.maxHp*0.4) s*=5; if(s>bS) { bS=s; bT=sO; } }
-            if(tO) { const d=Math.sqrt(this.pos.distSq(tO.pos)); let s=500/Math.max(d,10); if(s>bS) { bS=s; bT=tO; } }
+            if(sO) { 
+                const d=Math.sqrt(this.pos.distSq(sO.pos)); 
+                let s=500/Math.max(d,10); 
+                if(this.hp<this.maxHp*0.4) s*=5; 
+                // Check if sO has a potion the hero wants to bump priority over training
+                let wantPotion = false;
+                for(let itemId of sO.slots) {
+                    if(itemId === 'POTION' && !this.items.includes('POTION') && this.personalGold >= ITEM_CONFIG['POTION'].cost) wantPotion = true;
+                }
+                if (wantPotion) s*=100;
+                
+                if(s>bS) { bS=s; bT=sO; } 
+            }
+            if(tO) { const d=Math.sqrt(this.pos.distSq(tO.pos)); let s=1500/Math.max(d,10); if(s>bS) { bS=s; bT=tO; } }
 
             if(this.hasAllRequiredItems()&&this.personalGold>0 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=(this.personalGold/Math.max(d,10))*5; if(s>bS) { bS=s; bT=myBase; } } else if(!this.hasAllRequiredItems() && Game.guildBanks[this.classType]>0 && this.personalGold<300 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=250/Math.max(d,10); if(s>bS) { bS=s; bT=myBase; } }
         }
@@ -1291,29 +1308,47 @@ class Hero extends Unit {
         for(let j=0; j<Game.activeShops.length; j++) {
             const s = Game.activeShops[j];
             let want = false; 
+            let wantPotion = false;
             for(let itemId of s.slots) { 
                 if (itemId === 'NONE') continue;
                 const item = ITEM_CONFIG[itemId];
                 if (!item || !item.classes.includes(this.classType) || this.items.includes(itemId) || this.personalGold < item.cost) continue;
                 if (item.downgradeOf && item.downgradeOf.some(u => this.items.includes(u))) continue;
-                want = true; break;
+                want = true;
+                if (itemId === 'POTION') wantPotion = true;
             }
-            if(want) { const d=Math.sqrt(this.pos.distSq(s.pos)); let sc=500/Math.max(d,10); if(sc>bSc) { bSc=sc; bS=s; } }
+            if(want) { 
+                const d=Math.sqrt(this.pos.distSq(s.pos)); 
+                let sc=500/Math.max(d,10); 
+                if (wantPotion) sc *= 100;
+                if(sc>bSc) { bSc=sc; bS=s; } 
+            }
         }
         return bS;
     }
     getDesiredTraining() {
-        if (!this.guild || !this.guild.active || !this.guild.slots) return null;
-        let want = false;
-        for (let tId of this.guild.slots) {
-            if (tId === 'NONE') continue;
-            const t = UPGRADE_CONFIG[tId];
-            if (t && !this.skills.includes(tId) && this.personalGold >= t.cost) {
-                want = true; break;
+        const targetGuildType = this.classType === 'WARRIOR' ? 'WARRIOR_GUILD' : (this.classType === 'ROGUE' ? 'ROGUE_GUILD' : 'DRUID_GUILD');
+        let bG = null, bSc = -1;
+        
+        for (let i = 0; i < Game.playerEntities.length; i++) {
+            const g = Game.playerEntities[i];
+            if (g.type === targetGuildType && g.active && g.slots) {
+                let want = false;
+                for (let tId of g.slots) {
+                    if (tId === 'NONE') continue;
+                    const t = UPGRADE_CONFIG[tId];
+                    if (t && !this.skills.includes(tId) && this.personalGold >= t.cost / 2) {
+                        want = true; break;
+                    }
+                }
+                if (want) { 
+                    const d = Math.sqrt(this.pos.distSq(g.pos)); 
+                    let sc = 500 / Math.max(d, 10); 
+                    if (sc > bSc) { bSc = sc; bG = g; } 
+                }
             }
         }
-        if (want) return this.guild;
-        return null;
+        return bG;
     }
     hasAllRequiredItems() { return HERO_CONFIG[this.classType].requiredItems.every(i => this.items.includes(i)); }
     buyFromShop(s) {
@@ -1365,8 +1400,8 @@ class Hero extends Unit {
         for (let tId of g.slots) {
             if (tId === 'NONE') continue;
             const t = UPGRADE_CONFIG[tId];
-            if (t && !this.skills.includes(tId) && this.personalGold >= t.cost) {
-                this.personalGold -= t.cost;
+            if (t && !this.skills.includes(tId) && this.personalGold >= t.cost / 2) {
+                this.personalGold -= t.cost / 2;
                 this.skills.push(tId);
 
                 Game.spawnParticle(this.pos.x, this.pos.y, '#ecc94b');
@@ -1913,7 +1948,7 @@ const Game = {
     gold: 500, taxRate: 0.5, day: 1, dayTimer: 65.0, passiveGoldTimer: 10.0, frames: 0, timeMs: 0, mode: 'NONE', isPaused: false, fogOfWar: true,
     shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [],
     renderStatic: [], renderDynamic: [], staticDirty: true,
-    activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], corridors: [], bgBounds: {x: 0, y: 0},
+    activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
     guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false,
     heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
@@ -2732,7 +2767,7 @@ function loop(timestamp) {
         if (updateStatic) Game.renderStatic.length = 0;
         Game.renderDynamic.length = 0;
 
-        Game.playerEntities.length = 0; Game.enemyEntities.length = 0; Game.activeHeroes.length = 0; Game.activeShops.length = 0; Game.activeFlags.length = 0; Game.activeSpawners.length = 0; Game.shops.length = 0; Game.flags.length = 0; Grid.clear();
+        Game.playerEntities.length = 0; Game.enemyEntities.length = 0; Game.activeHeroes.length = 0; Game.activeShops.length = 0; Game.activeFlags.length = 0; Game.activeSpawners.length = 0; Game.activeTemples.length = 0; Game.shops.length = 0; Game.flags.length = 0; Grid.clear();
         for(let i = 0; i < Game.entities.length; i++) {
             const e = Game.entities[i];
             if(!e.active) { 
@@ -2749,6 +2784,7 @@ function loop(timestamp) {
             if(e.type==='SHOP') { Game.activeShops.push(e); Game.shops.push(e); }
             if(e.type.startsWith('FLAG_')) { Game.activeFlags.push(e); Game.flags.push(e); }
             if(e.type==='SPAWNER') Game.activeSpawners.push(e);
+            if(e.type==='TEMPLE') Game.activeTemples.push(e);
 
             if (e.isStatic) {
                 if (updateStatic) Game.renderStatic.push(e);
