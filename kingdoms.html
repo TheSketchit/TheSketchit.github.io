@@ -215,13 +215,13 @@
         
         <div id="tower-config" style="display:none; margin-top: 10px; border-top: 1px solid #4a5568; padding-top: 8px;">
             <div class="panel-btn-grid" id="tower-upgrades">
-                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 800g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ecc94b; font-style:italic;\'>Costs 400g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                     <div class="build-btn-header">
                         <div class="build-btn-hotkey">U</div>
                         <div class="build-btn-title">Upgrade</div>
                     </div>
                     <div class="build-btn-icon">🚦</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙800 | 1 🫂</span></div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙400 | 1 🫂</span></div>
                 </button>
             </div>
         </div>
@@ -252,7 +252,7 @@
             <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
                 <div class="build-btn-icon">🪵</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ecc94b; font-style:italic;&quot;>A percentage of the Gold spent by Heroes for items goes back to the Kingdom based on the Tax Rate.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">4</div><div class="build-btn-title">Shop</div></div>
@@ -267,7 +267,7 @@
             <button class="menu-btn build-btn" id="btn-tower" onclick="setMode('BUILD_TOWER')" onmouseenter="Game.showTooltip(event, 'Tower', 'A defensive structure that shoots magic missiles at oncoming enemies.', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">6</div><div class="build-btn-title">Tower</div></div>
                 <div class="build-btn-icon" style="font-size: 1.5rem; line-height: 1.1; margin-top: -2px;">🖲️<br>🔲</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙500 | 1 🫂</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙250 | 1 🫂</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-tavern" onclick="setMode('BUILD_TAVERN')" onmouseenter="Game.showTooltip(event, 'Tavern', '<span style=&quot;color:#ecc94b;&quot;>Enables groups of heroes to be formed. Hero groups will operate out of the Tavern, rather than their guild hall to heal.</span><br><span style=&quot;color:white;&quot;>Group quests can be issued from here.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">7</div><div class="build-btn-title">Tavern</div></div>
@@ -322,6 +322,93 @@ canvas.height = window.innerHeight;
 
 const WORLD_WIDTH = 1500;
 const WORLD_HEIGHT = 1000;
+
+const Engine = {
+    audioCtx: null,
+    masterGain: null,
+    reverbNode: null,
+
+    initAudio() {
+        if (this.audioCtx) return;
+        this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        this.masterGain = this.audioCtx.createGain();
+        this.masterGain.gain.value = 0.5;
+        this.masterGain.connect(this.audioCtx.destination);
+
+        this.reverbNode = this.audioCtx.createConvolver();
+        const rate = this.audioCtx.sampleRate;
+        const length = rate * 2;
+        const impulse = this.audioCtx.createBuffer(2, length, rate);
+        const left = impulse.getChannelData(0);
+        const right = impulse.getChannelData(1);
+        for (let i = 0; i < length; i++) {
+            const decay = Math.exp(-i / (rate * 0.5));
+            left[i] = (Math.random() * 2 - 1) * decay;
+            right[i] = (Math.random() * 2 - 1) * decay;
+        }
+        this.reverbNode.buffer = impulse;
+        this.reverbNode.connect(this.masterGain);
+    },
+
+    playDoomStab(time, freq, duration) {
+        if (!this.audioCtx) return;
+        const audioCtx = this.audioCtx;
+        const masterGain = this.masterGain;
+        const reverbNode = this.reverbNode;
+
+        const sub = audioCtx.createOscillator();
+        const subGain = audioCtx.createGain();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(freq, time);
+        sub.frequency.exponentialRampToValueAtTime(freq * 0.9, time + 0.2);
+
+        const saw1 = audioCtx.createOscillator();
+        const saw2 = audioCtx.createOscillator();
+        const squareSub = audioCtx.createOscillator();
+        const sawGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        saw1.type = 'sawtooth';
+        saw2.type = 'sawtooth';
+        squareSub.type = 'square';
+
+        saw1.frequency.setValueAtTime(freq, time);
+        saw2.frequency.setValueAtTime(freq * 1.02, time);
+        squareSub.frequency.setValueAtTime(freq * 0.5, time);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, time);
+        filter.frequency.exponentialRampToValueAtTime(60, time + 0.3);
+
+        [subGain, sawGain].forEach(g => {
+            g.gain.setValueAtTime(0, time);
+            g.gain.linearRampToValueAtTime(1.0, time + 0.02);
+            g.gain.exponentialRampToValueAtTime(0.01, time + duration);
+        });
+
+        sub.connect(subGain).connect(masterGain);
+        saw1.connect(filter);
+        saw2.connect(filter);
+        squareSub.connect(filter);
+        filter.connect(sawGain).connect(reverbNode);
+
+        sub.start(time); sub.stop(time + duration);
+        saw1.start(time); saw1.stop(time + duration);
+        saw2.start(time); saw2.stop(time + duration);
+        squareSub.start(time); squareSub.stop(time + duration);
+    },
+
+    triggerDoom() {
+        this.initAudio();
+        if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+        }
+        const startT = this.audioCtx.currentTime + 0.1;
+        this.playDoomStab(startT, 43.65, 0.5);
+        this.playDoomStab(startT + 0.4, 38.89, 0.5);
+        this.playDoomStab(startT + 0.8, 36.71, 3.5);
+    }
+};
 
 const Camera = {
     x: WORLD_WIDTH / 2,
@@ -456,26 +543,40 @@ function generateTerrain() {
     
     bgCtx.font = '70px Arial'; bgCtx.textAlign = 'center'; bgCtx.textBaseline = 'bottom';
     const spacing = 45;
-    const trees = [];
+    let trees = [];
     
-    const playableRects = GameBounds.getAllRects().map(r => ({
-        x1: r.x1 - 30, x2: r.x2 + 30, y1: r.y1 - 30, y2: r.y2 + 30
-    }));
+    if (!Game.trees) {
+        const playableRects = GameBounds.getAllRects().map(r => ({
+            x1: r.x1 - 30, x2: r.x2 + 30, y1: r.y1 - 30, y2: r.y2 + 30
+        }));
 
-    for (let y = boundsY1; y <= boundsY2; y += spacing) {
-        for (let x = boundsX1; x <= boundsX2; x += spacing) {
-            let inPlayable = false;
-            for (let r of playableRects) {
-                if (x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2) {
-                    inPlayable = true; break;
+        for (let y = boundsY1; y <= boundsY2; y += spacing) {
+            for (let x = boundsX1; x <= boundsX2; x += spacing) {
+                let inPlayable = false;
+                for (let r of playableRects) {
+                    if (x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2) {
+                        inPlayable = true; break;
+                    }
+                }
+                if (!inPlayable) {
+                    trees.push({ x: x + (Math.random()*30-15), y: y + (Math.random()*30-15), type: Math.random() > 0.5 ? '🌳' : '🌲' });
                 }
             }
-            if (!inPlayable) {
-                trees.push({ x: x + (Math.random()*30-15), y: y + (Math.random()*30-15), type: Math.random() > 0.5 ? '🌳' : '🌲' });
-            }
         }
+        trees.sort((a,b) => a.y - b.y);
+        Game.trees = trees;
+    } else {
+        trees = Game.trees;
     }
-    trees.sort((a,b) => a.y - b.y).forEach(t => {
+
+    if (Game.ashPits) {
+        Game.ashPits.forEach(pit => {
+            const ash = SpriteCache.getAshPit(pit.radius);
+            bgCtx.drawImage(ash.img, pit.x - ash.ox, pit.y - ash.oy);
+        });
+    }
+
+    trees.forEach(t => {
         bgCtx.save(); bgCtx.fillStyle = 'rgba(0,0,0,0.5)'; bgCtx.translate(t.x + 20, t.y - 5); bgCtx.scale(1, 0.4); bgCtx.beginPath(); bgCtx.arc(0, 0, 25, 0, Math.PI*2); bgCtx.fill(); bgCtx.restore();
         bgCtx.fillText(t.type, t.x, t.y);
     });
@@ -643,16 +744,35 @@ const UI = {
     setClass(id, cls, force) { const el = typeof id === 'string' ? document.getElementById(id) : id; if (el) el.classList.toggle(cls, force); }
 };
 
+
+const GAME_CONFIG = {
+    startingGold: 500,
+    dayLengthSec: 65.0,
+    passiveGoldInterval: 10.0,
+    blackoutTimeSec: 10.0,
+    groupFormCost: 100,
+    reviveCostPerLevel: 100,
+    guildCostIncrement: 100,
+    buildingBaseHP: 100
+};
+
+const QUEST_CONFIG = {
+    FLAG_EXPLORE: { cost: 25, bounty: 25, name: 'Explore Quest ⚑', icon: '⚑', maxReq: 1, duration: 20 },
+    FLAG_DEFEND: { cost: 50, bounty: 50, name: 'Defend Quest ⚑', icon: '⚑', maxReq: 3, duration: 20 },
+    FLAG_ATTACK: { cost: 75, bounty: 75, name: 'Attack Quest ⚑', icon: '⚑', maxReq: 3, duration: 20 },
+    FLAG_GROUP_ATTACK: { cost: 75, bounty: 75, name: 'Group Quest ⚑', icon: '🍻', maxReq: 3, duration: 20 }
+};
+
 const ITEM_CONFIG = {
-    POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#48bb78', icon: '🧪' },
-    SWORD: { cost: 100, classes: ['WARRIOR'], color: '#e2e8f0', statBonus: { damage: 5 }, icon: '⚔️' },
-    DAGGER: { cost: 75, classes: ['ROGUE'], color: '#e2e8f0', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️' },
-    WAND: { cost: 120, classes: ['DRUID'], color: '#e2e8f0', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄' },
-    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#a0aec0', statBonus: { maxHp: 50, hp: 50, damageReduction: 2 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥' },
-    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️' },
-    ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, thornsPercent: 0.2 }, replaces: 'ARMOR', icon: '👘' },
-    ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#718096', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️' },
-    ANKH: { cost: 300, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#ecc94b', icon: '☥️' }
+    POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#48bb78', icon: '🧪', name: 'Health Potion', desc: 'Restores 50 HP when health drops below 30%' },
+    SWORD: { cost: 100, classes: ['WARRIOR'], color: '#e2e8f0', statBonus: { damage: 5 }, icon: '⚔️', name: 'Sword', desc: 'Increases attack damage by 5.' },
+    DAGGER: { cost: 75, classes: ['ROGUE'], color: '#e2e8f0', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️', name: 'Dagger', desc: 'Increases attack damage by 3. 5% chance to deal double damage.' },
+    WAND: { cost: 120, classes: ['DRUID'], color: '#e2e8f0', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄', name: 'Wand', desc: 'Increases attack damage by 8 and attack range by 25%.' },
+    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#a0aec0', statBonus: { maxHp: 50, hp: 50, damageReduction: 2 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 2.' },
+    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.' },
+    ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, thornsPercent: 0.2 }, replaces: 'ARMOR', icon: '👘', name: 'Robe of Thorns', desc: 'Increases max HP by 50 and reduces damage taken by 2. Returns 20% of incoming damage to the attacker. Replaces Leather Armor.' },
+    ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#718096', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
+    ANKH: { cost: 300, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#ecc94b', icon: '☥️', name: 'Ankh', desc: 'Revives the hero with full HP upon taking a fatal blow.' }
 };
 
 const HERO_CONFIG = {
@@ -664,18 +784,18 @@ const HERO_CONFIG = {
 const UPGRADE_CONFIG = {
     CHARGE: { cost: 100 },
     RAT_TRAP: { cost: 100 },
-    REGROWTH: { cost: 150 },
+    REGROWTH: { cost: 100 },
 };
 
 const BUILDING_CONFIG = {
-    CASTLE: { baseCost: 0, hp: 1000, radius: 40, icon: '🏰', fontSize: '80px', foundationRx: 50, foundationRy: 15, yOffset: 35, vision: 300, name: 'Castle', isGuild: false },
+    CASTLE: { baseCost: 0, hp: 1000, radius: 40, icon: '🏰', fontSize: '80px', foundationRx: 50, foundationRy: 15, yOffset: 35, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
     WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
-    DRUID_GUILD: { baseCost: 175, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
+    DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
     TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false },
-    FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false },
-    TOWER: { baseCost: 500, hp: 400, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false },
+    FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false, popProvided: 3, upgradedPopProvided: 6 },
+    TOWER: { baseCost: 250, hp: 400, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false, popCost: 1, upgradedPopCost: 2 },
     TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false }
 };
 
@@ -687,7 +807,7 @@ const MONSTER_CONFIG = {
 
 const SPAWNER_CONFIG = {
     RAT_HOLE: { name: 'Rat Hole', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕳️' },
-    WEB: { name: 'Spider Web', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕸️' },
+    WEB: { name: 'Spider Web', maxHp: 200, baseRadius: 20, spawnRate: 10.0, icon: '🕸️' },
     SNAKE_NEST: { name: 'Snake Nest', maxHp: 400, baseRadius: 15, spawnRate: 14.0, icon: '🪹' }
 };
 
@@ -1609,8 +1729,10 @@ class Building extends Entity {
 
 class Flag extends Entity {
     constructor(x, y, t, tE = null, sourceTav = null) { 
-        super(x, y); this.isStatic = true; this.type = t; this.bounty = t==='FLAG_EXPLORE' ? 25 : (t==='FLAG_DEFEND' ? 50 : 75); this.targetEntity = tE; this.maxTimer = 20.0; this.defendTimer = 20.0; 
-        this.name = t === 'FLAG_EXPLORE' ? 'Explore Quest ⚑' : (t === 'FLAG_DEFEND' ? 'Defend Quest ⚑' : (t === 'FLAG_GROUP_ATTACK' ? 'Group Quest ⚑' : 'Attack Quest ⚑'));
+        super(x, y); this.isStatic = true; this.type = t;
+        const qConf = QUEST_CONFIG[t];
+        this.bounty = qConf ? qConf.bounty : 25; this.targetEntity = tE; this.maxTimer = qConf ? qConf.duration : 20.0; this.defendTimer = qConf ? qConf.duration : 20.0;
+        this.name = qConf ? qConf.name : 'Quest ⚑';
         this.sourceTavern = sourceTav;
         this.radius = 20;
         this.hitboxOffset = {x: 0, y: -15};
@@ -1796,10 +1918,10 @@ class Spawner extends Entity {
         this.spawnTimer = Math.random() * this.spawnRate;
     }
     update(dtSec) { 
-        const inBlackout = Game.dayTimer <= 10.0;
+        const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
         if (!inBlackout) {
             this.spawnTimer += dtSec; 
-            const currentSpawnRate = this.spawnRate + (this.daysSurvived * 1.5);
+            const currentSpawnRate = Math.max(2.0, this.spawnRate - (this.daysSurvived * 0.5));
             if (this.spawnTimer >= currentSpawnRate) {
                 this.spawnTimer = 0; 
                 const spawnCount = this.inCorridor ? 1 : 1 + Math.floor(Math.random() * (this.daysSurvived + 1));
@@ -1865,7 +1987,7 @@ class Volcano extends Entity {
         this.hp = this.maxHp = 1500; this.radius = 40; this.attackTimer = 40.0;
         this.towerAttackTimer = 1.5; this.towerDamage = 30; this.attackRange = 110;
         this.lastTowerTarget = null;
-        this.ashRadius = 110;
+        this.ashRadius = 220;
     }
     update(dtSec) {
         if (this.stunTimer > 0) { this.stunTimer -= dtSec; return; }
@@ -1938,6 +2060,8 @@ class Volcano extends Entity {
         }
         for(let i=0;i<10;i++) Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e');
         for(let i=0;i<10;i++) Game.spawnParticle(this.pos.x, this.pos.y, '#ecc94b');
+        Game.ashPits.push({ x: this.pos.x, y: this.pos.y, radius: this.ashRadius });
+        generateTerrain();
     }
     draw(ctx) {
         const ash = SpriteCache.getAshPit(this.ashRadius);
@@ -1956,8 +2080,8 @@ class Volcano extends Entity {
 }
 
 const Game = {
-    gold: 500, taxRate: 0.5, day: 1, dayTimer: 65.0, passiveGoldTimer: 10.0, frames: 0, timeMs: 0, mode: 'NONE', isPaused: false, fogOfWar: true,
-    shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [],
+    gold: GAME_CONFIG.startingGold, taxRate: 0.5, day: 1, dayTimer: GAME_CONFIG.dayLengthSec, passiveGoldTimer: GAME_CONFIG.passiveGoldInterval, frames: 0, timeMs: 0, mode: 'NONE', isPaused: false, fogOfWar: true,
+    shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [], ashPits: [], trees: null,
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
     guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false,
@@ -1990,12 +2114,12 @@ const Game = {
         }
     },
 
-    getGuildCost(type) { 
+    getBuildingCost(type) {
         const conf = BUILDING_CONFIG[type]; 
         if (!conf) return 0;
         let c = conf.baseCost;
         if (conf.isGuild) {
-            c += this.playerEntities.filter(e => e.type === type).length * 100;
+            c += this.playerEntities.filter(e => e.type === type).length * GAME_CONFIG.guildCostIncrement;
         }
         return c; 
     },
@@ -2004,10 +2128,12 @@ const Game = {
         let cur = 0, max = 0;
         for (let i = 0; i < this.playerEntities.length; i++) {
             const e = this.playerEntities[i];
-            if (e.classType || e.type === 'TOWER') cur++;
-            if (e.type === 'TOWER' && e.isUpgraded) cur++;
-            if (e.type === 'CASTLE') max += 6;
-            else if (e.type === 'FARM') max += (e.isUpgraded ? 6 : 3);
+            if (e.classType) cur++;
+            const conf = BUILDING_CONFIG[e.type];
+            if (conf) {
+                if (conf.popCost) cur += (e.isUpgraded && conf.upgradedPopCost ? conf.upgradedPopCost : conf.popCost);
+                if (conf.popProvided) max += (e.isUpgraded && conf.upgradedPopProvided ? conf.upgradedPopProvided : conf.popProvided);
+            }
         }
         return { cur, max };
     },
@@ -2060,14 +2186,17 @@ const Game = {
                 UI.setDisabled(btn, !canAfford); const costSpan = btn.querySelector('.build-btn-cost');
                 if (costSpan) {
                     UI.setColor(costSpan, this.gold >= cost ? '#ecc94b' : '#e53e3e');
-                    if (id.startsWith('btn-') && !['btn-flag-explore','btn-flag-defend','btn-flag-attack','btn-flag-group-attack'].includes(id)) {
-                        UI.setText(costSpan, id === 'btn-tower' ? `🪙${cost} | 1 🫂` : `🪙${cost}`);
+                    if (id.startsWith('btn-')) {
+                        let txt = `🪙${cost}`;
+                        let bt = id.replace('btn-', '').toUpperCase().replace(/-/g,'_');
+                        if (BUILDING_CONFIG[bt] && BUILDING_CONFIG[bt].popCost) txt += ` | ${BUILDING_CONFIG[bt].popCost} 🫂`;
+                        UI.setText(costSpan, txt);
                     }
                 }
             }
         };
-        ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, id === 'btn-tower' ? 500 : (id === 'btn-tavern' ? 200 : this.getGuildCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_')))));
-        ['btn-flag-explore','btn-flag-defend','btn-flag-attack', 'btn-flag-group-attack'].forEach(id => updateBtn(id, id === 'btn-flag-explore' ? 25 : (id === 'btn-flag-defend' ? 50 : 75)));
+        ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, this.getBuildingCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_'))));
+        ['btn-flag-explore','btn-flag-defend','btn-flag-attack', 'btn-flag-group-attack'].forEach(id => updateBtn(id, QUEST_CONFIG[id.replace('btn-', '').toUpperCase().replace(/-/g,'_')].cost));
 
         const panel = document.getElementById('info-panel');
         if (this.selectedEntity && this.selectedEntity.active) {
@@ -2099,7 +2228,12 @@ const Game = {
                 UI.setText('val-level', e.level); UI.setText('val-xp-text', `${Math.floor(e.xp)} / ${e.level * 100}`); document.getElementById('val-xp-bar').style.width = (Math.min(1, e.xp / (e.level * 100)) * 100) + '%';
                 UI.setText('val-gold', `${Math.floor(e.personalGold)}g`); UI.setColor('val-gold', e.personalGold < 0 ? '#e53e3e' : '#ecc94b');
                 UI.setText('val-kills', e.kills); UI.setText('val-dmg', e.damage);
-                UI.setText('val-items', e.items.length > 0 ? e.items.join(', ') : 'None');
+                UI.setHTML('val-items', e.items.length > 0 ? e.items.map(i => {
+                    const item = ITEM_CONFIG[i];
+                    const safeName = item.name.replace(/'/g, "\\'");
+                    const safeDesc = item.desc.replace(/'/g, "\\'");
+                    return `<span style="cursor:help; font-size:1.2rem;" onmouseenter="Game.showTooltip(event, '${safeName}', '${safeDesc}')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${item.icon}</span>`;
+                }).join(' ') : 'None');
                 UI.setText('val-skills', e.skills.length > 0 ? e.skills.join(', ') : 'None');
                 UI.setText('val-state', e.getDisplayState());
                 ['stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-skills','stat-state'].forEach(id => toggle(id, true));
@@ -2141,10 +2275,10 @@ const Game = {
                     UI.setText('tower-upg-cost', 'Upgraded');
                     UI.setColor('tower-upg-cost', '#a0aec0');
                 } else {
-                    const canAfford = this.gold >= 800 && currentPop < maxPop;
+                    const canAfford = this.gold >= 400 && currentPop < maxPop;
                     UI.setDisabled(upgBtn, !canAfford);
-                    UI.setText('tower-upg-cost', '🪙800 | 1 🫂');
-                    UI.setColor('tower-upg-cost', this.gold >= 800 ? '#ecc94b' : '#e53e3e');
+                    UI.setText('tower-upg-cost', '🪙400 | 1 🫂');
+                    UI.setColor('tower-upg-cost', this.gold >= 400 ? '#ecc94b' : '#e53e3e');
                 }
             }
 
@@ -2419,8 +2553,8 @@ const Game = {
         const e = this.selectedEntity;
         if (e && e.type === 'TOWER' && !e.isUpgraded) {
             const {cur: currentPop, max: maxPop} = this.getPopulation();
-            if (this.gold >= 800 && currentPop < maxPop) {
-                this.gold -= 800;
+            if (this.gold >= 400 && currentPop < maxPop) {
+                this.gold -= 400;
                 e.isUpgraded = true;
                 e.maxHp += 200;
                 e.hp += 200;
@@ -2654,16 +2788,21 @@ canvas.addEventListener('mousedown', e => {
     if (Game.mode === 'NONE') { Game.selectedEntity = clE; Game.updateUI(true); return; }
     const bM = {'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
     if (bM[Game.mode]) {
-        const bt = bM[Game.mode], cnf = BUILDING_CONFIG[bt], c = Game.getGuildCost(bt);
+        const bt = bM[Game.mode], cnf = BUILDING_CONFIG[bt], c = Game.getBuildingCost(bt);
         const pop = Game.getPopulation();
         if (bt==='TOWER' && pop.cur >= pop.max) return; if (Game.gold >= c && Game.canPlaceBuilding(cp.x, cp.y, cnf.radius)) { Game.gold-=c; Game.addEntity(new Building(cp.x, cp.y, bt)); setMode('NONE'); }
         return;
     }
     const clampedFlag = GameBounds.clamp(cp.x, cp.y, 0);
-    if (Game.mode==='FLAG_EXPLORE' && Game.gold>=25) { Game.gold-=25; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, 'FLAG_EXPLORE')); setMode('NONE'); Game.updateUI(true); }
-    else if (Game.mode==='FLAG_DEFEND' && Game.gold>=50 && clE && clE.faction==='PLAYER' && !['HERO','TRAP'].includes(clE.type)) { Game.gold-=50; Game.addEntity(new Flag(cp.x,cp.y,'FLAG_DEFEND',clE)); setMode('NONE'); Game.updateUI(true); }
-    else if (Game.mode==='FLAG_ATTACK' && Game.gold>=75) { Game.gold-=75; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, 'FLAG_ATTACK')); setMode('NONE'); Game.updateUI(true); }
-    else if (Game.mode==='FLAG_GROUP_ATTACK' && Game.gold>=75 && Game.selectedTavernForGroupQuest) { Game.gold-=75; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, 'FLAG_GROUP_ATTACK', null, Game.selectedTavernForGroupQuest)); setMode('NONE'); Game.updateUI(true); }
+    if (Game.mode.startsWith('FLAG_')) {
+        const questConf = QUEST_CONFIG[Game.mode];
+        if (questConf && Game.gold >= questConf.cost) {
+            if (Game.mode === 'FLAG_EXPLORE') { Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode)); setMode('NONE'); Game.updateUI(true); }
+            else if (Game.mode === 'FLAG_DEFEND' && clE && clE.faction === 'PLAYER' && !['HERO','TRAP'].includes(clE.type)) { Game.gold -= questConf.cost; Game.addEntity(new Flag(cp.x, cp.y, Game.mode, clE)); setMode('NONE'); Game.updateUI(true); }
+            else if (Game.mode === 'FLAG_ATTACK') { Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode)); setMode('NONE'); Game.updateUI(true); }
+            else if (Game.mode === 'FLAG_GROUP_ATTACK' && Game.selectedTavernForGroupQuest) { Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode, null, Game.selectedTavernForGroupQuest)); setMode('NONE'); Game.updateUI(true); }
+        }
+    }
     else if (Game.mode==='REPAIR' && clE && clE.faction==='PLAYER' && BUILDING_CONFIG[clE.type]) {
         if (!clE.isRepairing && clE.hp >= clE.maxHp) return;
         clE.isRepairing = !clE.isRepairing; Game.updateUI(true);
@@ -2697,7 +2836,7 @@ function loop(timestamp) {
         if (!isPanning) { const ps=15/Camera.zoom; if(keys['w']||keys['arrowup']) Camera.y-=ps; if(keys['s']||keys['arrowdown']) Camera.y+=ps; if(keys['a']||keys['arrowleft']) Camera.x-=ps; if(keys['d']||keys['arrowright']) Camera.x+=ps; }
         Camera.x=Math.max(-800,Math.min(WORLD_WIDTH+800,Camera.x)); Camera.y=Math.max(-800,Math.min(WORLD_HEIGHT+800,Camera.y));
         Game.dayTimer-=dtS; if(Game.dayTimer<=0) { 
-            Game.day++; Game.dayTimer=65.0; 
+            Game.day++; Game.dayTimer=GAME_CONFIG.dayLengthSec;
 
             let eRats=0, eSpiders=0, eSnakes=0;
             const mainB = GameBounds.getMain();
@@ -2732,6 +2871,7 @@ function loop(timestamp) {
                         
                         generateTerrain();
                         Game.spawnFloatingText(WORLD_WIDTH/2, WORLD_HEIGHT/2 - 100, "A new path has opened!", "#ecc94b", 4.0, 30);
+                        Engine.triggerDoom();
                         
                         Game.spawnHole('RAT_HOLE', true, pick);
                         Game.spawnHole('WEB', true, pick);
@@ -2775,7 +2915,7 @@ function loop(timestamp) {
                 for (let i = counts['SNAKE_NEST']; i < targetSnakes; i++) Game.spawnHole('SNAKE_NEST', true, c.dir);
             });
         }
-        Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=10.0; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
+        Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=GAME_CONFIG.passiveGoldInterval; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
         
         let updateStatic = Game.staticDirty;
         if (updateStatic) Game.renderStatic.length = 0;
