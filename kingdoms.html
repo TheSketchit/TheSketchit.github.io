@@ -961,12 +961,12 @@ class Monster extends Unit {
         this.nest = nest;
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.hasLaunchedAttack = false;
-        
+
         if (this.inCorridor) {
             this.state = 'CORRIDOR_IDLE';
             this.target = this.nest;
         } else {
-            this.state = 'ATTACK_BASE'; 
+            this.state = 'ATTACK_BASE';
             this.target = Game.base;
             this.hasLaunchedAttack = true;
         }
@@ -1008,11 +1008,12 @@ class Monster extends Unit {
         }
         
         const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
-        
+
         if (this.state === 'CORRIDOR_IDLE') {
             if (inBlackout && !this.hasLaunchedAttack) {
                 this.state = 'ATTACK_BASE';
                 this.hasLaunchedAttack = true;
+                this.target = this.cachedDefaultTarget || Game.base;
             }
         }
 
@@ -1026,16 +1027,16 @@ class Monster extends Unit {
         }
         let defaultTarget = this.cachedDefaultTarget || Game.base;
         
-        if (nT) { 
+        if (nT) {
             // Allow combat even in corridor idle
             if (this.state === 'CORRIDOR_IDLE') {
                 this.state = 'COMBAT';
                 this.target = nT;
             } else {
-                this.state = 'COMBAT'; this.target = nT; 
+                this.state = 'COMBAT'; this.target = nT;
             }
-        } 
-        else if (this.state === 'COMBAT') { 
+        }
+        else if (this.state === 'COMBAT') {
             if (this.hasLaunchedAttack) {
                 this.state = 'ATTACK_BASE'; this.target = defaultTarget;
             } else {
@@ -1043,32 +1044,36 @@ class Monster extends Unit {
             }
         }
 
-        if (!this.target || !this.target.active || ((this.state === 'ATTACK_BASE' || this.state === 'CORRIDOR_IDLE') && this.repathTimer <= 0)) { 
+        if (!this.target || !this.target.active || ((this.state === 'ATTACK_BASE' || this.state === 'CORRIDOR_IDLE') && this.repathTimer <= 0)) {
             if (!this.hasLaunchedAttack) {
                 this.state = 'CORRIDOR_IDLE';
                 this.target = this.nest;
             } else {
-                this.state = 'ATTACK_BASE'; 
-                this.target = defaultTarget; 
+                this.state = 'ATTACK_BASE';
+                this.target = defaultTarget;
             }
         }
         
-        if (this.target) { 
+        if (this.target) {
             if (this.state === 'CORRIDOR_IDLE' && this.target === this.nest) {
                 const r = this.moveTowards(this.target.pos);
                 if (r || this.pos.distSq(this.target.pos) < (this.target.radius + 15)**2) {
-                    this.pos.x += Math.cos(this.wanderAngle) * 0.2;
-                    this.pos.y += Math.sin(this.wanderAngle) * 0.2;
+                    this.pos.x += Math.cos(this.wanderAngle) * 1.5;
+                    this.pos.y += Math.sin(this.wanderAngle) * 1.5;
                     if (Math.random() < 0.05) this.wanderAngle += (Math.random() - 0.5);
                 }
             } else {
-                if (this.pos.distSq(this.target.pos) <= (this.attackRange+this.target.radius)**2) { 
-                    if (this.attackCooldown <= 0) { 
-                        this.target.takeDamage(this.damage, this); 
-                        this.attackCooldown = this.maxAttackCooldown; 
-                    } 
+                if (this.target === this.nest) {
+                    // Make sure we never attack our own nest if state changes but target hasn't yet updated
+                    this.target = defaultTarget;
+                }
+                if (this.pos.distSq(this.target.pos) <= (this.attackRange+this.target.radius)**2) {
+                    if (this.attackCooldown <= 0) {
+                        this.target.takeDamage(this.damage, this);
+                        this.attackCooldown = this.maxAttackCooldown;
+                    }
                 } else {
-                    this.moveTowards(this.target.pos); 
+                    this.moveTowards(this.target.pos);
                 }
             }
         }
@@ -1997,7 +2002,7 @@ class Spawner extends Entity {
                 for (let i = 0; i < spawnCount; i++) {
                     const mx = this.pos.x + (Math.random() - 0.5) * 10;
                     const my = this.pos.y + (Math.random() - 0.5) * 10;
-                    Game.addEntity(new Monster(mx, my, this.spawnerType==='WEB'?'SPIDER':(this.spawnerType==='SNAKE_NEST'?'SNAKE':'RAT'), this.daysSurvived, this)); 
+                    Game.addEntity(new Monster(mx, my, this.spawnerType==='WEB'?'SPIDER':(this.spawnerType==='SNAKE_NEST'?'SNAKE':'RAT'), this.daysSurvived, this));
                 }
             } 
         }
@@ -2727,7 +2732,12 @@ const Game = {
             for (let i = 0; i < this.entities.length; i++) { 
                 const e = this.entities[i]; 
                 if (e.type === 'SPAWNER' || BUILDING_CONFIG[e.type]) { 
-                    if (tp.distSq(e.pos) < (r + e.radius + clearance)**2) { 
+                    let requiredDist = r + e.radius + clearance;
+                    if (forceCorridor && attempts > 100) {
+                        requiredDist = r + e.radius - 20;
+                        if (attempts > 150 && e.type === 'SPAWNER') continue; // heavily overlap spawners if stuck
+                    }
+                    if (tp.distSq(e.pos) < requiredDist * requiredDist) {
                         valid = false; break; 
                     } 
                 } 
@@ -2961,9 +2971,9 @@ function loop(timestamp) {
                 targetSnakesMain = 2;
             }
 
-            for(let i=0;i<Math.max(0, targetRatsMain-eRats);i++) Game.spawnHole('RAT_HOLE', false); 
-            for(let i=0;i<Math.max(0, targetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false); 
-            for(let i=0;i<Math.max(0, targetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false); 
+            for(let i=0;i<Math.max(0, targetRatsMain-eRats);i++) Game.spawnHole('RAT_HOLE', false);
+            for(let i=0;i<Math.max(0, targetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false);
+            for(let i=0;i<Math.max(0, targetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false);
 
             Game.corridors.forEach(c => {
                 const area = GameBounds.getCorridor(c.dir);
@@ -2980,7 +2990,7 @@ function loop(timestamp) {
 
                 let daysOpen = Game.day - c.dayOpened + 1;
                 let targetRats = 0, targetSpiders = 0, targetSnakes = 0;
-                
+
                 if (daysOpen === 1) { targetRats = 3; targetSpiders = 2; targetSnakes = 2; }
                 else if (daysOpen === 2) { targetRats = 3; targetSpiders = 4; targetSnakes = 2; }
                 else if (daysOpen === 3) { targetRats = 2; targetSpiders = 3; targetSnakes = 3; }
