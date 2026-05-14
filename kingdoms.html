@@ -930,7 +930,7 @@ class Trap extends Entity {
 }
 
 class Monster extends Unit {
-    constructor(x, y, mT = 'RAT', bS = 0) {
+    constructor(x, y, mT = 'RAT', bS = 0, nest = null) {
         super(x, y); this.type = 'MONSTER'; this.monsterType = mT; this.faction = 'ENEMY';
 
         const conf = MONSTER_CONFIG[mT] || MONSTER_CONFIG['RAT'];
@@ -958,8 +958,18 @@ class Monster extends Unit {
         
         this.baseFontSize = Math.floor(24*sc); 
         this.cachedDefaultTarget = Game.base;
-        this.state = 'ATTACK_BASE'; 
-        this.target = Game.base;
+        this.nest = nest;
+        this.wanderAngle = Math.random() * Math.PI * 2;
+        this.hasLaunchedAttack = false;
+        
+        if (this.inCorridor) {
+            this.state = 'CORRIDOR_IDLE';
+            this.target = this.nest;
+        } else {
+            this.state = 'ATTACK_BASE'; 
+            this.target = Game.base;
+            this.hasLaunchedAttack = true;
+        }
 
         this.isFeral = this.inCorridor || Game.day >= 15;
         if (this.isFeral) {
@@ -997,21 +1007,71 @@ class Monster extends Unit {
             }, 'PLAYER');
         }
         
+        const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
+        
+        if (this.state === 'CORRIDOR_IDLE') {
+            if (inBlackout && !this.hasLaunchedAttack) {
+                this.state = 'ATTACK_BASE';
+                this.hasLaunchedAttack = true;
+            }
+        }
+
         if (this.repathTimer <= 0) {
-            this.cachedDefaultTarget = this.inCorridor ? this.getClosestBuilding() : Game.base;
+            if (this.state === 'CORRIDOR_IDLE') {
+                this.cachedDefaultTarget = this.nest;
+            } else {
+                this.cachedDefaultTarget = this.inCorridor ? this.getClosestBuilding() : Game.base;
+            }
             this.repathTimer = 2.0;
         }
         let defaultTarget = this.cachedDefaultTarget || Game.base;
         
-        if (nT) { this.state = 'COMBAT'; this.target = nT; } 
-        else if (this.state === 'COMBAT') { this.state = 'ATTACK_BASE'; this.target = defaultTarget; }
+        if (nT) { 
+            // Allow combat even in corridor idle
+            if (this.state === 'CORRIDOR_IDLE') {
+                this.state = 'COMBAT';
+                this.target = nT;
+            } else {
+                this.state = 'COMBAT'; this.target = nT; 
+            }
+        } 
+        else if (this.state === 'COMBAT') { 
+            if (this.hasLaunchedAttack) {
+                this.state = 'ATTACK_BASE'; this.target = defaultTarget;
+            } else {
+                this.state = 'CORRIDOR_IDLE'; this.target = this.nest;
+            }
+        }
 
-        if (!this.target || !this.target.active || (this.state === 'ATTACK_BASE' && this.repathTimer <= 0)) { 
-            this.state = 'ATTACK_BASE'; 
-            this.target = defaultTarget; 
+        if (!this.target || !this.target.active || ((this.state === 'ATTACK_BASE' || this.state === 'CORRIDOR_IDLE') && this.repathTimer <= 0)) { 
+            if (!this.hasLaunchedAttack) {
+                this.state = 'CORRIDOR_IDLE';
+                this.target = this.nest;
+            } else {
+                this.state = 'ATTACK_BASE'; 
+                this.target = defaultTarget; 
+            }
         }
         
-        if (this.target) { if (this.pos.distSq(this.target.pos) <= (this.attackRange+this.target.radius)**2) { if (this.attackCooldown <= 0) { this.target.takeDamage(this.damage, this); this.attackCooldown = this.maxAttackCooldown; } } else this.moveTowards(this.target.pos); }
+        if (this.target) { 
+            if (this.state === 'CORRIDOR_IDLE' && this.target === this.nest) {
+                const r = this.moveTowards(this.target.pos);
+                if (r || this.pos.distSq(this.target.pos) < (this.target.radius + 15)**2) {
+                    this.pos.x += Math.cos(this.wanderAngle) * 0.2;
+                    this.pos.y += Math.sin(this.wanderAngle) * 0.2;
+                    if (Math.random() < 0.05) this.wanderAngle += (Math.random() - 0.5);
+                }
+            } else {
+                if (this.pos.distSq(this.target.pos) <= (this.attackRange+this.target.radius)**2) { 
+                    if (this.attackCooldown <= 0) { 
+                        this.target.takeDamage(this.damage, this); 
+                        this.attackCooldown = this.maxAttackCooldown; 
+                    } 
+                } else {
+                    this.moveTowards(this.target.pos); 
+                }
+            }
+        }
         
         this.applySoftCollision();
         this.pos = GameBounds.clamp(this.pos.x, this.pos.y, this.radius);
@@ -1937,7 +1997,7 @@ class Spawner extends Entity {
                 for (let i = 0; i < spawnCount; i++) {
                     const mx = this.pos.x + (Math.random() - 0.5) * 10;
                     const my = this.pos.y + (Math.random() - 0.5) * 10;
-                    Game.addEntity(new Monster(mx, my, this.spawnerType==='WEB'?'SPIDER':(this.spawnerType==='SNAKE_NEST'?'SNAKE':'RAT'), this.daysSurvived)); 
+                    Game.addEntity(new Monster(mx, my, this.spawnerType==='WEB'?'SPIDER':(this.spawnerType==='SNAKE_NEST'?'SNAKE':'RAT'), this.daysSurvived, this)); 
                 }
             } 
         }
@@ -2889,17 +2949,21 @@ function loop(timestamp) {
                 }
             }
 
-            let ed=Math.min(Game.day,10), ns=ed>=4?Math.floor((ed-2)/2):0, nr=ed-ns, nsn=0; 
-            if(Game.day>10){nr=Math.max(0,nr-2);nsn=Game.day-10;} 
-            
-            if (Game.corridors.length > 0) {
-                nr = Math.max(0, nr - 1);
-                ns = Math.max(0, ns - 1);
+            let targetRatsMain = 0, targetSpidersMain = 0, targetSnakesMain = 0;
+            if (Game.day <= 3) {
+                targetRatsMain = Game.day;
+            } else if (Game.day <= 9) {
+                targetRatsMain = Game.day;
+                targetSpidersMain = Math.floor((Game.day - 2) / 2);
+            } else {
+                targetRatsMain = 4;
+                targetSpidersMain = 4;
+                targetSnakesMain = 2;
             }
-            
-            for(let i=0;i<Math.max(0, nr-eRats);i++) Game.spawnHole('RAT_HOLE', false); 
-            for(let i=0;i<Math.max(0, ns-eSpiders);i++) Game.spawnHole('WEB', false); 
-            for(let i=0;i<Math.max(0, nsn-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false); 
+
+            for(let i=0;i<Math.max(0, targetRatsMain-eRats);i++) Game.spawnHole('RAT_HOLE', false); 
+            for(let i=0;i<Math.max(0, targetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false); 
+            for(let i=0;i<Math.max(0, targetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false); 
 
             Game.corridors.forEach(c => {
                 const area = GameBounds.getCorridor(c.dir);
@@ -2915,9 +2979,12 @@ function loop(timestamp) {
                 if (counts['VOLCANO'] === 0) Game.spawnVolcano(c.dir);
 
                 let daysOpen = Game.day - c.dayOpened + 1;
-                let targetRats = Math.min(2, daysOpen);
-                let targetSpiders = daysOpen >= 3 ? 2 : 1;
-                let targetSnakes = daysOpen >= 4 ? 2 : 1;
+                let targetRats = 0, targetSpiders = 0, targetSnakes = 0;
+                
+                if (daysOpen === 1) { targetRats = 3; targetSpiders = 2; targetSnakes = 2; }
+                else if (daysOpen === 2) { targetRats = 3; targetSpiders = 4; targetSnakes = 2; }
+                else if (daysOpen === 3) { targetRats = 2; targetSpiders = 3; targetSnakes = 3; }
+                else { targetRats = 0; targetSpiders = 2; targetSnakes = 4; }
 
                 for (let i = counts['RAT_HOLE']; i < targetRats; i++) Game.spawnHole('RAT_HOLE', true, c.dir);
                 for (let i = counts['WEB']; i < targetSpiders; i++) Game.spawnHole('WEB', true, c.dir);
