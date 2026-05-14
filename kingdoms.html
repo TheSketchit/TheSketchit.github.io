@@ -815,12 +815,12 @@ const MONSTER_CONFIG = {
 };
 
 const SPAWNER_CONFIG = {
-    RAT_HOLE: { name: 'Rat Hole', maxHp: 150, baseRadius: 20, spawnRate: 8.0, icon: '🕳️' },
-    WEB: { name: 'Spider Web', maxHp: 200, baseRadius: 20, spawnRate: 10.0, icon: '🕸️' },
-    SNAKE_NEST: { name: 'Snake Nest', maxHp: 400, baseRadius: 15, spawnRate: 14.0, icon: '🪹' }
+    RAT_HOLE: { name: 'Rat Hole', maxHp: 300, baseRadius: 20, spawnRate: 16.0, icon: '🕳️' },
+    WEB: { name: 'Spider Web', maxHp: 400, baseRadius: 20, spawnRate: 20.0, icon: '🕸️' },
+    SNAKE_NEST: { name: 'Snake Nest', maxHp: 800, baseRadius: 15, spawnRate: 28.0, icon: '🪹' }
 };
 
-const BASE_HERO_NAMES = ["Steven", "Gavin", "Lincoln", "Jeff", "Alex", "Daniel", "Beefaroni", "Tony", "Tasilogs", "Jody", "Javo", "Wolfgang", "Sean", "Rexba", "Squavin", "Naur", "Sipah", "Nippah", "Rathutch", "Jimmy", "Pam", "Don", "Patrick", "Shaybutters", "Shabusiness", "Mr. Stinky", "Snickers", "Cat Boy", "Dirtmorph", "Reverse Osmosis", "Romulus Stimuli", "Cantrop Fergusion", "Cluckster Stevens", "Purty McDavis", "Cousin Sam", "Cornhole Jackson", "Homunculus Michael", "Tasty Nomenclature", "Allen Akbar", "Delicious Virgil", "George McSexy", "Laquisha Washington", "Georgio Armani", "Korpo Tendons", "Zucchini Fritz", "Marcus Farcus", "Debbie Snacks", "Snozzberry Twist", "Andrew Sand", "Timmy Silverback", "Klinger", "Vecna", "Vindaloo", "Harshburger", "Kelli", "Markus Winnius"];
+const BASE_HERO_NAMES = ["Steven", "Gavin", "Lincoln", "Jeff", "Alex", "Daniel", "Beefaroni", "Tony", "Tasilogs", "Jody", "Javo", "Wolfgang", "Sean", "Rexba", "Squavin", "Naur", "Sipah", "Nippah", "Rathutch", "Jimmy", "Pam", "Don", "Patrick", "Shaybutters", "Shabusiness", "Mr. Stinky", "Snickers", "Cat Boy", "Dirtmorph", "Reverse Osmosis", "Romulus Stimuli", "Cantrop Fergusion", "Cluckster Stevens", "Purty McDavis", "Cousin Sam", "Dawnu", "Homunculus Mike", "Tasty Nomenclature", "Draka", "Delicious Virgil", "George McSexy", "Donnie", "Georgio Armani", "Korpo Tendons", "Zucchini Fritz", "Marcus Farcus", "Debbie Snacks", "Stardragon", "Andrew Sand", "Timmy Silverback", "Klinger", "Vecna", "Vindaloo", "Harshburger", "Kelli", "Markus Winnius", "Shane", "Username", "Zeramus", "Sketchit"];
 let availableHeroNames = [...BASE_HERO_NAMES];
 let heroGeneration = 1;
 function getHeroSuffix(gen) { if (gen === 1) return ""; if (gen === 2) return " Jr"; let j = gen % 10, k = gen % 100; if (j == 1 && k != 11) return " the " + gen + "st"; if (j == 2 && k != 12) return " the " + gen + "nd"; if (j == 3 && k != 13) return " the " + gen + "rd"; return " the " + gen + "th"; }
@@ -1024,13 +1024,13 @@ class Monster extends Unit {
         this.attackers.forEach(a => { if (a.active) validAttackers.push(a); });
         
         Game.monstersKilled++; if (validAttackers.length > 0) {
-            const gY = Math.floor(15 * Math.pow(1.1, this.buffStacks));
+            const gY = Math.floor(5 * Math.pow(1.1, this.buffStacks));
             const tA = Math.floor(gY * Game.taxRate);
             const hA = gY - tA;
             Game.gold += tA; Game.totalTaxCollected += tA;
             
             const sharedGold = Math.floor(hA / validAttackers.length);
-            const sharedXpBase = Math.floor(25 / validAttackers.length) || 1;
+            const sharedXpBase = Math.floor(10 / validAttackers.length) || 1;
 
             validAttackers.forEach(hero => {
                 hero.kills++; 
@@ -1930,7 +1930,7 @@ class Spawner extends Entity {
         const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
         if (!inBlackout) {
             this.spawnTimer += dtSec; 
-            const currentSpawnRate = Math.max(2.0, this.spawnRate - (this.daysSurvived * 0.5));
+            const currentSpawnRate = this.spawnRate + (this.daysSurvived * 1.5);
             if (this.spawnTimer >= currentSpawnRate) {
                 this.spawnTimer = 0; 
                 const spawnCount = this.inCorridor ? 1 : 1 + Math.floor(Math.random() * (this.daysSurvived + 1));
@@ -1949,13 +1949,13 @@ class Spawner extends Entity {
         this.attackers.forEach(a => { if (a.active) validAttackers.push(a); });
         
         if (validAttackers.length > 0) {
-            const gY = 50;
+            const gY = 150;
             const tA = Math.floor(gY * Game.taxRate);
             const hA = gY - tA;
             Game.gold += tA; Game.totalTaxCollected += tA;
             
             const sharedGold = Math.floor(hA / validAttackers.length);
-            const sharedXpBase = Math.floor(50 / validAttackers.length) || 1;
+            const sharedXpBase = Math.floor(150 / validAttackers.length) || 1;
 
             validAttackers.forEach(hero => {
                 const xpGain = Math.floor(sharedXpBase * (hero.currentQuest ? 1.2 : 1.0));
@@ -2852,7 +2852,7 @@ function loop(timestamp) {
             Game.activeSpawners.forEach(e=>{
                 if(e.spawnerType !== 'VOLCANO'){
                     e.daysSurvived++; e.radius=e.baseRadius+(e.daysSurvived*2);
-                    e.maxHp += 50; e.hp += 50;
+                    e.maxHp += 200; e.hp += 200;
                     if (e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
                         if(e.spawnerType==='RAT_HOLE') eRats++; else if(e.spawnerType==='WEB') eSpiders++; else if(e.spawnerType==='SNAKE_NEST') eSnakes++;
                     }
