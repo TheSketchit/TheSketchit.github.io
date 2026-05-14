@@ -545,11 +545,11 @@ function generateTerrain() {
     const spacing = 45;
     let trees = [];
     
-    if (!Game.trees) {
-        const playableRects = GameBounds.getAllRects().map(r => ({
-            x1: r.x1 - 30, x2: r.x2 + 30, y1: r.y1 - 30, y2: r.y2 + 30
-        }));
+    const playableRects = GameBounds.getAllRects().map(r => ({
+        x1: r.x1 - 30, x2: r.x2 + 30, y1: r.y1 - 30, y2: r.y2 + 30
+    }));
 
+    if (!Game.trees) {
         for (let y = boundsY1; y <= boundsY2; y += spacing) {
             for (let x = boundsX1; x <= boundsX2; x += spacing) {
                 let inPlayable = false;
@@ -566,7 +566,16 @@ function generateTerrain() {
         trees.sort((a,b) => a.y - b.y);
         Game.trees = trees;
     } else {
-        trees = Game.trees;
+        trees = Game.trees.filter(t => {
+            let inPlayable = false;
+            for (let r of playableRects) {
+                if (t.x >= r.x1 && t.x <= r.x2 && t.y >= r.y1 && t.y <= r.y2) {
+                    inPlayable = true; break;
+                }
+            }
+            return !inPlayable;
+        });
+        Game.trees = trees;
     }
 
     if (Game.ashPits) {
