@@ -128,14 +128,6 @@
                     <div class="build-btn-icon" id="recruit-icon">🧌</div>
                     <div class="build-btn-cost-badge"><span class="build-btn-cost" id="recruit-cost">🪙100 | 1 🫂</span></div>
                 </button>
-                <button id="btn-adopt" class="menu-btn build-btn" onclick="Game.adoptHero()" style="display: none;" onmouseenter="Game.showTooltip(event, 'Adopt Hero', 'Assign a homeless hero of this class to this guild hall.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                    <div class="build-btn-header">
-                        <div class="build-btn-hotkey">A</div>
-                        <div class="build-btn-title">Adopt</div>
-                    </div>
-                    <div class="build-btn-icon">🤝</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost" style="color: #e2e8f0;">Free</span></div>
-                </button>
             </div>
 
             <div id="guild-select-ui" style="display:none; margin-top: 10px;">
@@ -448,11 +440,7 @@ window.addEventListener('keydown', e => {
         if (Game.selectedEntity && Game.selectedEntity.active) {
             const type = Game.selectedEntity.type;
             if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD') {
-                const hClass = BUILDING_CONFIG[type].heroClass;
-                const hasHomeless = Game.activeHeroes.some(h => !h.isDead && h.classType === hClass && !h.guild.active);
-                
                 if (k === 't') Game.recruitHero();
-                else if (k === 'a' && hasHomeless && Game.selectedEntity.heroes.length < Game.selectedEntity.maxHeroes) Game.adoptHero();
                 else if (k === 'r') {
                     let upg = type === 'WARRIOR_GUILD' ? 'CHARGE' : (type === 'ROGUE_GUILD' ? 'RAT_TRAP' : (type === 'DRUID_GUILD' ? 'REGROWTH' : ''));
                     if (upg) Game.researchUpgrade(upg);
@@ -830,7 +818,7 @@ class Entity {
     update(dtSec) {}
     draw(ctx) {}
     getVisionRange() { return 0; }
-    takeDamage(amt, source) { if (!this.active) return; this.hp -= amt; this.lastAttacker = source; if (source && typeof source.gainXp === 'function') this.attackers.add(source); Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); if (this.hp <= 0) this.die(); }
+    takeDamage(amt, source) { if (!this.active) return; if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); } this.hp -= amt; this.lastAttacker = source; if (source && typeof source.gainXp === 'function') this.attackers.add(source); Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); if (this.hp <= 0) this.die(); }
     die() { if (!this.active) return; this.active = false; if (this === Game.selectedEntity) Game.selectedEntity = null; }
     drawHP(ctx, yOff = -15) { if (this.hp >= this.maxHp) return; const pct = Math.max(0, this.hp / this.maxHp); ctx.fillStyle = 'red'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30, 4); ctx.fillStyle = '#48bb78'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30 * pct, 4); }
 }
@@ -1149,7 +1137,7 @@ class Hero extends Unit {
         super(x, y); this.faction = 'PLAYER'; this.classType = cT; this.guild = g; this.state = 'IDLE'; this.wanderAngle = Math.random()*Math.PI*2; this.stateTimer = 0;
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.ratTrapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.purchasedItemVfxTimer = 0; this.purchasedItemIcon = ''; this.levelUpVfxTimer = 0;
-        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0;
+        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
         this.damageReduction = 0; this.thornsPercent = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
@@ -1223,9 +1211,8 @@ class Hero extends Unit {
         super.die(); 
         this.isDead = true;
         Game.heroDeaths++; 
-        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, ankhs: this.ankhsUsed });
-        let gN = this.guild.type === 'TAVERN' ? 'Tavern' : (this.guild.type === 'WARRIOR_GUILD' ? 'Warrior' : (this.guild.type === 'ROGUE_GUILD' ? 'Rogue' : 'Druid')); 
-        if (!this.guild.active) gN = 'Ruined ' + gN;
+        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, ankhs: this.ankhsUsed, damageDealt: this.damageDealt });
+        let gN = this.classType === 'WARRIOR' ? 'Warrior' : (this.classType === 'ROGUE' ? 'Rogue' : 'Druid');
         this.tombstoneEntity = new Tombstone(this.pos.x, this.pos.y, this.name, gN, this.level, this.kills);
         this.tombstoneEntity.heroRef = this;
         Game.addEntity(this.tombstoneEntity);
@@ -1263,7 +1250,19 @@ class Hero extends Unit {
             this.attackCooldown -= this.inAsh ? (dtSec * 0.5) : dtSec;
         }
 
-        const myBase = (this.groupId && this.tavern && this.tavern.active) ? this.tavern : this.guild;
+        let myBase = null;
+        if (this.groupId && this.tavern && this.tavern.active) {
+            myBase = this.tavern;
+        } else if (this.guild && this.guild.active) {
+            myBase = this.guild;
+        } else {
+            const targetGuildType = this.classType === 'WARRIOR' ? 'WARRIOR_GUILD' : (this.classType === 'ROGUE' ? 'ROGUE_GUILD' : 'DRUID_GUILD');
+            myBase = Game.playerEntities.find(e => e.type === targetGuildType && e.active);
+            if (!myBase) {
+                myBase = Game.base;
+            }
+        }
+
         const hasHeal = this.groupId ? (myBase.active && (myBase.type !== 'TAVERN' || this.tavernHealCooldowns[myBase.id] !== Game.day)) : false;
         const fallbackBase = hasHeal ? myBase : Game.base;
         this.isHealingAt = null;
@@ -1976,7 +1975,7 @@ class Spawner extends Entity {
 
         const conf = SPAWNER_CONFIG[t] || SPAWNER_CONFIG['RAT_HOLE'];
         this.name = conf.name;
-        this.hp = this.maxHp = conf.maxHp;
+        this.hp = this.maxHp = conf.maxHp; this.bounty = 150;
         
         const mainB = GameBounds.getMain();
         this.inCorridor = (x < mainB.x1 || x > mainB.x2 || y < mainB.y1 || y > mainB.y2);
@@ -2014,13 +2013,13 @@ class Spawner extends Entity {
         this.attackers.forEach(a => { if (a.active) validAttackers.push(a); });
         
         if (validAttackers.length > 0) {
-            const gY = 150;
+            const gY = this.bounty;
             const tA = Math.floor(gY * Game.taxRate);
             const hA = gY - tA;
             Game.gold += tA; Game.totalTaxCollected += tA;
             
             const sharedGold = Math.floor(hA / validAttackers.length);
-            const sharedXpBase = Math.floor(150 / validAttackers.length) || 1;
+            const sharedXpBase = Math.floor(this.bounty / validAttackers.length) || 1;
 
             validAttackers.forEach(hero => {
                 const xpGain = Math.floor(sharedXpBase * (hero.currentQuest ? 1.2 : 1.0));
@@ -2058,7 +2057,7 @@ class Spawner extends Entity {
 class Volcano extends Entity {
     constructor(x, y) {
         super(x, y); this.isStatic = true; this.spawnerType = 'VOLCANO'; this.name = 'Volcano'; this.faction = 'ENEMY'; this.type = 'SPAWNER'; 
-        this.hp = this.maxHp = 1500; this.radius = 40; this.attackTimer = 40.0;
+        this.hp = this.maxHp = 1500; this.bounty = 200; this.radius = 40; this.attackTimer = 40.0;
         this.towerAttackTimer = 1.5; this.towerDamage = 30; this.attackRange = 110;
         this.lastTowerTarget = null;
         this.ashRadius = 220;
@@ -2282,7 +2281,7 @@ const Game = {
             UI.setDisplay('btn-abandon', e.type.startsWith('FLAG_') ? 'block' : 'none');
 
             const toggle = (id, show) => UI.setDisplay(id, show ? 'flex' : 'none');
-            ['stat-tombstone','stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state','stat-tower-dmg'].forEach(id => toggle(id, false));
+            ['stat-tombstone','stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state','stat-tower-dmg', 'stat-skills'].forEach(id => toggle(id, false));
             UI.setDisplay('shop-config', 'none'); UI.setDisplay('guild-config', 'none'); UI.setDisplay('tavern-config', 'none'); UI.setDisplay('farm-config', 'none'); UI.setDisplay('tower-config', 'none'); UI.setDisplay('temple-config', 'none');
             
             document.getElementById('info-panel').classList.toggle('hero-window', !!(e.faction === 'PLAYER' && e.classType));
@@ -2291,7 +2290,7 @@ const Game = {
             else {
                 let bountyStr = '';
                 if (e.faction === 'ENEMY') {
-                    const gY = e.type === 'MONSTER' ? Math.floor(15 * Math.pow(1.1, e.buffStacks)) : 50;
+                    const gY = e.type === 'MONSTER' ? Math.floor(5 * Math.pow(1.1, e.buffStacks)) : (e.bounty || 50);
                     bountyStr = `<span style="color:#ecc94b; font-size:0.9rem;">🪙${gY}</span>`;
                 }
                 const hpStr = (e.faction === 'PLAYER' && e.classType) ? '' : ` <span style="font-size: 0.75rem; color: #a0aec0;">[${Math.floor(e.hp)}/${e.maxHp} HP]</span>`;
@@ -2364,15 +2363,7 @@ const Game = {
                 UI.setDisplay('guild-config', 'block'); const br = document.getElementById('btn-recruit');
                 const hClass = BUILDING_CONFIG[e.type].heroClass; const hConf = HERO_CONFIG[hClass];
                 
-
-                const homelessHeroes = Game.activeHeroes.filter(h => !h.isDead && h.classType === hClass && !h.guild.active);
                 let btnCost = hConf.recruitCost;
-                
-                if (homelessHeroes.length > 0 && e.heroes.length < e.maxHeroes) {
-                    UI.setDisplay('btn-adopt', 'block');
-                } else {
-                    UI.setDisplay('btn-adopt', 'none');
-                }
 
 
                     if (hConf.imageSrc) {
@@ -2638,26 +2629,6 @@ const Game = {
             }
         }
     },
-    adoptHero() {
-        if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.selectedEntity.type)) {
-            const g = this.selectedEntity;
-            if (g.heroes.length >= g.maxHeroes) return;
-            const hClass = BUILDING_CONFIG[g.type].heroClass;
-            const homelessHero = this.activeHeroes.find(h => !h.isDead && h.classType === hClass && !h.guild.active);
-            if (homelessHero) {
-                homelessHero.guild = g;
-                homelessHero.groupId = null;
-                homelessHero.tavern = null;
-                if (homelessHero.currentQuest && homelessHero.currentQuest.type === 'FLAG_GROUP_ATTACK') {
-                    homelessHero.currentQuest = null;
-                    homelessHero.questPhase = 'NONE';
-                }
-                g.heroes.push(homelessHero);
-                this.updateUI(true);
-                Game.spawnParticle(g.pos.x, g.pos.y, '#ecc94b');
-            }
-        }
-    },
     recruitHero() {
         if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.selectedEntity.type)) {
             const g = this.selectedEntity; 
@@ -2810,9 +2781,36 @@ const Game = {
         }
     },
     hideTooltip() { document.getElementById('tooltip').style.display = 'none'; },
+
+    sortStats(col) {
+        if (this.statsSort && this.statsSort.column === col) {
+            this.statsSort.desc = !this.statsSort.desc;
+        } else {
+            this.statsSort = { column: col, desc: true };
+        }
+        this.showStatsScreen(this.gameOver);
+    },
     showStatsScreen(isGameOver) {
-        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, ankhs: h.ankhsUsed || 0 }))];
-        hall.sort((a,b) => b.level - a.level || b.kills - a.kills);
+        if (!this.statsSort) this.statsSort = { column: 'level', desc: true };
+
+        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, ankhs: h.ankhsUsed || 0, damageDealt: h.damageDealt || 0 }))];
+        hall.sort((a,b) => {
+            let valA, valB;
+            switch(this.statsSort.column) {
+                case 'name': valA = a.name; valB = b.name; break;
+                case 'classType': valA = a.classType; valB = b.classType; break;
+                case 'kills': valA = a.kills; valB = b.kills; break;
+                case 'gold': valA = a.gold; valB = b.gold; break;
+                case 'revives': valA = a.revives; valB = b.revives; break;
+                case 'ankhs': valA = a.ankhs; valB = b.ankhs; break;
+                case 'damageDealt': valA = a.damageDealt; valB = b.damageDealt; break;
+                case 'level': default: valA = a.level; valB = b.level; break;
+            }
+            if (typeof valA === 'string') {
+                return this.statsSort.desc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+            }
+            return this.statsSort.desc ? valB - valA : valA - valB;
+        });
         const top10 = hall.slice(0, 10);
         
         const titleText = isGameOver ? "KINGDOM DESTROYED" : "GAME STATS";
@@ -2820,10 +2818,16 @@ const Game = {
         const btnAction = isGameOver ? "location.reload()" : "Game.togglePause()";
         const themeColor = isGameOver ? "#e53e3e" : "#3182ce";
 
+        const th = (col, text) => {
+            const isSorted = this.statsSort.column === col;
+            const arrow = isSorted ? (this.statsSort.desc ? ' ▼' : ' ▲') : '';
+            return `<th style="cursor:pointer; user-select:none;" onclick="Game.sortStats('${col}')">${text}${arrow}</th>`;
+        };
+
         let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div><div class="score-grid">`;
-        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Highest Level Heroes</h3><div class="go-table-container"><table class="go-table"><tr><th>Hero</th><th>Class</th><th>Level</th><th>Monsters Killed</th><th>Gold Generated</th><th>Revives</th><th>Ankhs</th></tr>`;
+        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('revives', 'Revives')}${th('ankhs', 'Ankhs')}</tr>`;
         const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid' };
-        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${h.revives || 0}</td><td>${h.ankhs || 0}</td></tr>`);
+        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${h.revives || 0}</td><td>${h.ankhs || 0}</td></tr>`);
         html += `</table></div></div>`;
         html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Statistics</h3>`;
         const stats = [
@@ -2838,6 +2842,7 @@ const Game = {
         
         const go = document.getElementById('game-over'); go.innerHTML = html; go.style.borderColor = themeColor; go.style.display = 'flex';
     }
+
 };
 
 function switchMenu(m) { UI.setDisplay('menu-build', m==='BUILD'?'flex':'none'); UI.setDisplay('menu-command', m==='COMMAND'?'flex':'none'); }
