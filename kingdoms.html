@@ -101,9 +101,6 @@
                     <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showTooltip(event, 'Rogue\'s Disguise', 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🕵️‍♂️</span><span class="item-cost">250g</span><span class="item-classes">🥷</span>
                     </button>
-                    <button id="btn-shop-ANKH" class="shop-item-btn" onclick="Game.buyShopItem('ANKH', 300)" onmouseenter="Game.showTooltip(event, 'Ankh', 'Revives the hero with full HP upon taking a fatal blow.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">☥️</span><span class="item-cost">300g</span><span class="item-classes">🧌🥷🧚</span>
-                    </button>
                 </div>
             </div>
             <div id="shop-slots-ui" style="display:none;">
@@ -802,13 +799,12 @@ const ITEM_CONFIG = {
     CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.' },
     ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, thornsPercent: 0.2 }, replaces: 'ARMOR', icon: '👘', name: 'Robe of Thorns', desc: 'Increases max HP by 50 and reduces damage taken by 2. Returns 20% of incoming damage to the attacker. Replaces Leather Armor.' },
     ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#5a4b31', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
-    ANKH: { cost: 300, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#ffcc00', icon: '☥️', name: 'Ankh', desc: 'Revives the hero with full HP upon taking a fatal blow.' }
 };
 
 const HERO_CONFIG = {
-    WARRIOR: { maxHp: 120, speed: 1.2, damage: 15, maxAttackCooldown: 0.833, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'SWORD', 'CHAINMAIL'] },
-    ROGUE: { maxHp: 80, speed: 1.32, damage: 20, maxAttackCooldown: 0.666, radius: 10, icon: '🥷', recruitCost: 75, requiredItems: ['POTION', 'ANKH', 'DAGGER', 'ROGUES_DISGUISE'] },
-    DRUID: { maxHp: 85, speed: 1.5, damage: 14, maxAttackCooldown: 0.8, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 100, requiredItems: ['POTION', 'ANKH', 'WAND', 'ROBE_OF_THORNS'] }
+    WARRIOR: { maxHp: 120, speed: 1.2, damage: 15, maxAttackCooldown: 0.833, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'SWORD', 'CHAINMAIL'] },
+    ROGUE: { maxHp: 80, speed: 1.32, damage: 20, maxAttackCooldown: 0.666, radius: 10, icon: '🥷', recruitCost: 75, requiredItems: ['POTION', 'DAGGER', 'ROGUES_DISGUISE'] },
+    DRUID: { maxHp: 85, speed: 1.5, damage: 14, maxAttackCooldown: 0.8, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 100, requiredItems: ['POTION', 'WAND', 'ROBE_OF_THORNS'] }
 };
 
 const UPGRADE_CONFIG = {
@@ -1208,7 +1204,7 @@ class Hero extends Unit {
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.ratTrapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.markOfTheWildTimer = 0; this.markOfTheWildCooldown = 0; this.tauntCooldown = 0; this.tauntVfxTimer = 0; this.motwHpBuff = 0; this.motwDmgBuff = 0;
         this.purchasedItemVfxTimer = 0; this.purchasedItemIcon = ''; this.levelUpVfxTimer = 0;
-        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.ankhsUsed = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0;
+        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
         this.damageReduction = 0; this.thornsPercent = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
@@ -1253,15 +1249,6 @@ class Hero extends Unit {
         let red = this.damageReduction || 0;
         let final = Math.max(1, amt - red); 
         if (this.markOfTheWildTimer > 0) final = Math.max(1, Math.floor(final * 0.9));
-        if (this.hp - final <= 0 && this.items.includes('ANKH')) { 
-            this.items.splice(this.items.indexOf('ANKH'),1); this.ankhsUsed++;
-            this.hp=this.maxHp; 
-            this.purchasedItemVfxTimer = 2.0;
-            this.purchasedItemIcon = '☥️';
-            if (Game.selectedEntity === this) Game.updateUI(true);
-            for(let i=0;i<15;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00');
-            return; 
-        } 
         super.takeDamage(final, src); 
         
         if (this.thornsPercent > 0 && src && src.active && src.faction === 'ENEMY') {
@@ -1301,7 +1288,7 @@ class Hero extends Unit {
         super.die(); 
         this.isDead = true;
         Game.heroDeaths++; 
-        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, ankhs: this.ankhsUsed, damageDealt: this.damageDealt });
+        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, damageDealt: this.damageDealt });
         let gN = this.classType === 'WARRIOR' ? 'Warrior' : (this.classType === 'ROGUE' ? 'Rogue' : 'Druid');
         this.tombstoneEntity = new Tombstone(this.pos.x, this.pos.y, this.name, gN, this.level, this.kills);
         this.tombstoneEntity.heroRef = this;
@@ -1427,9 +1414,9 @@ class Hero extends Unit {
         }
 
         if (myBase.active && this.pos.distSq(myBase.pos) < (myBase.radius+15)**2) { 
-            if (this.hasAllRequiredItems() && this.personalGold > 0) { 
+            if (!this.hasThingsToBuy() && this.personalGold > 0) {
                 Game.guildBanks[this.classType] += this.personalGold; this.personalGold = 0; Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00'); if(this.state==='MOVE' && this.target===myBase) this.state='IDLE';
-            } else if (!this.hasAllRequiredItems() && Game.guildBanks[this.classType] > 0 && this.personalGold < 300) { 
+            } else if (this.hasThingsToBuy() && Game.guildBanks[this.classType] > 0 && this.personalGold < 300) {
                 let amt = Math.min(Game.guildBanks[this.classType], 300 - this.personalGold); this.personalGold += amt; Game.guildBanks[this.classType] -= amt; Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00');
             } 
         }
@@ -1631,7 +1618,7 @@ class Hero extends Unit {
             }
             if(tO) { const d=Math.sqrt(this.pos.distSq(tO.pos)); let s=1500/Math.max(d,10); if(s>bS) { bS=s; bT=tO; } }
 
-            if(this.hasAllRequiredItems()&&this.personalGold>0 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=(this.personalGold/Math.max(d,10))*5; if(s>bS) { bS=s; bT=myBase; } } else if(!this.hasAllRequiredItems() && Game.guildBanks[this.classType]>0 && this.personalGold<300 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=250/Math.max(d,10); if(s>bS) { bS=s; bT=myBase; } }
+            if(!this.hasThingsToBuy()&&this.personalGold>0 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=(this.personalGold/Math.max(d,10))*5; if(s>bS) { bS=s; bT=myBase; } } else if(this.hasThingsToBuy() && Game.guildBanks[this.classType]>0 && this.personalGold<300 && myBase.active) { const d=Math.sqrt(this.pos.distSq(myBase.pos)); let s=250/Math.max(d,10); if(s>bS) { bS=s; bT=myBase; } }
         }
         if(bT) { this.target=bT; this.state='MOVE'; } else { const baseP = myBase.active ? myBase.pos : Game.base.pos; this.target = new Vec2(baseP.x+(Math.random()-0.5)*200, baseP.y+(Math.random()-0.5)*200); this.state='MOVE'; }
     }
@@ -1645,7 +1632,7 @@ class Hero extends Unit {
                 if (itemId === 'NONE') continue;
                 const item = ITEM_CONFIG[itemId];
                 if (!item || !item.classes.includes(this.classType) || this.items.includes(itemId) || this.personalGold < item.cost) continue;
-                if (item.downgradeOf && item.downgradeOf.some(u => this.items.includes(u))) continue;
+                if (this.items.some(u => ITEM_CONFIG[u] && ITEM_CONFIG[u].replaces === itemId)) continue;
                 want = true;
                 if (itemId === 'POTION') wantPotion = true;
             }
@@ -1682,13 +1669,39 @@ class Hero extends Unit {
         }
         return bG;
     }
-    hasAllRequiredItems() { return HERO_CONFIG[this.classType].requiredItems.every(i => this.items.includes(i)); }
+
+    hasThingsToBuy() {
+        for(let j=0; j<Game.activeShops.length; j++) {
+            const s = Game.activeShops[j];
+            for(let itemId of s.slots) {
+                if (itemId === 'NONE') continue;
+                const item = ITEM_CONFIG[itemId];
+                if (!item || !item.classes.includes(this.classType) || this.items.includes(itemId)) continue;
+                if (this.items.some(u => ITEM_CONFIG[u] && ITEM_CONFIG[u].replaces === itemId)) continue;
+                return true;
+            }
+        }
+        const targetGuildType = this.classType === 'WARRIOR' ? 'WARRIOR_GUILD' : (this.classType === 'ROGUE' ? 'ROGUE_GUILD' : 'DRUID_GUILD');
+        for (let i = 0; i < Game.playerEntities.length; i++) {
+            const g = Game.playerEntities[i];
+            if (g.type === targetGuildType && g.active && g.slots) {
+                for (let tId of g.slots) {
+                    if (tId === 'NONE') continue;
+                    const t = UPGRADE_CONFIG[tId];
+                    if (t && !this.skills.includes(tId)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
     buyFromShop(s) {
         for(let itemId of s.slots) {
             if (itemId === 'NONE') continue;
             const item = ITEM_CONFIG[itemId];
             if (!item || !item.classes.includes(this.classType) || this.items.includes(itemId) || this.personalGold < item.cost) continue;
-            if (item.downgradeOf && item.downgradeOf.some(u => this.items.includes(u))) continue;
+            if (this.items.some(u => ITEM_CONFIG[u] && ITEM_CONFIG[u].replaces === itemId)) continue;
             
             this.personalGold -= item.cost; 
             const tA = Math.floor(item.cost * Game.taxRate); Game.gold += tA; Game.totalTaxCollected += tA; Game.itemsPurchased++;
@@ -2958,7 +2971,7 @@ const Game = {
     showStatsScreen(isGameOver) {
         if (!this.statsSort) this.statsSort = { column: 'level', desc: true };
 
-        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, ankhs: h.ankhsUsed || 0, damageDealt: h.damageDealt || 0 }))];
+        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, damageDealt: h.damageDealt || 0 }))];
         hall.sort((a,b) => {
             let valA, valB;
             switch(this.statsSort.column) {
@@ -2967,7 +2980,6 @@ const Game = {
                 case 'kills': valA = a.kills; valB = b.kills; break;
                 case 'gold': valA = a.gold; valB = b.gold; break;
                 case 'revives': valA = a.revives; valB = b.revives; break;
-                case 'ankhs': valA = a.ankhs; valB = b.ankhs; break;
                 case 'damageDealt': valA = a.damageDealt; valB = b.damageDealt; break;
                 case 'level': default: valA = a.level; valB = b.level; break;
             }
@@ -2990,9 +3002,9 @@ const Game = {
         };
 
         let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div><div class="score-grid">`;
-        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('revives', 'Revives')}${th('ankhs', 'Ankhs')}</tr>`;
+        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('revives', 'Revives')}</tr>`;
         const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid' };
-        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${h.revives || 0}</td><td>${h.ankhs || 0}</td></tr>`);
+        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${h.revives || 0}</td></tr>`);
         html += `</table></div></div>`;
         html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Statistics</h3>`;
         const stats = [
