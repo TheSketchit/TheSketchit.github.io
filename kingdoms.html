@@ -1248,7 +1248,12 @@ class Hero extends Unit {
             src.takeDamage(thornsDmg, this);
         }
         
-        if (this.active && src && src.faction==='ENEMY' && this.state !== 'ATTACK' && this.state !== 'FLEE') { this.target = src; this.state = 'ATTACK'; } 
+        if (this.active && src && src.faction==='ENEMY' && this.state !== 'FLEE') {
+            if (this.state !== 'ATTACK' || (this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') && src.type === 'MONSTER')) {
+                this.target = src;
+                this.state = 'ATTACK';
+            }
+        }
     }
     gainXp(a) { 
         this.xp += a; 
