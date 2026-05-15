@@ -1004,7 +1004,12 @@ class Monster extends Unit {
         this.radius = conf.radius * (1 + (hpMult - 1) * 0.02);
 
         this.hp = this.maxHp;
-        this.bounty = Math.floor(conf.bounty * Math.pow(1.5, bS));
+
+        let bountyMult = 1.0;
+        if (!inCorridor) {
+            bountyMult = Math.pow(0.3, Game.corridors.length);
+        }
+        this.bounty = Math.floor(conf.bounty * Math.pow(1.5, bS) * bountyMult);
         
         this.baseFontSize = Math.floor(24 * (1 + (hpMult - 1) * 0.05));
         this.cachedDefaultTarget = Game.base;
@@ -2149,7 +2154,12 @@ class Spawner extends Entity {
             this.maxHp = Math.floor(this.maxHp * 1.2);
         }
 
-        this.bounty = Math.floor(this.maxHp / 3);
+        let bountyMult = 1.0;
+        if (!this.inCorridor) {
+            bountyMult = Math.pow(0.3, Game.corridors.length);
+        }
+
+        this.bounty = Math.floor((this.maxHp / 3) * bountyMult);
         this.hp = this.maxHp;
         this.daysSurvived = 0;
         
@@ -2352,6 +2362,7 @@ const Game = {
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
     guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false,
+    centralSpawnerDeductions: { 'RAT_HOLE': 0, 'WEB': 0, 'SNAKE_NEST': 0 },
     heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
     addEntity(ent) {
@@ -3180,10 +3191,23 @@ function loop(timestamp) {
                         generateTerrain();
                         Game.spawnFloatingText(WORLD_WIDTH/2, WORLD_HEIGHT/2 - 100, "A new path has opened!", "#ffcc00", 4.0, 30);
                         Engine.triggerDoom();
-                        
-                        Game.spawnHole('RAT_HOLE', true, pick);
-                        Game.spawnHole('WEB', true, pick);
-                        Game.spawnHole('SNAKE_NEST', true, pick);
+
+                        const mainB = GameBounds.getMain();
+                        Game.enemyEntities.forEach(e => {
+                            if (!e.inCorridor && e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
+                                e.bounty = Math.floor(e.bounty * 0.3);
+                            }
+                        });
+                        Game.activeSpawners.forEach(s => {
+                            if (!s.inCorridor && s.pos.x >= mainB.x1 && s.pos.x <= mainB.x2 && s.pos.y >= mainB.y1 && s.pos.y <= mainB.y2) {
+                                s.bounty = Math.floor(s.bounty * 0.3);
+                            }
+                        });
+
+                        let targetRatsInit = 2, targetSpidersInit = 1, targetSnakesInit = 1;
+                        Game.centralSpawnerDeductions['RAT_HOLE'] += targetRatsInit;
+                        Game.centralSpawnerDeductions['WEB'] += targetSpidersInit;
+                        Game.centralSpawnerDeductions['SNAKE_NEST'] += targetSnakesInit;
                     }
                 }
             }
@@ -3199,10 +3223,6 @@ function loop(timestamp) {
                 targetSpidersMain = 4;
                 targetSnakesMain = 2;
             }
-
-            for(let i=0;i<Math.max(0, targetRatsMain-eRats);i++) Game.spawnHole('RAT_HOLE', false);
-            for(let i=0;i<Math.max(0, targetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false);
-            for(let i=0;i<Math.max(0, targetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false);
 
             Game.corridors.forEach(c => {
                 const area = GameBounds.getCorridor(c.dir);
@@ -3220,7 +3240,9 @@ function loop(timestamp) {
                 let daysOpen = Game.day - c.dayOpened + 1;
                 let targetRats = 0, targetSpiders = 0, targetSnakes = 0;
 
-                if (daysOpen === 1) { targetRats = 3; targetSpiders = 2; targetSnakes = 2; }
+                if (daysOpen === 1) {
+                    targetRats = 2; targetSpiders = 1; targetSnakes = 1;
+                }
                 else if (daysOpen === 2) { targetRats = 3; targetSpiders = 4; targetSnakes = 2; }
                 else if (daysOpen === 3) { targetRats = 2; targetSpiders = 3; targetSnakes = 3; }
                 else { targetRats = 0; targetSpiders = 2; targetSnakes = 4; }
@@ -3229,6 +3251,14 @@ function loop(timestamp) {
                 for (let i = counts['WEB']; i < targetSpiders; i++) Game.spawnHole('WEB', true, c.dir);
                 for (let i = counts['SNAKE_NEST']; i < targetSnakes; i++) Game.spawnHole('SNAKE_NEST', true, c.dir);
             });
+
+            let finalTargetRatsMain = Math.max(0, targetRatsMain - Game.centralSpawnerDeductions['RAT_HOLE']);
+            let finalTargetSpidersMain = Math.max(0, targetSpidersMain - Game.centralSpawnerDeductions['WEB']);
+            let finalTargetSnakesMain = Math.max(0, targetSnakesMain - Game.centralSpawnerDeductions['SNAKE_NEST']);
+
+            for(let i=0;i<Math.max(0, finalTargetRatsMain-eRats);i++) Game.spawnHole('RAT_HOLE', false);
+            for(let i=0;i<Math.max(0, finalTargetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false);
+            for(let i=0;i<Math.max(0, finalTargetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false);
         }
         Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=GAME_CONFIG.passiveGoldInterval; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
         
