@@ -20,11 +20,9 @@
         <span style="margin: 0 15px;">|</span>
         <span style="display: flex; align-items: center; margin-right: 15px;">
             <span style="margin-right: 5px;">Tax Rate ⚖️</span>
-            <button class="tax-btn" id="btn-tax-0" onclick="Game.setTaxRate(0)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>0%</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">0%</button>
-            <button class="tax-btn" id="btn-tax-25" onclick="Game.setTaxRate(0.25)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>25%</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">25%</button>
-            <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>50%</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">50%</button>
-            <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>75%</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">75%</button>
-            <button class="tax-btn" id="btn-tax-100" onclick="Game.setTaxRate(1)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>100%</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">100%</button>
+            <button class="tax-btn" id="btn-tax-25" onclick="Game.setTaxRate(0.25)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>Low Tax (25%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">Low Tax</button>
+            <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>Medium Tax (50%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">Medium Tax</button>
+            <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>High Tax (75%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">High Tax</button>
         </span>
         <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
             <span id="upkeep-display" style="font-weight: bold; color: #22c55e;">Low Upkeep</span>
@@ -452,12 +450,12 @@ window.addEventListener('keydown', e => {
         if (k === '\\') Game.fogOfWar = !Game.fogOfWar;
 
         if (k === 'e') {
-            const rates = [0, 0.25, 0.5, 0.75, 1];
+            const rates = [0.25, 0.5, 0.75];
             const idx = rates.indexOf(Game.taxRate);
             if (idx > 0) Game.setTaxRate(rates[idx - 1]);
         }
         if (k === 'r') {
-            const rates = [0, 0.25, 0.5, 0.75, 1];
+            const rates = [0.25, 0.5, 0.75];
             const idx = rates.indexOf(Game.taxRate);
             if (idx < rates.length - 1) Game.setTaxRate(rates[idx + 1]);
         }
@@ -821,7 +819,7 @@ const UPGRADE_CONFIG = {
 };
 
 const BUILDING_CONFIG = {
-    CASTLE: { baseCost: 0, hp: 1000, radius: 40, icon: '🏰', fontSize: '80px', foundationRx: 50, foundationRy: 15, yOffset: 35, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
+    CASTLE: { baseCost: 0, hp: 1000, radius: 80, icon: '🏰', imageSrc: 'assets/Castle.png', fontSize: '160px', foundationRx: 100, foundationRy: 30, yOffset: 55, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
     WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
     DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
@@ -1893,7 +1891,7 @@ class Building extends Entity {
             
             const iconToDraw = (this.isUpgraded && conf.upgradedIcon) ? conf.upgradedIcon : conf.icon;
             const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
-            const sp = SpriteCache.get(iconToDraw, parseInt(conf.fontSize), true, true, outC);
+            const sp = conf.imageSrc ? SpriteCache.getImage(conf.imageSrc, parseInt(conf.fontSize), true, true, outC) : SpriteCache.get(iconToDraw, parseInt(conf.fontSize), true, true, outC);
             ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
             
             if (this.type === 'TOWER') { 
@@ -2398,7 +2396,7 @@ const Game = {
 
     setTaxRate(rate) {
         this.taxRate = rate;
-        [0, 25, 50, 75, 100].forEach(r => { UI.setClass(`btn-tax-${r}`, 'active', r === rate * 100); });
+        [25, 50, 75].forEach(r => { UI.setClass(`btn-tax-${r}`, 'active', r === rate * 100); });
     },
     positionUI() {
         const panel = document.getElementById('info-panel');
