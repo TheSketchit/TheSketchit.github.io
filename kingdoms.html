@@ -1942,7 +1942,26 @@ class Building extends Entity {
         }
         this.drawHP(ctx, hpOff);
     }
-    die() { super.die(); if (this.type === 'CASTLE') { Game.gameOver = true; Game.showStatsScreen(true); } else { Game.buildingDeaths++; } }
+    die() {
+        super.die();
+        if (this.type === 'CASTLE') {
+            Game.gameOver = true;
+            Game.showStatsScreen(true);
+        } else {
+            Game.buildingDeaths++;
+        }
+        if (this.type === 'TAVERN' && this.groups) {
+            for (let i = 0; i < 2; i++) {
+                if (this.groups[i]) {
+                    this.groups[i].forEach(h => {
+                        h.groupId = null;
+                        h.tavern = null;
+                        h.guild = null;
+                    });
+                }
+            }
+        }
+    }
 }
 
 class Flag extends Entity {
@@ -2228,7 +2247,7 @@ class Volcano extends Entity {
             }
         }
         if (targets.length > 0) {
-            const hitCount = targets.length * 3;
+            const hitCount = Math.max(3, targets.length);
             for (let i = 0; i < hitCount; i++) {
                 const target = targets[i % targets.length];
                 const dmg = Math.floor(target.maxHp * 0.25);
