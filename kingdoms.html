@@ -819,7 +819,7 @@ const UPGRADE_CONFIG = {
 };
 
 const BUILDING_CONFIG = {
-    CASTLE: { baseCost: 0, hp: 1000, radius: 64, icon: '🏰', imageSrc: 'assets/Castle.png', fontSize: '128px', foundationRx: 80, foundationRy: 24, yOffset: 44, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
+    CASTLE: { baseCost: 0, hp: 1000, radius: 80, icon: '🏰', imageSrc: 'assets/Castle.png', fontSize: '160px', foundationRx: 100, foundationRy: 30, yOffset: 55, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
     WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
     DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
@@ -848,7 +848,7 @@ let heroGeneration = 1;
 function getHeroSuffix(gen) { if (gen === 1) return ""; if (gen === 2) return " Jr"; let j = gen % 10, k = gen % 100; if (j == 1 && k != 11) return " the " + gen + "st"; if (j == 2 && k != 12) return " the " + gen + "nd"; if (j == 3 && k != 13) return " the " + gen + "rd"; return " the " + gen + "th"; }
 
 class Entity {
-    constructor(x, y) { this.id = crypto.randomUUID(); this.pos = new Vec2(x, y); this.active = true; this.faction = 'NEUTRAL'; this.type = 'ENTITY'; this.radius = 10; this.collisionRadius = 10; this.hitboxOffset = {x: 0, y: 0}; this.hp = 10; this.maxHp = 10; this.lastAttacker = null; this.stunTimer = 0; this.attackers = new Set(); this.isStatic = false; }
+    constructor(x, y) { this.id = crypto.randomUUID(); this.pos = new Vec2(x, y); this.active = true; this.faction = 'NEUTRAL'; this.type = 'ENTITY'; this.radius = 10; this.hitboxOffset = {x: 0, y: 0}; this.hp = 10; this.maxHp = 10; this.lastAttacker = null; this.stunTimer = 0; this.attackers = new Set(); this.isStatic = false; }
     update(dtSec) {}
     draw(ctx) {}
     getVisionRange() { return 0; }
@@ -1107,7 +1107,7 @@ class Monster extends Unit {
         if (this.target) {
             if (this.state === 'CORRIDOR_IDLE' && this.target === this.nest) {
                 const r = this.moveTowards(this.target.pos);
-                if (r || this.pos.distSq(this.target.pos) < (this.target.collisionRadius + 15)**2) {
+                if (r || this.pos.distSq(this.target.pos) < (this.target.radius + 15)**2) {
                     this.pos.x += Math.cos(this.wanderAngle) * 1.5;
                     this.pos.y += Math.sin(this.wanderAngle) * 1.5;
                     if (Math.random() < 0.05) this.wanderAngle += (Math.random() - 0.5);
@@ -1117,7 +1117,7 @@ class Monster extends Unit {
                     // Make sure we never attack our own nest if state changes but target hasn't yet updated
                     this.target = defaultTarget;
                 }
-                if (this.pos.distSq(this.target.pos) <= (this.attackRange+this.target.collisionRadius)**2) {
+                if (this.pos.distSq(this.target.pos) <= (this.attackRange+this.target.radius)**2) {
                     if (this.attackCooldown <= 0) {
                         this.target.takeDamage(this.damage, this);
                         this.attackCooldown = this.maxAttackCooldown;
@@ -1504,7 +1504,7 @@ class Hero extends Unit {
                 }
                 if (this.target.type === 'SHOP' && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); this.state='IDLE'; }
                 if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
-                if (this.target.faction === 'ENEMY') { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.collisionRadius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && this.skills.includes('CHARGE') && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.collisionRadius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.collisionRadius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#aaaaaa'); this.state='ATTACK'; } }
+                if (this.target.faction === 'ENEMY') { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && this.skills.includes('CHARGE') && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.radius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.radius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#aaaaaa'); this.state='ATTACK'; } }
                 else if (this.questPhase==='NONE'||this.questPhase==='DO_QUEST'||this.questPhase==='MOVE_TO_TARGET'||this.questPhase==='AT_TARGET') { 
                     if(this.checkThreatTimer<=0) { 
                         this.checkThreatTimer=0.1; 
@@ -1520,7 +1520,7 @@ class Hero extends Unit {
                 break;
             case 'ATTACK':
                 if (!this.target || !this.target.active) { this.state='IDLE'; break; }
-                if (this.pos.distSq(this.target.pos) > (this.attackRange+this.target.collisionRadius+5)**2) { this.state='MOVE'; break; }
+                if (this.pos.distSq(this.target.pos) > (this.attackRange+this.target.radius+5)**2) { this.state='MOVE'; break; }
                 if (this.classType === 'WARRIOR' && this.skills.includes('TAUNT') && this.tauntCooldown <= 0 && this.target && this.target.faction === 'ENEMY') {
                     this.target.target = this;
                     this.tauntCooldown = 10.0;
@@ -1532,7 +1532,7 @@ class Hero extends Unit {
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
                 if (this.target === Game.base && hasHeal) this.target = myBase;
                 if (!this.target || !this.target.active) this.target = fallbackBase;
-                if (this.target && this.target.active) { const r = this.moveTowards(this.target.pos); if(this.target.type==='SHOP' && (r || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); if(this.hp<this.maxHp*0.4 && !this.items.includes('POTION')) this.target = fallbackBase; else this.state='IDLE'; } else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.target.type) && (r || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; } if(r || this.pos.distSq(this.target.pos)<((this.target===myBase || this.target===Game.base) ? this.target.radius : this.target.collisionRadius)+15)**2) { this.pos.x += Math.cos(this.wanderAngle)*0.2; this.pos.y += Math.sin(this.wanderAngle)*0.2; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); if(this.target===myBase && hasHeal) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.target===Game.base) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.hp>=this.maxHp*0.6) this.state='IDLE'; } }
+                if (this.target && this.target.active) { const r = this.moveTowards(this.target.pos); if(this.target.type==='SHOP' && (r || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); if(this.hp<this.maxHp*0.4 && !this.items.includes('POTION')) this.target = fallbackBase; else this.state='IDLE'; } else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(this.target.type) && (r || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; } if(r || this.pos.distSq(this.target.pos)<(this.target.radius+15)**2) { this.pos.x += Math.cos(this.wanderAngle)*0.2; this.pos.y += Math.sin(this.wanderAngle)*0.2; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); if(this.target===myBase && hasHeal) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.target===Game.base) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.hp>=this.maxHp*0.6) this.state='IDLE'; } }
                 else this.state='IDLE';
                 break;
         }
@@ -1828,7 +1828,7 @@ class Hero extends Unit {
 
 class Building extends Entity {
     constructor(x, y, t) {
-        super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = t; this.heroes = []; this.maxHeroes = 3; const c = BUILDING_CONFIG[t]; this.hp = this.maxHp = c ? c.hp : 100; this.radius = c ? c.radius : 25; this.collisionRadius = c && c.foundationRx ? c.foundationRx : this.radius;
+        super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = t; this.heroes = []; this.maxHeroes = 3; const c = BUILDING_CONFIG[t]; this.hp = this.maxHp = c ? c.hp : 100; this.radius = c ? c.radius : 25;
         this.isRepairing = false; this.repairTimer = 0; this.fireTimer = 0;
         if (t === 'SHOP') this.slots = ['NONE', 'NONE', 'NONE']; else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD'].includes(t)) this.slots = ['NONE']; else if (t === 'TOWER') { this.attackRange = 250; this.attackCooldown = 0; this.target = null; } else if (t === 'TAVERN') { this.groups = [null, null]; }
         this.isUpgraded = false;
