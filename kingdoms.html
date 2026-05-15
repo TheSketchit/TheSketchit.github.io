@@ -510,6 +510,15 @@ const GameBounds = {
             case 'EAST':  return { x1: mw - 150 - overlap, x2: mw - 150 + h, y1: cy - w/2, y2: cy + w/2 };
         }
     },
+    getCorridorByPos(x, y) {
+        for (let dir of ['NORTH', 'SOUTH', 'EAST', 'WEST']) {
+            const area = this.getCorridor(dir);
+            if (x >= area.x1 && x <= area.x2 && y >= area.y1 && y <= area.y2) {
+                return { dir: dir, area: area };
+            }
+        }
+        return null;
+    },
     getAllRects() {
         const rects = [this.getMain()];
         Game.corridors.forEach(c => rects.push(this.getCorridor(c.dir)));
@@ -979,7 +988,19 @@ class Monster extends Unit {
         hpMult *= survivorMult;
         dmgMult *= survivorMult;
 
-        this.maxHp = Math.floor(conf.maxHp * hpMult);
+        let corridorDaysOpenHp = 0;
+        if (inCorridor) {
+            const areaInfo = GameBounds.getCorridorByPos(x, y);
+            if (areaInfo) {
+                const corridor = Game.corridors.find(c => c.dir === areaInfo.dir);
+                if (corridor) {
+                    let daysOpen = Game.day - corridor.dayOpened + 1;
+                    corridorDaysOpenHp = daysOpen * 100;
+                }
+            }
+        }
+
+        this.maxHp = Math.floor(conf.maxHp * hpMult) + corridorDaysOpenHp;
         this.speed = conf.speed;
         this.damage = Math.floor(conf.damage * dmgMult);
         this.radius = conf.radius * (1 + (hpMult - 1) * 0.02);
@@ -2171,14 +2192,35 @@ class Volcano extends Entity {
     constructor(x, y) {
         super(x, y); this.isStatic = true; this.spawnerType = 'VOLCANO'; this.name = 'Volcano'; this.faction = 'ENEMY'; this.type = 'SPAWNER'; 
 
-        this.maxHp = 1500;
+        this.maxHp = 3000;
         this.hp = this.maxHp;
         this.daysSurvived = 0;
-        this.bounty = Math.floor(this.maxHp / 3);
+        this.bounty = 500;
         this.radius = 40; this.attackTimer = 40.0;
         this.towerAttackTimer = 1.5; this.towerDamage = 30; this.attackRange = 110;
         this.lastTowerTarget = null;
         this.ashRadius = 220;
+    }
+    dailyEruption() {
+        const areaInfo = GameBounds.getCorridorByPos(this.pos.x, this.pos.y);
+        if (!areaInfo) return;
+        const area = areaInfo.area;
+        let targets = [];
+        for (let i = 0; i < Game.playerEntities.length; i++) {
+            const e = Game.playerEntities[i];
+            if (BUILDING_CONFIG[e.type] && e.pos.x >= area.x1 && e.pos.x <= area.x2 && e.pos.y >= area.y1 && e.pos.y <= area.y2) {
+                targets.push(e);
+            }
+        }
+        if (targets.length > 0) {
+            const hitCount = targets.length * 3;
+            for (let i = 0; i < hitCount; i++) {
+                const target = targets[i % targets.length];
+                const dmg = Math.floor(target.maxHp * 0.25);
+                Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, target, dmg, this, 'FIREBALL'));
+            }
+            Game.spawnFloatingText(this.pos.x, this.pos.y - 60, "ERUPTION!", "#e53e3e", 2.0, 24);
+        }
     }
     update(dtSec) {
         if (this.stunTimer > 0) { this.stunTimer -= dtSec; return; }
@@ -2846,7 +2888,9 @@ const Game = {
         if (dir === 'SOUTH') { x = (area.x1 + area.x2)/2; y = area.y2 - m; }
         if (dir === 'WEST') { x = area.x1 + m; y = (area.y1 + area.y2)/2; }
         if (dir === 'EAST') { x = area.x2 - m; y = (area.y1 + area.y2)/2; }
-        this.addEntity(new Volcano(x, y));
+        const v = new Volcano(x, y);
+        this.addEntity(v);
+        v.dailyEruption();
     },
     spawnParticle(x, y, c) { this.particles.push({ pos: new Vec2(x, y), vel: {x: (Math.random()-0.5)*2, y: (Math.random()-0.5)*2}, life: 0.5, maxLife: 0.5, color: c }); },
     spawnFloatingText(x, y, text, color, life = 1.5, size = 16) { 
@@ -3049,17 +3093,16 @@ function loop(timestamp) {
                 e.daysSurvived = (e.daysSurvived || 0) + 1;
                 if(e.spawnerType !== 'VOLCANO'){
                     e.radius=e.baseRadius+(e.daysSurvived*2);
-                    let hpInc = 100;
+                    let hpInc = e.inCorridor ? 400 : 100;
                     e.maxHp += hpInc; e.hp += hpInc;
-                    e.bounty = Math.floor(e.maxHp / 3);
                     if (e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
                         if(e.spawnerType==='RAT_HOLE') eRats++; else if(e.spawnerType==='WEB') eSpiders++; else if(e.spawnerType==='SNAKE_NEST') eSnakes++;
                     }
                 } else {
-                    let hpInc = 250;
+                    let hpInc = 400;
                     e.maxHp += hpInc; e.hp += hpInc;
-                    e.bounty = Math.floor(e.maxHp / 3);
                     e.towerDamage += 5;
+                    e.dailyEruption();
                 }
             }); 
 
@@ -3079,7 +3122,6 @@ function loop(timestamp) {
                                 let hpInc = Math.floor(s.maxHp * 0.15);
                                 s.maxHp += hpInc;
                                 s.hp += hpInc;
-                                s.bounty = Math.floor(s.bounty * 1.15);
                                 s.towerDamage += 10;
                             }
                         });
