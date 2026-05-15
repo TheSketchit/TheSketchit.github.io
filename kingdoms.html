@@ -1213,6 +1213,9 @@ class Hero extends Unit {
         if (this.state === 'MOVE') return 'Moving';
         return 'Idling';
     }
+
+    getVisionRange() { return 150; }
+    
     applyMotw() {
         if (this.markOfTheWildTimer <= 0) {
             this.motwHpBuff = this.maxHp * 0.1;
@@ -1223,7 +1226,7 @@ class Hero extends Unit {
         }
         this.markOfTheWildTimer = 20.0;
     }
-    
+
     takeDamage(amt, src) { 
         if (!this.active) return; 
         let red = this.damageReduction || 0;
@@ -1295,7 +1298,7 @@ class Hero extends Unit {
     update(dtSec) {
         if (this.currentQuest && !this.currentQuest.active) { this.currentQuest = null; this.questPhase = 'NONE'; }
         
-        const timers = ['chargeCooldown','chargeVfxTimer','ratTrapCooldown','regrowthCooldown','regrowthCastVfxTimer','regrowthHealVfxTimer','purchasedItemVfxTimer','levelUpVfxTimer','stateTimer','checkThreatTimer','markOfTheWildTimer','markOfTheWildCooldown','tauntCooldown','tauntVfxTimer']; 
+        const timers = ['chargeCooldown','chargeVfxTimer','ratTrapCooldown','regrowthCooldown','regrowthCastVfxTimer','regrowthHealVfxTimer','purchasedItemVfxTimer','levelUpVfxTimer','stateTimer','checkThreatTimer','markOfTheWildTimer','markOfTheWildCooldown','tauntCooldown','tauntVfxTimer'];
         timers.forEach(t => { if(this[t]>0) this[t]-=dtSec; });
         
         if (this.markOfTheWildTimer <= 0 && this.motwHpBuff > 0) {
@@ -1305,7 +1308,7 @@ class Hero extends Unit {
             this.motwHpBuff = 0;
             this.motwDmgBuff = 0;
         }
-        
+
         this.inAsh = false;
         for (let i = 0; i < Game.activeSpawners.length; i++) {
             const s = Game.activeSpawners[i];
@@ -1427,7 +1430,7 @@ class Hero extends Unit {
             this.markOfTheWildCooldown = 30.0;
             for(let i=0;i<5;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#48bb78');
         }
-        
+
         if (this.currentQuest && ['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.state !== 'FLEE') {
             let activeEnemyTarget = null;
             for (let i = 0; i < Game.activeHeroes.length; i++) {
