@@ -958,16 +958,16 @@ class Monster extends Unit {
         
         this.buffStacks = bS + (inCorridor ? 2 : 0);
 
-        let day = Game.day;
+        let effectiveDay = 1 + bS;
         let hpMult = 1.0;
         let dmgMult = 1.0;
 
-        if (day <= 10) {
-            hpMult = 1.0 + (day - 1) * 0.1;
-            dmgMult = 1.0 + (day - 1) * 0.1;
+        if (effectiveDay <= 10) {
+            hpMult = 1.0 + (effectiveDay - 1) * 0.1;
+            dmgMult = 1.0 + (effectiveDay - 1) * 0.1;
         } else {
-            hpMult = 1.9 * Math.pow(1.15, day - 10);
-            dmgMult = 1.9 * Math.pow(1.12, day - 10);
+            hpMult = 1.9 * Math.pow(1.15, effectiveDay - 10);
+            dmgMult = 1.9 * Math.pow(1.12, effectiveDay - 10);
         }
 
         if (inCorridor) {
@@ -2080,15 +2080,7 @@ class Spawner extends Entity {
         const conf = SPAWNER_CONFIG[t] || SPAWNER_CONFIG['RAT_HOLE'];
         this.name = conf.name;
 
-        let day = Game.day;
-        let hpMult = 1.0;
-        if (day <= 10) {
-            hpMult = 1.0 + (day - 1) * 0.15;
-        } else {
-            hpMult = 2.35 * Math.pow(1.15, day - 10);
-        }
-
-        this.maxHp = Math.floor(conf.maxHp * hpMult);
+        this.maxHp = conf.maxHp;
         
         const mainB = GameBounds.getMain();
         this.inCorridor = (x < mainB.x1 || x > mainB.x2 || y < mainB.y1 || y > mainB.y2);
@@ -2174,13 +2166,9 @@ class Volcano extends Entity {
     constructor(x, y) {
         super(x, y); this.isStatic = true; this.spawnerType = 'VOLCANO'; this.name = 'Volcano'; this.faction = 'ENEMY'; this.type = 'SPAWNER'; 
 
-        let day = Game.day;
-        let hpMult = 1.0;
-        if (day <= 10) hpMult = 1.0 + (day - 1) * 0.15;
-        else hpMult = 2.35 * Math.pow(1.15, day - 10);
-
-        this.maxHp = Math.floor(1500 * hpMult);
+        this.maxHp = 1500;
         this.hp = this.maxHp;
+        this.daysSurvived = 0;
         this.bounty = Math.floor(this.maxHp / 3);
         this.radius = 40; this.attackTimer = 40.0;
         this.towerAttackTimer = 1.5; this.towerDamage = 30; this.attackRange = 110;
@@ -3053,15 +3041,21 @@ function loop(timestamp) {
             let eRats=0, eSpiders=0, eSnakes=0;
             const mainB = GameBounds.getMain();
             Game.activeSpawners.forEach(e=>{
+                e.daysSurvived = (e.daysSurvived || 0) + 1;
                 if(e.spawnerType !== 'VOLCANO'){
-                    e.daysSurvived++; e.radius=e.baseRadius+(e.daysSurvived*2);
+                    e.radius=e.baseRadius+(e.daysSurvived*2);
                     let hpInc = 100;
                     e.maxHp += hpInc; e.hp += hpInc;
                     e.bounty = Math.floor(e.maxHp / 3);
                     if (e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
                         if(e.spawnerType==='RAT_HOLE') eRats++; else if(e.spawnerType==='WEB') eSpiders++; else if(e.spawnerType==='SNAKE_NEST') eSnakes++;
                     }
-                } 
+                } else {
+                    let hpInc = 250;
+                    e.maxHp += hpInc; e.hp += hpInc;
+                    e.bounty = Math.floor(e.maxHp / 3);
+                    e.towerDamage += 5;
+                }
             }); 
 
             const triggerDays = [9, 15, 20, 25];
