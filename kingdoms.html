@@ -92,7 +92,7 @@
                         <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
                     <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 2.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷🧚</span>
+                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷🧚🧙</span>
                     </button>
                     <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌</span>
@@ -828,7 +828,7 @@ const BUILDING_CONFIG = {
     CASTLE: { baseCost: 0, hp: 1000, radius: 80, icon: '🏰', imageSrc: 'assets/Castle.png', fontSize: '160px', foundationRx: 100, foundationRy: 30, yOffset: 55, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
     WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
-    DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Druid Guild', isGuild: true, heroClass: 'DRUID' },
+    DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     WIZARD_GUILD: { baseCost: 175, hp: 250, radius: 30, icon: '🏯', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Wizard Guild', isGuild: true, heroClass: 'WIZARD' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
     TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false, costIncrement: 200 },
@@ -3318,7 +3318,7 @@ function loop(timestamp) {
             for(let i=0;i<Math.max(0, finalTargetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false);
             for(let i=0;i<Math.max(0, finalTargetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false);
         }
-        Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=GAME_CONFIG.passiveGoldInterval; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
+        Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=GAME_CONFIG.passiveGoldInterval; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
         
         let updateStatic = Game.staticDirty;
         if (updateStatic) Game.renderStatic.length = 0;
