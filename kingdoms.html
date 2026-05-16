@@ -284,13 +284,13 @@
                 <div class="build-btn-icon" style="font-size: 1.5rem; line-height: 1.1; margin-top: -2px;">🖲️<br>🔲</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙250 | 1 🫂</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-tavern" onclick="setMode('BUILD_TAVERN')" onmouseenter="Game.showTooltip(event, 'Tavern', '<span style=&quot;color:#ffcc00;&quot;>Enables groups of heroes to be formed. Hero groups will operate out of the Tavern, rather than their guild hall to heal.</span><br><span style=&quot;color:white;&quot;>Group quests can be issued from here.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-tavern" onclick="setMode('BUILD_TAVERN')" onmouseenter="Game.showTooltip(event, 'Tavern', '<span style=&quot;color:#ffcc00;&quot;>Enables groups of heroes to be formed. Hero groups will operate out of the Tavern, rather than their guild hall to heal.</span><br><span style=&quot;color:white;&quot;>Group quests can be issued from here.</span>', true, '<i>+200🪙 per 🎪</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">7</div><div class="build-btn-title">Tavern</div></div>
                 <div class="build-btn-icon">🎪</div>
                 <div style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); font-size: 1.2rem;">🍻</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-temple" onclick="setMode('BUILD_TEMPLE')" onmouseenter="Game.showTooltip(event, 'Temple', 'Allows heroes below 50% health to heal to full once per day.', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-temple" onclick="setMode('BUILD_TEMPLE')" onmouseenter="Game.showTooltip(event, 'Temple', 'Allows heroes below 50% health to heal to full once per day.', true, '<i>+200🪙 per 🕍</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">8</div><div class="build-btn-title">Temple</div></div>
                 <div class="build-btn-icon">🕍</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙250</span></div>
@@ -824,10 +824,10 @@ const BUILDING_CONFIG = {
     ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
     DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
-    TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false },
+    TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false, costIncrement: 200 },
     FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false, popProvided: 3, upgradedPopProvided: 6 },
     TOWER: { baseCost: 250, hp: 400, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false, popCost: 1, upgradedPopCost: 2 },
-    TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false }
+    TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false, costIncrement: 200 }
 };
 
 const MONSTER_CONFIG = {
@@ -2311,6 +2311,16 @@ class Volcano extends Entity {
     die() {
         if (!this.active) return; super.die(); Game.spawnersKilled++;
         
+        const areaInfo = GameBounds.getCorridorByPos(this.pos.x, this.pos.y);
+        if (areaInfo) {
+            const corridor = Game.corridors.find(c => c.dir === areaInfo.dir);
+            if (corridor) corridor.volcanoDestroyed = true;
+        }
+
+        if (Game.corridors.length === 4 && Game.corridors.every(c => c.volcanoDestroyed)) {
+            Game.winGame();
+        }
+
         const validAttackers = [];
         this.attackers.forEach(a => { if (a.active) validAttackers.push(a); });
         
@@ -2361,7 +2371,7 @@ const Game = {
     shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [], ashPits: [], trees: null,
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
-    guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false,
+    guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false, gameWon: false,
     centralSpawnerDeductions: { 'RAT_HOLE': 0, 'WEB': 0, 'SNAKE_NEST': 0 },
     heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
@@ -2398,10 +2408,18 @@ const Game = {
         let c = conf.baseCost;
         if (conf.isGuild) {
             c += this.playerEntities.filter(e => e.type === type).length * GAME_CONFIG.guildCostIncrement;
+        } else if (conf.costIncrement) {
+            c += this.playerEntities.filter(e => e.type === type).length * conf.costIncrement;
         }
         return c; 
     },
     
+    winGame() {
+        this.gameOver = true;
+        this.gameWon = true;
+        this.showStatsScreen(true);
+    },
+
     getUpkeepInfo() {
         const pop = this.getPopulation().cur;
         if (pop < 21) return { text: 'Low Upkeep', color: '#22c55e', rate: 1.0, desc: '100 percent' };
@@ -3040,10 +3058,20 @@ const Game = {
         });
         const top10 = hall.slice(0, 10);
         
-        const titleText = isGameOver ? "KINGDOM DESTROYED" : "GAME STATS";
+        let titleText = "GAME STATS";
+        let themeColor = "#1e3a8a";
+        if (isGameOver) {
+            if (this.gameWon) {
+                titleText = "VICTORY!";
+                themeColor = "#ffcc00";
+            } else {
+                titleText = "KINGDOM DESTROYED";
+                themeColor = "#e53e3e";
+            }
+        }
+        
         const btnText = isGameOver ? "Rebuild Kingdom" : "Resume Game";
         const btnAction = isGameOver ? "location.reload()" : "Game.togglePause()";
-        const themeColor = isGameOver ? "#e53e3e" : "#1e3a8a";
 
         const th = (col, text) => {
             const isSorted = this.statsSort.column === col;
@@ -3064,6 +3092,28 @@ const Game = {
             ["Monster Spawners Killed", this.spawnersKilled],
             ["Emergency Triage Costs", `<span style="color:#e53e3e">${Math.floor(this.emergencyMedicalCosts)}g</span>`]
         ];
+        
+        if (isGameOver) {
+            const taxes = Math.floor(this.totalTaxCollected);
+            const unspentGold = Math.floor(this.gold);
+            const emergencyCosts = Math.floor(this.emergencyMedicalCosts);
+            const heroDeathPenalty = this.heroDeaths * 100;
+            const buildingDeathPenalty = this.buildingDeaths * 100;
+            const monstersKilled = this.monstersKilled;
+            const spawnersKilled = this.spawnersKilled;
+            
+            const firstScore = taxes + unspentGold - emergencyCosts - heroDeathPenalty - buildingDeathPenalty + monstersKilled + spawnersKilled;
+            const divisor = Math.max(1, this.day - 24);
+            const secondScore = firstScore / divisor;
+            
+            let totalLevel = 0;
+            hall.forEach(h => totalLevel += h.level);
+            const avgLevel = hall.length > 0 ? (totalLevel / hall.length) : 1;
+            
+            const finalScore = Math.floor(secondScore * avgLevel);
+            stats.push(["Final Score", `<span style="color:#ffcc00; font-weight:bold;">${finalScore}</span>`]);
+        }
+
         stats.forEach(s => html += `<div class="stat-row"><span class="stat-label">${s[0]}</span><span class="stat-val">${s[1]}</span></div>`);
         html += `</div><button class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
         
@@ -3235,7 +3285,7 @@ function loop(timestamp) {
                     }
                 });
 
-                if (counts['VOLCANO'] === 0) Game.spawnVolcano(c.dir);
+                if (counts['VOLCANO'] === 0 && !c.volcanoDestroyed) Game.spawnVolcano(c.dir);
 
                 let daysOpen = Game.day - c.dayOpened + 1;
                 let targetRats = 0, targetSpiders = 0, targetSnakes = 0;
