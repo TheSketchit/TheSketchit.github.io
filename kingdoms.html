@@ -24,7 +24,7 @@
             <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>Medium Tax (50%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">Medium Tax</button>
             <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>High Tax (75%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">High Tax</button>
         </span>
-        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, 'Upkeep', '<span style=&quot;color:white;&quot;>Low Upkeep (0-20 pop):</span> 100% of gold<br><span style=&quot;color:#ffcc00;&quot;>Medium Upkeep (21-40 pop):</span> 75% of gold<br><span style=&quot;color:#f97316;&quot;>High Upkeep (41-80 pop):</span> 50% of gold<br><span style=&quot;color:#ef4444;&quot;>Extreme Upkeep (81+ pop):</span> 25% of gold<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>High population kingdoms lose efficiency. Gold from shops and monster kills is reduced.</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, 'Upkeep', '<span style=&quot;color:white;&quot;>Low Upkeep (0-20 pop):</span> 100% of gold<br><span style=&quot;color:#ffcc00;&quot;>Medium Upkeep (21-40 pop):</span> 75% of gold<br><span style=&quot;color:#f97316;&quot;>High Upkeep (41-80 pop):</span> 50% of gold<br><span style=&quot;color:#ef4444;&quot;>Extreme Upkeep (81+ pop):</span> 25% of gold<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>High population kingdoms lose efficiency. Gold from shops is reduced.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
             <span id="upkeep-display" style="font-weight: bold; color: #22c55e;">Low Upkeep</span>
         </span>
         <span style="margin: 0 15px; margin-left: auto;">|</span>
@@ -1594,7 +1594,7 @@ class Hero extends Unit {
                     this.tauntCooldown = 10.0;
                     this.tauntVfxTimer = 1.0;
                 }
-                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') { if (this.target.faction === 'PLAYER') { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'HEAL')); } else { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,"DRUID_MAGIC")); } } else if(this.classType==='WIZARD') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'FIREBALL')); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) { this.target.stunTimer = 3.0; } } this.attackCooldown = this.maxAttackCooldown; }
+                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') { if (this.target.faction === 'PLAYER') { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'HEAL')); } else { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,"DRUID_MAGIC")); } } else if(this.classType==='WIZARD') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'MAGIC_MISSILE')); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) { this.target.stunTimer = 3.0; } } this.attackCooldown = this.maxAttackCooldown; }
                 break;
             case 'FLEE':
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
@@ -1920,12 +1920,12 @@ class Building extends Entity {
         this.isUpgraded = false;
         
         if (c && c.yOffset) {
-        if (this.flashTimer > 0) this.flashTimer -= dtSec;
             this.hitboxOffset = {x: 0, y: -c.yOffset/2}; 
         }
     }
     getVisionRange() { return BUILDING_CONFIG[this.type] ? BUILDING_CONFIG[this.type].vision : 200; }
     update(dtSec) {
+        if (this.flashTimer > 0) this.flashTimer -= dtSec;
         if (this.fireTimer > 0) this.fireTimer -= dtSec;
 
         if (this.isRepairing) {
@@ -2246,12 +2246,12 @@ class Spawner extends Entity {
         this.daysSurvived = 0;
         
         this.baseRadius = conf.baseRadius;
-        if (this.flashTimer > 0) this.flashTimer -= dtSec;
         this.radius = this.baseRadius;
         this.spawnRate = conf.spawnRate;
         this.spawnTimer = Math.random() * this.spawnRate;
     }
     update(dtSec) { 
+        if (this.flashTimer > 0) this.flashTimer -= dtSec;
         const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
         if (!inBlackout) {
             this.spawnTimer += dtSec; 
@@ -2345,12 +2345,12 @@ class Volcano extends Entity {
                 const target = targets[i % targets.length];
                 const dmg = Math.floor(target.maxHp * 0.25);
                 Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, target, dmg, this, 'FIREBALL'));
-        if (this.flashTimer > 0) this.flashTimer -= dtSec;
             }
             Game.spawnFloatingText(this.pos.x, this.pos.y - 60, "ERUPTION!", "#e53e3e", 2.0, 24);
         }
     }
     update(dtSec) {
+        if (this.flashTimer > 0) this.flashTimer -= dtSec;
         if (this.stunTimer > 0) { this.stunTimer -= dtSec; return; }
         this.attackTimer -= dtSec;
         if (this.attackTimer <= 0) {
