@@ -24,7 +24,7 @@
             <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>Medium Tax (50%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">Medium Tax</button>
             <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>High Tax (75%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">High Tax</button>
         </span>
-        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, \'Upkeep\', \'<span style=&quot;color:white;&quot;>Low Upkeep (0-20 pop):</span> 100% of gold<br><span style=&quot;color:#ffcc00;&quot;>Medium Upkeep (21-40 pop):</span> 75% of gold<br><span style=&quot;color:#f97316;&quot;>High Upkeep (41-80 pop):</span> 50% of gold<br><span style=&quot;color:#ef4444;&quot;>Extreme Upkeep (81+ pop):</span> 25% of gold<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>High population kingdoms lose efficiency. Gold from shops and monster kills is reduced.</span>\')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
             <span id="upkeep-display" style="font-weight: bold; color: #22c55e;">Low Upkeep</span>
         </span>
         <span style="margin: 0 15px; margin-left: auto;">|</span>
@@ -230,7 +230,7 @@
         
         <div id="tower-config" style="display:none; margin-top: 10px; border-top: 1px solid #5a4b31; padding-top: 8px;">
             <div class="panel-btn-grid" id="tower-upgrades">
-                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ffcc00; font-style:italic;\'>Costs 400g and 1 🫂</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, \'Upgrade Tower\', \'Increases the tower\\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\\'color:#ffcc00; font-style:italic;\\'>Costs 400g</span>\')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                     <div class="build-btn-header">
                         <div class="build-btn-hotkey">U</div>
                         <div class="build-btn-title">Upgrade</div>
@@ -264,7 +264,7 @@
                 <div class="build-btn-icon">🏚️</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode(\'BUILD_DRUID\')" onmouseenter="Game.showTooltip(event, \'Druid Guild\', \'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally. Druids can also heal damaged buildings.</span>\', true, \'<i>+100🪙 per 🪵</i>\')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
                 <div class="build-btn-icon">🪵</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
@@ -833,7 +833,7 @@ const BUILDING_CONFIG = {
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
     TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false, costIncrement: 200 },
     FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false, popProvided: 3, upgradedPopProvided: 6 },
-    TOWER: { baseCost: 250, hp: 400, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false, popCost: 1, upgradedPopCost: 2 },
+    TOWER: { baseCost: 250, hp: 400, radius: 20, icon: '🔲', fontSize: '30px', foundationRx: 25, foundationRy: 10, yOffset: 15, vision: 250, name: 'Tower', isGuild: false, popCost: 1, upgradedPopCost: 1 },
     TAVERN: { baseCost: 200, hp: 450, radius: 35, icon: '🎪', fontSize: '65px', foundationRx: 45, foundationRy: 15, yOffset: 25, vision: 250, name: 'Tavern', isGuild: false, costIncrement: 200 }
 };
 
@@ -2911,7 +2911,7 @@ const Game = {
         const e = this.selectedEntity;
         if (e && e.type === 'TOWER' && !e.isUpgraded) {
             const {cur: currentPop, max: maxPop} = this.getPopulation();
-            if (this.gold >= 400 && currentPop < maxPop) {
+            if (this.gold >= 400) {
                 this.gold -= 400;
                 e.isUpgraded = true;
                 e.maxHp += 200;
