@@ -893,15 +893,23 @@ class Unit extends Entity {
 class Projectile {
     constructor(x, y, t, d, s, pT = 'MAGIC') { 
         this.pos = new Vec2(x, y); this.target = t; this.damage = d; this.source = s; 
-        this.speed = pT === 'FIREBALL' ? 4 : (pT === 'ARROW' ? 8 : (pT === 'MAGIC_MISSILE' ? 6 : (pT === 'LAVA_ROCK' ? 6 : 5))); 
+        this.speed = pT === 'FIREBALL' ? 4 : (pT === 'ARROW' ? 8 : (pT === 'MAGIC_MISSILE' ? 6 : (pT === 'LAVA_ROCK' ? 6 : (pT === 'HEAL' ? 6 : 5))));
         this.active = true; this.projType = pT; 
     }
     update(dtSec) { 
         if (!this.target.active) { this.active = false; return; } 
         if (this.pos.distSq(this.target.pos) <= (this.speed*2)**2) { 
-            this.target.takeDamage(this.damage, this.source); 
-            if (this.projType === 'FIREBALL' && typeof this.target.fireTimer !== 'undefined') {
-                this.target.fireTimer = 4.0;
+            if (this.projType === 'HEAL') {
+                const healAmt = Math.min(this.damage, this.target.maxHp - this.target.hp);
+                if (healAmt > 0) {
+                    this.target.hp += healAmt;
+                    Game.spawnFloatingText(this.target.pos.x, this.target.pos.y, `+${Math.floor(healAmt)}`, '#48bb78', 1.0, 16);
+                }
+            } else {
+                this.target.takeDamage(this.damage, this.source);
+                if (this.projType === 'FIREBALL' && typeof this.target.fireTimer !== 'undefined') {
+                    this.target.fireTimer = 4.0;
+                }
             }
             this.active = false; 
         } 
@@ -910,6 +918,7 @@ class Projectile {
             this.pos.x += (dx/d)*this.speed*dtSec*60; this.pos.y += (dy/d)*this.speed*dtSec*60;
             if (this.projType === 'MAGIC_MISSILE' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#3a2e1d');
             if (this.projType === 'FIREBALL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); 
+            if (this.projType === 'HEAL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#48bb78');
         } 
     }
     draw(ctx) { 
@@ -924,6 +933,8 @@ class Projectile {
         } else if (this.projType === 'LAVA_ROCK') {
             const sp = SpriteCache.get('🔴', 16, false, false);
             ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+        } else if (this.projType === 'HEAL') {
+            ctx.fillStyle = '#48bb78'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 4, 0, Math.PI*2); ctx.fill();
         } else { 
             ctx.fillStyle = '#5a4b31'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 3, 0, Math.PI*2); ctx.fill();
         } 
@@ -1271,6 +1282,7 @@ class Hero extends Unit {
         }
         
         if (this.active && src && src.faction==='ENEMY' && this.state !== 'FLEE') {
+            if (this.classType === 'DRUID' && src.type === 'MONSTER') return;
             if (this.state !== 'ATTACK' || (this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') && src.type === 'MONSTER')) {
                 this.target = src;
                 this.state = 'ATTACK';
@@ -1516,29 +1528,43 @@ class Hero extends Unit {
                 }
                 if (this.target.type === 'SHOP' && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); this.state='IDLE'; }
                 if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
-                if (this.target.faction === 'ENEMY') { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && this.skills.includes('CHARGE') && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.radius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.radius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#aaaaaa'); this.state='ATTACK'; } }
+                if (this.target.faction === 'ENEMY' || (this.classType === 'DRUID' && this.target.faction === 'PLAYER' && this.target.hp < this.target.maxHp)) { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && this.skills.includes('CHARGE') && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.radius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.radius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#aaaaaa'); this.state='ATTACK'; } }
+                else if (this.classType === 'DRUID' && this.target.faction === 'PLAYER' && this.target.hp >= this.target.maxHp) { this.state = 'IDLE'; }
                 else if (this.questPhase==='NONE'||this.questPhase==='DO_QUEST'||this.questPhase==='MOVE_TO_TARGET'||this.questPhase==='AT_TARGET') { 
                     if(this.checkThreatTimer<=0) { 
                         this.checkThreatTimer=0.1; 
                         let aggroSq = 40000;
-                        Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
-                            if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
-                                this.target=enemy; this.state='MOVE'; return true;
+                        let foundTarget = false;
+                        if (this.classType === 'DRUID') {
+                            for (let i = 0; i < Game.activeHeroes.length; i++) {
+                                const h = Game.activeHeroes[i];
+                                if (h !== this && h.hp < h.maxHp && this.pos.distSq(h.pos) <= aggroSq) {
+                                    this.target = h; this.state = 'MOVE'; foundTarget = true; break;
+                                }
                             }
-                        }, 'ENEMY');
+                        }
+                        if (!foundTarget) {
+                            Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
+                                if (this.classType === 'DRUID' && enemy.type === 'MONSTER') return false;
+                                if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
+                                    this.target=enemy; this.state='MOVE'; return true;
+                                }
+                            }, 'ENEMY');
+                        }
                     } 
                 }
                 if (this.stateTimer <= 0) { this.evaluateGoals(myBase, hasHeal); this.stateTimer = 1.0; }
                 break;
             case 'ATTACK':
                 if (!this.target || !this.target.active) { this.state='IDLE'; break; }
+                if (this.classType === 'DRUID' && this.target.faction === 'PLAYER' && this.target.hp >= this.target.maxHp) { this.state = 'IDLE'; break; }
                 if (this.pos.distSq(this.target.pos) > (this.attackRange+this.target.radius+5)**2) { this.state='MOVE'; break; }
                 if (this.classType === 'WARRIOR' && this.skills.includes('TAUNT') && this.tauntCooldown <= 0 && this.target && this.target.faction === 'ENEMY') {
                     this.target.target = this;
                     this.tauntCooldown = 10.0;
                     this.tauntVfxTimer = 1.0;
                 }
-                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this)); else if(this.classType==='WIZARD') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'FIREBALL')); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) { this.target.stunTimer = 3.0; } } this.attackCooldown = this.maxAttackCooldown; }
+                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') { if (this.target.faction === 'PLAYER') { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'HEAL')); } else { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this)); } } else if(this.classType==='WIZARD') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'FIREBALL')); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) { this.target.stunTimer = 3.0; } } this.attackCooldown = this.maxAttackCooldown; }
                 break;
             case 'FLEE':
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
@@ -1572,7 +1598,22 @@ class Hero extends Unit {
         }
         
         let bS = -1, bT = null, isQ = false;
+        if (this.classType === 'DRUID') {
+            for (let i = 0; i < Game.activeHeroes.length; i++) {
+                const h = Game.activeHeroes[i];
+                if (h !== this && h.hp < h.maxHp) {
+                    const ds = this.pos.distSq(h.pos);
+                    if (ds <= 40000) {
+                        let missingHpPercent = (h.maxHp - h.hp) / h.maxHp;
+                        let s = (1000 / Math.max(Math.sqrt(ds), 10)) * (1 + missingHpPercent * 5);
+                        if (s > bS) { bS = s; bT = h; }
+                    }
+                }
+            }
+        }
+
         Grid.getNearby(this.pos, 40000, (enemy, ds) => {
+            if (this.classType === 'DRUID' && enemy.type === 'MONSTER') return;
             if(!enemy.isVisible && ds > 22500) return;
 
             let s = 1000/Math.sqrt(ds); 
