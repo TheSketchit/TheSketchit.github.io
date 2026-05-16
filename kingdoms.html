@@ -24,7 +24,7 @@
             <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>Medium Tax (50%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">Medium Tax</button>
             <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>High Tax (75%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">High Tax</button>
         </span>
-        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, \'Upkeep\', \'<span style=&quot;color:white;&quot;>Low Upkeep (0-20 pop):</span> 100% of gold<br><span style=&quot;color:#ffcc00;&quot;>Medium Upkeep (21-40 pop):</span> 75% of gold<br><span style=&quot;color:#f97316;&quot;>High Upkeep (41-80 pop):</span> 50% of gold<br><span style=&quot;color:#ef4444;&quot;>Extreme Upkeep (81+ pop):</span> 25% of gold<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>High population kingdoms lose efficiency. Gold from shops and monster kills is reduced.</span>\')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, 'Upkeep', '<span style=&quot;color:white;&quot;>Low Upkeep (0-20 pop):</span> 100% of gold<br><span style=&quot;color:#ffcc00;&quot;>Medium Upkeep (21-40 pop):</span> 75% of gold<br><span style=&quot;color:#f97316;&quot;>High Upkeep (41-80 pop):</span> 50% of gold<br><span style=&quot;color:#ef4444;&quot;>Extreme Upkeep (81+ pop):</span> 25% of gold<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>High population kingdoms lose efficiency. Gold from shops and monster kills is reduced.</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
             <span id="upkeep-display" style="font-weight: bold; color: #22c55e;">Low Upkeep</span>
         </span>
         <span style="margin: 0 15px; margin-left: auto;">|</span>
@@ -182,6 +182,14 @@
                         <div class="build-btn-icon">🤬</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
+                    <button id="btn-upg-ARCANE_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('ARCANE_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Arcane Aura', 'Heroes near the wizard gain 15% more experience. If the wizard is in a group, only group members are affected, no matter their distance. Buff stacks when grouped with another wizard.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <div class="build-btn-header">
+                            <div class="build-btn-hotkey"></div>
+                            <div class="build-btn-title">Arcane Aura</div>
+                        </div>
+                        <div class="build-btn-icon">🔮</div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
+                    </button>
                 </div>
             </div>
             <div id="guild-slots-ui" style="display:none; margin-top: 10px;">
@@ -230,13 +238,13 @@
         
         <div id="tower-config" style="display:none; margin-top: 10px; border-top: 1px solid #5a4b31; padding-top: 8px;">
             <div class="panel-btn-grid" id="tower-upgrades">
-                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, \'Upgrade Tower\', \'Increases the tower\\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\\'color:#ffcc00; font-style:italic;\\'>Costs 400g</span>\')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <button id="btn-upg-tower" class="menu-btn build-btn" onclick="Game.upgradeTower()" onmouseenter="Game.showTooltip(event, 'Upgrade Tower', 'Increases the tower\'s hitpoints by 200 and allows it to shoot 3 targets at once.<br><span style=\'color:#ffcc00; font-style:italic;\'>Costs 400g</span>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                     <div class="build-btn-header">
                         <div class="build-btn-hotkey">U</div>
                         <div class="build-btn-title">Upgrade</div>
                     </div>
                     <div class="build-btn-icon">🚦</div>
-                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙400 | 1 🫂</span></div>
+                    <div class="build-btn-cost-badge"><span class="build-btn-cost" id="tower-upg-cost">🪙400</span></div>
                 </button>
             </div>
         </div>
@@ -264,7 +272,7 @@
                 <div class="build-btn-icon">🏚️</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode(\'BUILD_DRUID\')" onmouseenter="Game.showTooltip(event, \'Druid Guild\', \'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally. Druids can also heal damaged buildings.</span>\', true, \'<i>+100🪙 per 🪵</i>\')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally. Druids can also heal damaged buildings.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
                 <div class="build-btn-icon">🪵</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
@@ -816,6 +824,7 @@ const HERO_CONFIG = {
 };
 
 const UPGRADE_CONFIG = {
+    ARCANE_AURA: { cost: 200 },
     CHARGE: { cost: 100 },
     RAT_TRAP: { cost: 100 },
     REGROWTH: { cost: 100 },
@@ -855,11 +864,11 @@ let heroGeneration = 1;
 function getHeroSuffix(gen) { if (gen === 1) return ""; if (gen === 2) return " Jr"; let j = gen % 10, k = gen % 100; if (j == 1 && k != 11) return " the " + gen + "st"; if (j == 2 && k != 12) return " the " + gen + "nd"; if (j == 3 && k != 13) return " the " + gen + "rd"; return " the " + gen + "th"; }
 
 class Entity {
-    constructor(x, y) { this.id = crypto.randomUUID(); this.pos = new Vec2(x, y); this.active = true; this.faction = 'NEUTRAL'; this.type = 'ENTITY'; this.radius = 10; this.hitboxOffset = {x: 0, y: 0}; this.hp = 10; this.maxHp = 10; this.lastAttacker = null; this.stunTimer = 0; this.attackers = new Set(); this.isStatic = false; }
+    constructor(x, y) { this.id = crypto.randomUUID(); this.pos = new Vec2(x, y); this.active = true; this.faction = 'NEUTRAL'; this.type = 'ENTITY'; this.radius = 10; this.hitboxOffset = {x: 0, y: 0}; this.hp = 10; this.maxHp = 10; this.lastAttacker = null; this.stunTimer = 0; this.attackers = new Set(); this.isStatic = false; this.flashTimer = 0; }
     update(dtSec) {}
     draw(ctx) {}
     getVisionRange() { return 0; }
-    takeDamage(amt, source) { if (!this.active) return; if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); } this.hp -= amt; this.lastAttacker = source; if (source && typeof source.gainXp === 'function') this.attackers.add(source); Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); if (this.hp <= 0) this.die(); }
+    takeDamage(amt, source) { if (!this.active) return; if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); } this.hp -= amt; this.lastAttacker = source; if (source && typeof source.gainXp === 'function') this.attackers.add(source); if(this.flashTimer <= 0) this.flashTimer = 0.5; Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); if (this.hp <= 0) this.die(); }
     die() { if (!this.active) return; this.active = false; if (this === Game.selectedEntity) Game.selectedEntity = null; }
     drawHP(ctx, yOff = -15) { if (this.hp >= this.maxHp) return; const pct = Math.max(0, this.hp / this.maxHp); ctx.fillStyle = 'red'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30, 4); ctx.fillStyle = '#48bb78'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30 * pct, 4); }
 }
@@ -893,7 +902,7 @@ class Unit extends Entity {
 class Projectile {
     constructor(x, y, t, d, s, pT = 'MAGIC') { 
         this.pos = new Vec2(x, y); this.target = t; this.damage = d; this.source = s; 
-        this.speed = pT === 'FIREBALL' ? 4 : (pT === 'ARROW' ? 8 : (pT === 'MAGIC_MISSILE' ? 6 : (pT === 'LAVA_ROCK' ? 6 : (pT === 'HEAL' ? 6 : 5))));
+        this.speed = pT === 'FIREBALL' ? 4 : (pT === 'ARROW' ? 8 : (pT === 'DRUID_MAGIC' ? 6 : (pT === 'MAGIC_MISSILE' ? 6 : (pT === 'LAVA_ROCK' ? 6 : (pT === 'HEAL' ? 6 : 5)))));
         this.active = true; this.projType = pT; 
     }
     update(dtSec) { 
@@ -917,7 +926,8 @@ class Projectile {
             const dx = this.target.pos.x - this.pos.x, dy = this.target.pos.y - this.pos.y, d = Math.sqrt(dx*dx+dy*dy);
             this.pos.x += (dx/d)*this.speed*dtSec*60; this.pos.y += (dy/d)*this.speed*dtSec*60;
             if (this.projType === 'MAGIC_MISSILE' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#3a2e1d');
-            if (this.projType === 'FIREBALL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); 
+            if (this.projType === 'FIREBALL' && true) Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e');
+            if (this.projType === 'DRUID_MAGIC' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#48bb78');
             if (this.projType === 'HEAL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#48bb78');
         } 
     }
@@ -928,13 +938,16 @@ class Projectile {
         } else if (this.projType === 'ARROW') { 
             ctx.save(); ctx.translate(this.pos.x, this.pos.y); ctx.rotate(Math.atan2(this.target.pos.y - this.pos.y, this.target.pos.x - this.pos.x)); ctx.fillStyle = '#5c4530'; ctx.fillRect(-6, -1, 12, 2); ctx.restore(); 
         } else if (this.projType === 'FIREBALL') {
-            const sp = SpriteCache.get('🔥', 24, false, false);
+            const sp = SpriteCache.get('🔥', 40, false, false);
             ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
         } else if (this.projType === 'LAVA_ROCK') {
             const sp = SpriteCache.get('🔴', 16, false, false);
             ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
         } else if (this.projType === 'HEAL') {
+            ctx.fillStyle = '#a7f3d0'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 8, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#48bb78'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 4, 0, Math.PI*2); ctx.fill();
+        } else if (this.projType === 'DRUID_MAGIC') {
+            ctx.fillStyle = '#48bb78'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 6, 0, Math.PI*2); ctx.fill();
         } else { 
             ctx.fillStyle = '#5a4b31'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 3, 0, Math.PI*2); ctx.fill();
         } 
@@ -1289,7 +1302,24 @@ class Hero extends Unit {
             }
         }
     }
+    getArcaneAuraCount() {
+        let count = 0;
+        for (let i = 0; i < Game.playerEntities.length; i++) {
+            const w = Game.playerEntities[i];
+            if (w.active && w.classType === 'WIZARD' && w.skills && w.skills.includes('ARCANE_AURA')) {
+                if (w.groupId) {
+                    if (this.groupId === w.groupId) count++;
+                } else {
+                    if (!this.groupId && this.pos.distSq(w.pos) <= 40000) count++;
+                }
+            }
+        }
+        return count;
+    }
+
     gainXp(a) { 
+        let mult = 1.0 + (0.15 * this.getArcaneAuraCount());
+        a = Math.round(a * mult);
         this.xp += a; 
         if (this.xp >= this.level*100) { 
             this.xp -= this.level*100; 
@@ -1564,7 +1594,7 @@ class Hero extends Unit {
                     this.tauntCooldown = 10.0;
                     this.tauntVfxTimer = 1.0;
                 }
-                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') { if (this.target.faction === 'PLAYER') { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'HEAL')); } else { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this)); } } else if(this.classType==='WIZARD') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'FIREBALL')); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) { this.target.stunTimer = 3.0; } } this.attackCooldown = this.maxAttackCooldown; }
+                if (this.attackCooldown <= 0) { let d = this.damage, cr = false; if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; } if(this.classType==='DRUID') { if (this.target.faction === 'PLAYER') { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'HEAL')); } else { Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,"DRUID_MAGIC")); } } else if(this.classType==='WIZARD') Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'FIREBALL')); else { this.target.takeDamage(d,this); if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e'); if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) { this.target.stunTimer = 3.0; } } this.attackCooldown = this.maxAttackCooldown; }
                 break;
             case 'FLEE':
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
@@ -1813,7 +1843,10 @@ class Hero extends Unit {
         }
     }
     draw(ctx) {
-        if (this.isHealingAt) return; 
+        if (this.isHealingAt) return;
+        if (this.getArcaneAuraCount() > 0) {
+            ctx.save(); ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; ctx.beginPath(); ctx.ellipse(this.pos.x, this.pos.y+5, 12, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        }
         const conf = HERO_CONFIG[this.classType];
         const e = conf.icon; let dX=this.pos.x, dY=this.pos.y, rot=0;
         if(this.classType==='DRUID' || this.classType==='WIZARD') dY+=Math.sin(Game.timeMs*0.006)*3;
@@ -1887,6 +1920,7 @@ class Building extends Entity {
         this.isUpgraded = false;
         
         if (c && c.yOffset) {
+        if (this.flashTimer > 0) this.flashTimer -= dtSec;
             this.hitboxOffset = {x: 0, y: -c.yOffset/2}; 
         }
     }
@@ -1945,7 +1979,7 @@ class Building extends Entity {
             const iconToDraw = (this.isUpgraded && conf.upgradedIcon) ? conf.upgradedIcon : conf.icon;
             const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
             const sp = conf.imageSrc ? SpriteCache.getImage(conf.imageSrc, parseInt(conf.fontSize), true, true, outC) : SpriteCache.get(iconToDraw, parseInt(conf.fontSize), true, true, outC);
-            ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+            if (this.flashTimer > 0) ctx.filter = 'brightness(2.5)'; ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy); if (this.flashTimer > 0) ctx.filter = 'none';
             
             if (this.type === 'TOWER') { 
                 const hY = Math.sin(Game.timeMs * 0.006) * 4; 
@@ -2212,6 +2246,7 @@ class Spawner extends Entity {
         this.daysSurvived = 0;
         
         this.baseRadius = conf.baseRadius;
+        if (this.flashTimer > 0) this.flashTimer -= dtSec;
         this.radius = this.baseRadius;
         this.spawnRate = conf.spawnRate;
         this.spawnTimer = Math.random() * this.spawnRate;
@@ -2275,7 +2310,7 @@ class Spawner extends Entity {
         
         const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
         const sp = SpriteCache.get(ic, 40+(this.daysSurvived*4), true, true, outC); 
-        ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+        if (this.flashTimer > 0) ctx.filter = 'brightness(2.5)'; ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy); if (this.flashTimer > 0) ctx.filter = 'none';
         this.drawHP(ctx, -25-(this.daysSurvived*2));
     }
 }
@@ -2310,6 +2345,7 @@ class Volcano extends Entity {
                 const target = targets[i % targets.length];
                 const dmg = Math.floor(target.maxHp * 0.25);
                 Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, target, dmg, this, 'FIREBALL'));
+        if (this.flashTimer > 0) this.flashTimer -= dtSec;
             }
             Game.spawnFloatingText(this.pos.x, this.pos.y - 60, "ERUPTION!", "#e53e3e", 2.0, 24);
         }
@@ -2406,7 +2442,7 @@ class Volcano extends Entity {
         
         const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
         const sp = SpriteCache.get('🗻', 80, true, true, outC); 
-        ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+        if (this.flashTimer > 0) ctx.filter = 'brightness(2.5)'; ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy); if (this.flashTimer > 0) ctx.filter = 'none';
         
         ctx.fillStyle = '#e53e3e'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
         ctx.fillText(Math.ceil(this.attackTimer) + "s", this.pos.x, this.pos.y - 60);
@@ -2523,7 +2559,6 @@ const Game = {
             upgSpan._lastUpkeep = uInfo.text;
             upgSpan.style.color = uInfo.color;
             upgSpan.innerText = uInfo.text;
-            document.getElementById('upkeep-container').onmouseenter = (e) => Game.showTooltip(e, `<span style="color:${uInfo.color}">${uInfo.text}</span>`, `You receive ${uInfo.desc} of purchases from shops.`, true);
         }
 
         const updateBtn = (id, cost) => {
@@ -2637,9 +2672,9 @@ const Game = {
                     UI.setText('tower-upg-cost', 'Upgraded');
                     UI.setColor('tower-upg-cost', '#aaaaaa');
                 } else {
-                    const canAfford = this.gold >= 400 && currentPop < maxPop;
+                    const canAfford = this.gold >= 400;
                     UI.setDisabled(upgBtn, !canAfford);
-                    UI.setText('tower-upg-cost', '🪙400 | 1 🫂');
+                    UI.setText('tower-upg-cost', '🪙400');
                     UI.setColor('tower-upg-cost', this.gold >= 400 ? '#ffcc00' : '#e53e3e');
                 }
             }
@@ -2682,7 +2717,7 @@ const Game = {
                     UI.setDisplay('guild-select-ui', 'block');
                     UI.setDisplay('guild-slots-ui', 'none');
 
-                    const upgs = ['CHARGE','RAT_TRAP','REGROWTH','MARK_OF_THE_WILD','CHEAP_SHOT','TAUNT'];
+                    const upgs = ['CHARGE','RAT_TRAP','REGROWTH','MARK_OF_THE_WILD','CHEAP_SHOT','TAUNT','ARCANE_AURA'];
                     upgs.forEach(u => UI.setDisplay(`btn-upg-${u}`, 'none'));
 
                     const showUpg = (u) => {
@@ -2695,7 +2730,7 @@ const Game = {
                     if (hClass === 'WARRIOR') { showUpg('CHARGE'); showUpg('TAUNT'); }
                     else if (hClass === 'ROGUE') { showUpg('RAT_TRAP'); showUpg('CHEAP_SHOT'); }
                     else if (hClass === 'DRUID') { showUpg('REGROWTH'); showUpg('MARK_OF_THE_WILD'); }
-                    else if (hClass === 'WIZARD') { }
+                    else if (hClass === 'WIZARD') { showUpg('ARCANE_AURA'); }
                 } else {
                     UI.setDisplay('guild-select-ui', 'none');
                     UI.setDisplay('guild-slots-ui', 'block');
