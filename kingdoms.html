@@ -282,17 +282,17 @@
             <button class="menu-btn build-btn" id="btn-rogue-guild" onclick="setMode('BUILD_ROGUE')" onmouseenter="Game.showTooltip(event, 'Rogue Guild', 'Recruit up to 3 Rogues per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Rogues aren\'t as strong as warriors, but have other tricks up their sleeves.</span>', true, '<i>+100🪙 per 🏚️</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Rogues</div></div>
                 <div class="build-btn-icon">🏚️</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally. Druids can also heal damaged buildings.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
                 <div class="build-btn-icon">🪵</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙125</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-wizard-guild" onclick="setMode('BUILD_WIZARD')" onmouseenter="Game.showTooltip(event, 'Wizard Guild', 'Recruit up to 3 Wizards per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Wizards have a long-ranged attack.</span>', true, '<i>+100🪙 per 🏯</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">4</div><div class="build-btn-title">Wizards</div></div>
                 <div class="build-btn-icon">🏯</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>All Gold spent by Heroes for items goes directly back to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">5</div><div class="build-btn-title">Shop</div></div>
@@ -832,8 +832,8 @@ const ITEM_CONFIG = {
 const HERO_CONFIG = {
     WARRIOR: { maxHp: 175, speed: 1.1, damage: 15, maxAttackCooldown: 0.9, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'SWORD', 'CHAINMAIL'] },
     ROGUE: { maxHp: 90, speed: 1.32, damage: 20, maxAttackCooldown: 0.8, radius: 10, icon: '🥷', recruitCost: 85, requiredItems: ['POTION', 'DAGGER', 'ROGUES_DISGUISE'] },
-    DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.3, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 110, requiredItems: ['POTION', 'WAND', 'ROBE_OF_THORNS'] },
-    WIZARD: { maxHp: 65, speed: 1.2, damage: 18, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 150, requiredItems: ['POTION', 'WAND', 'TOME_OF_POWER'] }
+    DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.3, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 85, requiredItems: ['POTION', 'WAND', 'ROBE_OF_THORNS'] },
+    WIZARD: { maxHp: 65, speed: 1.2, damage: 18, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 125, requiredItems: ['POTION', 'WAND', 'TOME_OF_POWER'] }
 };
 
 const UPGRADE_CONFIG = {
@@ -850,9 +850,9 @@ const UPGRADE_CONFIG = {
 const BUILDING_CONFIG = {
     CASTLE: { baseCost: 0, hp: 1000, radius: 80, icon: '🏰', imageSrc: 'assets/Castle.png', fontSize: '160px', foundationRx: 100, foundationRy: 30, yOffset: 55, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
     WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
-    ROGUE_GUILD: { baseCost: 150, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
-    DRUID_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
-    WIZARD_GUILD: { baseCost: 175, hp: 250, radius: 30, icon: '🏯', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Wizard Guild', isGuild: true, heroClass: 'WIZARD' },
+    ROGUE_GUILD: { baseCost: 175, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
+    DRUID_GUILD: { baseCost: 125, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
+    WIZARD_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🏯', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Wizard Guild', isGuild: true, heroClass: 'WIZARD' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
     TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false, costIncrement: 200 },
     FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false, popProvided: 3, upgradedPopProvided: 6 },
@@ -2147,7 +2147,7 @@ class DruidHero extends Hero {
         return target.faction === 'ENEMY' || (target.faction === 'PLAYER' && target.hp < target.maxHp && target.classType);
     }
     shouldStopAttack(target) {
-        return target.faction === 'PLAYER' && (target.hp >= target.maxHp || !target.classType);
+        return target.faction === 'PLAYER' && target.classType && target.hp >= target.maxHp;
     }
     findCustomThreatAggro(aggroSq) {
         let bestTarget = null;
@@ -2194,7 +2194,7 @@ class DruidHero extends Hero {
                 }
             }
         }
-        return { bS, bT };
+        return (bS > -1) ? { bS, bT } : null;
     }
     getDrawOffset() { return { dX: 0, dY: Math.sin(Game.timeMs * 0.006) * 3, rot: 0 }; }
 }
