@@ -332,8 +332,8 @@
                 <div class="build-btn-icon" style="color: #ffcc00; text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;">⚑</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙25</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-flag-defend" onclick="setMode('FLAG_DEFEND')" onmouseenter="Game.showTooltip(event, 'Defend Quest', 'Send up to 3 Heroes to defend a building.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Defend for 20 seconds to split the bounty among defenders. Max 1 Druid.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Defend</div></div>
+            <button class="menu-btn build-btn" id="btn-flag-patrol" onclick="setMode('FLAG_PATROL')" onmouseenter="Game.showTooltip(event, 'Patrol Quest', 'Send 4 Heroes to patrol a route.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Press [Z] to rotate the patrol route. Max 1 Druid.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Patrol</div></div>
                 <div class="build-btn-icon" style="color: #3a2e1d; text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;">⚑</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙50</span></div>
             </button>
@@ -367,6 +367,7 @@ const Engine = {
     audioCtx: null,
     masterGain: null,
     reverbNode: null,
+    fireballBuffer: null,
 
     initAudio() {
         if (this.audioCtx) return;
@@ -374,6 +375,12 @@ const Engine = {
         this.masterGain = this.audioCtx.createGain();
         this.masterGain.gain.value = 0.5;
         this.masterGain.connect(this.audioCtx.destination);
+
+        fetch('assets/fireball_hit.wav')
+            .then(res => res.arrayBuffer())
+            .then(buf => this.audioCtx.decodeAudioData(buf))
+            .then(decoded => { this.fireballBuffer = decoded; })
+            .catch(e => console.error('Failed to load fireball_hit.wav', e));
 
         this.reverbNode = this.audioCtx.createConvolver();
         const rate = this.audioCtx.sampleRate;
@@ -447,6 +454,43 @@ const Engine = {
         this.playDoomStab(startT, 43.65, 0.5);
         this.playDoomStab(startT + 0.4, 38.89, 0.5);
         this.playDoomStab(startT + 0.8, 36.71, 3.5);
+    },
+
+    playFireballHit(x, y) {
+        if (!this.audioCtx || !this.fireballBuffer) return;
+        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+
+        const dx = x - Camera.x;
+        const dy = y - Camera.y;
+        const distSq = dx * dx + dy * dy;
+
+        const maxDist = 2000;
+        const maxDistSq = maxDist * maxDist;
+
+        let vol = 0;
+        if (distSq < maxDistSq) {
+            const dist = Math.sqrt(distSq);
+            vol = Math.pow(1 - (dist / maxDist), 3);
+        }
+
+        if (vol <= 0.01) return;
+
+        const panVal = Math.max(-1, Math.min(1, dx / (maxDist * 0.5)));
+
+        const source = this.audioCtx.createBufferSource();
+        source.buffer = this.fireballBuffer;
+
+        const panner = this.audioCtx.createStereoPanner();
+        panner.pan.value = panVal;
+
+        const gainNode = this.audioCtx.createGain();
+        gainNode.gain.value = vol;
+
+        source.connect(panner);
+        panner.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        source.start();
     }
 };
 
@@ -473,6 +517,7 @@ window.addEventListener('keydown', e => {
         if (k === 'b') switchMenu('BUILD');
         if (k === 'f') setMode('REPAIR');
         if (k === '\\') Game.fogOfWar = !Game.fogOfWar;
+        if (k === 'z' && Game.mode === 'FLAG_PATROL') Game.patrolVertical = !Game.patrolVertical;
 
         if (k === 'e') {
             const rates = [0.25, 0.5, 0.75];
@@ -509,7 +554,7 @@ window.addEventListener('keydown', e => {
             let btnId = k === '1' ? 'btn-warrior-guild' : (k === '2' ? 'btn-rogue-guild' : (k === '3' ? 'btn-druid-guild' : (k === '4' ? 'btn-wizard-guild' : (k === '5' ? 'btn-shop' : (k === '6' ? 'btn-farm' : (k === '7' ? 'btn-tower' : (k === '8' ? 'btn-tavern' : (k === '9' ? 'btn-temple' : null))))))));
             if (btnId) { const btn = document.getElementById(btnId); if (btn && !btn.disabled) btn.click(); }
         } else if (commandMenuVisible) {
-            let btnId = k === '1' ? 'btn-flag-explore' : (k === '2' ? 'btn-flag-defend' : (k === '3' ? 'btn-flag-attack' : (k === '4' ? 'btn-flag-group-attack' : null)));
+            let btnId = k === '1' ? 'btn-flag-explore' : (k === '2' ? 'btn-flag-patrol' : (k === '3' ? 'btn-flag-attack' : (k === '4' ? 'btn-flag-group-attack' : null)));
             if (btnId) { const btn = document.getElementById(btnId); if (btn && !btn.disabled) btn.click(); }
         }
     }
@@ -812,7 +857,7 @@ const GAME_CONFIG = {
 
 const QUEST_CONFIG = {
     FLAG_EXPLORE: { cost: 25, bounty: 25, name: 'Explore Quest ⚑', icon: '⚑', maxReq: 1, duration: 20 },
-    FLAG_DEFEND: { cost: 50, bounty: 50, name: 'Defend Quest ⚑', icon: '⚑', maxReq: 3, duration: 20 },
+    FLAG_PATROL: { cost: 50, bounty: 50, name: 'Patrol Quest ⚑', icon: '⚑', maxReq: 4, duration: 20 },
     FLAG_ATTACK: { cost: 75, bounty: 75, name: 'Attack Quest ⚑', icon: '⚑', maxReq: 3, duration: 20 },
     FLAG_GROUP_ATTACK: { cost: 75, bounty: 75, name: 'Group Quest ⚑', icon: '🍻', maxReq: 3, duration: 20 }
 };
@@ -959,6 +1004,7 @@ class Projectile {
                 this.target.takeDamage(this.damage, this.source);
                 if (this.projType === 'FIREBALL' && typeof this.target.fireTimer !== 'undefined') {
                     this.target.fireTimer = 4.0;
+                    Engine.playFireballHit(this.target.pos.x, this.target.pos.y);
                 }
             }
             this.active = false; 
@@ -1426,10 +1472,10 @@ class Hero extends Unit {
         for (let i = 0; i < Game.playerEntities.length; i++) {
             const w = Game.playerEntities[i];
             if (w.active && w.classType === 'WIZARD' && w.skills && w.skills.includes('ARCANE_AURA')) {
-                if (w.groupId) {
+                if (this.groupId) {
                     if (this.groupId === w.groupId) count++;
-                } else {
-                    if (!this.groupId && this.pos.distSq(w.pos) <= 40000) count++;
+                } else if (w === this) {
+                    count++;
                 }
             }
         }
@@ -1463,7 +1509,7 @@ class Hero extends Unit {
         super.die(); 
         this.isDead = true;
         Game.heroDeaths++; 
-        Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, damageDealt: this.damageDealt });
+        Game.hallOfFame.push({ id: this.id, name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, damageDealt: this.damageDealt });
         let gN = this.getClassName();
         this.tombstoneEntity = new Tombstone(this.pos.x, this.pos.y, this.name, gN, this.level, this.kills);
         this.tombstoneEntity.heroRef = this;
@@ -1644,8 +1690,13 @@ class Hero extends Unit {
                     } else {
                         const tPos = this.currentQuest.targetEntity ? this.currentQuest.targetEntity.pos : this.currentQuest.pos;
                         if (this.currentQuest.type==='FLAG_EXPLORE' && this.questPhase==='DO_QUEST' && (reached || this.pos.distSq(tPos)<400)) { this.personalGold += this.currentQuest.bounty; this.lifetimeGold += this.currentQuest.bounty; this.gainXp(10); Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00'); this.currentQuest.active=false; Game.questsCompleted++; this.currentQuest=null; this.questPhase='NONE'; this.state='IDLE'; }
-                        else if (this.currentQuest.type==='FLAG_DEFEND' && (reached || this.pos.distSq(tPos)<1600)) { 
-                            if(this.pos.distSq(tPos)>900) { const dx=tPos.x-this.pos.x, dy=tPos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){this.pos.x+=(dx/d)*0.5; this.pos.y+=(dy/d)*0.5;} } else { this.pos.x += Math.cos(this.wanderAngle)*0.5; this.pos.y += Math.sin(this.wanderAngle)*0.5; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); } 
+                        else if (this.currentQuest.type==='FLAG_PATROL') {
+                            this.patrolIndex = this.patrolIndex || 0;
+                            if (this.currentQuest.patrolPoints) {
+                                const pt = this.currentQuest.patrolPoints[this.patrolIndex % this.currentQuest.patrolPoints.length];
+                                this.moveTowards(pt);
+                                if (this.pos.distSq(pt) < 400) this.patrolIndex++;
+                            }
                         }
                         else if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type)) {
                             if (this.questPhase==='MOVE_TO_TARGET' && (reached || this.pos.distSq(tPos) < 22500)) this.questPhase='AT_TARGET';
@@ -1992,7 +2043,7 @@ class Hero extends Unit {
         if(this.regrowthHealVfxTimer>0){ const lh = SpriteCache.get('🍃', 20, false, false); ctx.drawImage(lh.img, dX - lh.ox, dY - (this.chargeVfxTimer>0?55:35) - lh.oy); }
         if(this.levelUpVfxTimer>0){ const luY=Math.sin(Game.timeMs*0.01)*4; const lu = SpriteCache.get('🎉', 24, false, false); ctx.drawImage(lu.img, dX - lu.ox, dY - 60 + luY - lu.oy); }
         if(this.currentQuest && this.currentQuest.active && this.state !== 'FLEE'){
-            ctx.save();ctx.translate(dX,dY-40);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-12);ctx.strokeStyle='#f0e6d2';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(10,-8);ctx.lineTo(0,-4);ctx.fillStyle=this.currentQuest.type==='FLAG_EXPLORE'?'#ffcc00':(this.currentQuest.type==='FLAG_DEFEND'?'#3a2e1d':'#e53e3e');ctx.fill();
+            ctx.save();ctx.translate(dX,dY-40);ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-12);ctx.strokeStyle='#f0e6d2';ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(10,-8);ctx.lineTo(0,-4);ctx.fillStyle=this.currentQuest.type==='FLAG_EXPLORE'?'#ffcc00':(this.currentQuest.type==='FLAG_PATROL'?'#3a2e1d':'#e53e3e');ctx.fill();
             if(this.currentQuest.type === 'FLAG_GROUP_ATTACK') { ctx.fillStyle='white'; ctx.font = '12px Arial'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('🍻', 12, -8); }
             ctx.restore();
         }
@@ -2388,6 +2439,16 @@ class Flag extends Entity {
         this.sourceTavern = sourceTav;
         this.radius = 20;
         this.hitboxOffset = {x: 0, y: -15};
+        if (t === 'FLAG_PATROL') {
+            const w = Game.patrolVertical ? 280 : 560;
+            const h = Game.patrolVertical ? 560 : 280;
+            this.patrolPoints = [
+                new Vec2(x - w/2, y - h/2),
+                new Vec2(x + w/2, y - h/2),
+                new Vec2(x + w/2, y + h/2),
+                new Vec2(x - w/2, y + h/2)
+            ];
+        }
     }
     update(dtSec) {
         if (this.targetEntity) { if (!this.targetEntity.active) this.active = false; else { this.pos.x = this.targetEntity.pos.x; this.pos.y = this.targetEntity.pos.y - 30; } }
@@ -2409,7 +2470,6 @@ class Flag extends Entity {
                     if (['WAITING_FOR_GROUP', 'MOVE_TO_TARGET', 'AT_TARGET'].includes(h.questPhase)) readyCount++;
                     if (h.questPhase === 'AT_TARGET') atTargCount++;
                     if (h.classType === 'DRUID') druidCountAssigned++;
-                    if (this.type === 'FLAG_DEFEND' && this.targetEntity && h.pos.distSq(this.targetEntity.pos) < 2500) defs.push(h);
                 }
             }
 
@@ -2468,7 +2528,7 @@ class Flag extends Entity {
                     const h = Game.activeHeroes[i];
                     if (!h.currentQuest && !h.groupId) {
                         if (this.type === 'FLAG_EXPLORE' && h.classType === 'DRUID') continue;
-                        if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
+                        if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_PATROL') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
                         av.push(h);
                     }
                 }
@@ -2484,14 +2544,28 @@ class Flag extends Entity {
                     }
                     while (ass.length < maxReq && av.length > 0) { 
                         let h = av.shift();
-                        if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
+                        if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_PATROL') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
                         h.currentQuest = this; h.questPhase = (h.target && h.target.faction==='ENEMY')?'FINISH_COMBAT':'HEAL_AT_BASE'; ass.push(h);
                         if (h.classType === 'DRUID') druidCountAssigned++;
                     }
                 }
             }
-            if (this.type === 'FLAG_DEFEND') {
-                if (defs.length > 0) { this.defendTimer -= dtSec; if (this.defendTimer <= 0) { const s = Math.floor(this.bounty / defs.length); defs.forEach(d => { d.personalGold += s; d.lifetimeGold += s; d.gainXp(15); Game.spawnParticle(d.pos.x, d.pos.y, '#ffcc00'); d.currentQuest = null; d.questPhase = 'NONE'; d.state = 'IDLE'; }); this.active = false; Game.questsCompleted++; } }
+            if (this.type === 'FLAG_PATROL') {
+                let anyFinished = false;
+                ass.forEach(a => {
+                    if (a.patrolIndex >= 4) {
+                        anyFinished = true;
+                        const s = Math.floor(this.bounty / maxReq);
+                        a.personalGold += s; a.lifetimeGold += s; a.gainXp(15); Game.spawnParticle(a.pos.x, a.pos.y, '#1e3a8a');
+                        a.currentQuest = null; a.questPhase = 'NONE'; a.state = 'IDLE'; a.patrolIndex = 0;
+                    }
+                });
+                if (anyFinished) {
+                    ass = ass.filter(a => a.currentQuest === this);
+                    if (ass.length === 0) {
+                        this.active = false; Game.questsCompleted++;
+                    }
+                }
             } else if (this.type === 'FLAG_ATTACK') {
                 const fleeLimit = maxReq === 3 ? 2 : 1;
                 if (fleeingCount >= fleeLimit) { 
@@ -2533,9 +2607,17 @@ class Flag extends Entity {
             ctx.stroke();
             ctx.restore();
         }
-        ctx.beginPath(); ctx.moveTo(this.pos.x, this.pos.y); ctx.lineTo(this.pos.x, this.pos.y-30); ctx.strokeStyle='#f0e6d2'; ctx.lineWidth=2; ctx.stroke(); ctx.beginPath(); ctx.moveTo(this.pos.x, this.pos.y-30); ctx.lineTo(this.pos.x+15, this.pos.y-22); ctx.lineTo(this.pos.x, this.pos.y-15); ctx.fillStyle=(this.type==='FLAG_ATTACK'||this.type==='FLAG_GROUP_ATTACK')?'#e53e3e':(this.type==='FLAG_DEFEND'?'#3a2e1d':'#ffcc00'); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(this.pos.x, this.pos.y); ctx.lineTo(this.pos.x, this.pos.y-30); ctx.strokeStyle='#f0e6d2'; ctx.lineWidth=2; ctx.stroke(); ctx.beginPath(); ctx.moveTo(this.pos.x, this.pos.y-30); ctx.lineTo(this.pos.x+15, this.pos.y-22); ctx.lineTo(this.pos.x, this.pos.y-15); ctx.fillStyle=(this.type==='FLAG_ATTACK'||this.type==='FLAG_GROUP_ATTACK')?'#e53e3e':(this.type==='FLAG_PATROL'?'#3a2e1d':'#ffcc00'); ctx.fill();
         if (this.type === 'FLAG_GROUP_ATTACK') { ctx.fillStyle='white'; ctx.font='16px Arial'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText('🍻', this.pos.x + 18, this.pos.y - 22); }
-        if (this.type==='FLAG_DEFEND') { ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 40, 0, Math.PI*2); ctx.setLineDash([5,5]); ctx.strokeStyle='rgba(49,130,206,0.5)'; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]); } 
+        if (this.type==='FLAG_PATROL' && this.patrolPoints) {
+            ctx.beginPath();
+            ctx.moveTo(this.patrolPoints[0].x, this.patrolPoints[0].y);
+            ctx.lineTo(this.patrolPoints[1].x, this.patrolPoints[1].y);
+            ctx.lineTo(this.patrolPoints[2].x, this.patrolPoints[2].y);
+            ctx.lineTo(this.patrolPoints[3].x, this.patrolPoints[3].y);
+            ctx.closePath();
+            ctx.setLineDash([5,5]); ctx.strokeStyle='rgba(49,130,206,0.5)'; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+        }
         
         let assCount = 0;
         let totalHNoGroup = 0;
@@ -2543,10 +2625,9 @@ class Flag extends Entity {
             if (Game.activeHeroes[i].currentQuest === this) assCount++;
             if (!Game.activeHeroes[i].groupId) totalHNoGroup++;
         }
-        const maxR = this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? assCount : Math.min(3, Math.max(1, totalHNoGroup))); 
+        const maxR = this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? assCount : (this.type === 'FLAG_PATROL' ? Math.min(4, Math.max(1, totalHNoGroup)) : Math.min(3, Math.max(1, totalHNoGroup))));
         
         ctx.fillStyle='white'; ctx.font='11px Arial'; ctx.textAlign='center'; ctx.fillText(`${assCount}/${maxR}`, this.pos.x, this.pos.y-35); 
-        if (this.type==='FLAG_DEFEND' && this.defendTimer<20) { ctx.fillStyle='#ffcc00'; ctx.font='bold 12px Arial'; ctx.fillText(`${Math.ceil(this.defendTimer)}s`, this.pos.x, this.pos.y-48); }
     }
 }
 
@@ -2831,7 +2912,7 @@ const Game = {
     shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [], ashPits: [], trees: null,
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
-    guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false, gameWon: false,
+    guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false, gameWon: false, patrolVertical: false,
     centralSpawnerDeductions: { 'RAT_HOLE': 0, 'WEB': 0, 'SNAKE_NEST': 0 },
     heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
@@ -2969,7 +3050,7 @@ const Game = {
             }
         };
         ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-wizard-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, this.getBuildingCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_'))));
-        ['btn-flag-explore','btn-flag-defend','btn-flag-attack', 'btn-flag-group-attack'].forEach(id => updateBtn(id, QUEST_CONFIG[id.replace('btn-', '').toUpperCase().replace(/-/g,'_')].cost));
+        ['btn-flag-explore','btn-flag-patrol','btn-flag-attack', 'btn-flag-group-attack'].forEach(id => updateBtn(id, QUEST_CONFIG[id.replace('btn-', '').toUpperCase().replace(/-/g,'_')].cost));
 
         const panel = document.getElementById('info-panel');
         if (this.selectedEntity && this.selectedEntity.active) {
@@ -3297,6 +3378,8 @@ const Game = {
         if (this.gold >= cost) {
             this.gold -= cost;
             t.die(); // Deactivates tombstone
+
+            this.hallOfFame = this.hallOfFame.filter(entry => entry.id !== h.id);
 
             h.active = true;
             h.isDead = false;
@@ -3645,7 +3728,7 @@ function setMode(m) {
     Game.mode = m; 
     if (m !== 'NONE' && Game.selectedEntity) { Game.selectedEntity = null; Game.hideTooltip(); Game.updateUI(true); }
     document.querySelectorAll('#bottom-bar button').forEach(b => UI.setClass(b, 'active', false)); 
-    const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_WIZARD':'btn-wizard-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','BUILD_TEMPLE':'btn-temple','FLAG_EXPLORE':'btn-flag-explore','FLAG_DEFEND':'btn-flag-defend','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack', 'REPAIR': 'btn-repair-mode'}[m];
+    const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_WIZARD':'btn-wizard-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','BUILD_TEMPLE':'btn-temple','FLAG_EXPLORE':'btn-flag-explore','FLAG_PATROL':'btn-flag-patrol','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack', 'REPAIR': 'btn-repair-mode'}[m];
     if(id) UI.setClass(id, 'active', true); 
 }
 
@@ -3654,6 +3737,10 @@ document.addEventListener('mouseleave', () => { screenMousePos.x = canvas.width/
 window.addEventListener('wheel', e => { if(Game.isPaused) return; e.preventDefault(); const z = 1.1; if(e.deltaY > 0) Camera.targetZoom /= z; else Camera.targetZoom *= z; Camera.targetZoom = Math.max(0.3, Math.min(2.5, Camera.targetZoom)); }, { passive: false });
 window.addEventListener('mouseup', e => { if (e.button === 1 || e.button === 2) isPanning = false; });
 canvas.addEventListener('mousedown', e => {
+    Engine.initAudio();
+    if (Engine.audioCtx && Engine.audioCtx.state === 'suspended') {
+        Engine.audioCtx.resume();
+    }
     if (Game.gameOver || Game.isPaused) return;
     if (e.button === 1 || e.button === 2) { isPanning = true; panStart = new Vec2(e.clientX, e.clientY); cameraStart = new Vec2(Camera.x, Camera.y); if(e.button===2) { if(Game.mode!=='NONE') setMode('NONE'); else { Game.selectedEntity=null; Game.updateUI(true); } } return; }
     const r = canvas.getBoundingClientRect(); const cp = screenToWorld(e.clientX-r.left, e.clientY-r.top);
@@ -3671,7 +3758,12 @@ canvas.addEventListener('mousedown', e => {
         const questConf = QUEST_CONFIG[Game.mode];
         if (questConf && Game.gold >= questConf.cost) {
             if (Game.mode === 'FLAG_EXPLORE') { Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode)); setMode('NONE'); Game.updateUI(true); }
-            else if (Game.mode === 'FLAG_DEFEND' && clE && clE.faction === 'PLAYER' && !['HERO','TRAP'].includes(clE.type)) { Game.gold -= questConf.cost; Game.addEntity(new Flag(cp.x, cp.y, Game.mode, clE)); setMode('NONE'); Game.updateUI(true); }
+            else if (Game.mode === 'FLAG_PATROL') {
+                const w = Game.patrolVertical ? 280 : 560; const h = Game.patrolVertical ? 560 : 280;
+                if (clampedFlag.x - w/2 >= 0 && clampedFlag.x + w/2 <= WORLD_WIDTH && clampedFlag.y - h/2 >= 0 && clampedFlag.y + h/2 <= WORLD_HEIGHT) {
+                    Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode)); setMode('NONE'); Game.updateUI(true);
+                }
+            }
             else if (Game.mode === 'FLAG_ATTACK') { Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode)); setMode('NONE'); Game.updateUI(true); }
             else if (Game.mode === 'FLAG_GROUP_ATTACK' && Game.selectedTavernForGroupQuest) { Game.gold -= questConf.cost; Game.addEntity(new Flag(clampedFlag.x, clampedFlag.y, Game.mode, null, Game.selectedTavernForGroupQuest)); setMode('NONE'); Game.updateUI(true); }
         }
@@ -3952,10 +4044,14 @@ function loop(timestamp) {
             } 
             ctx.globalAlpha=canP?0.8:0.3; ctx.strokeStyle=canP?'#39ff14':'#ff0000'; ctx.lineWidth=2; ctx.beginPath(); ctx.rect(mousePos.x-cnf.radius, mousePos.y-cnf.radius, cnf.radius*2, cnf.radius*2); ctx.stroke(); if(!canP){ctx.fillStyle='rgba(255,0,0,0.15)'; ctx.fill();} ctx.font=cnf.fontSize+' Arial'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(cnf.icon,mousePos.x,mousePos.y); if(bt==='TOWER'){ctx.save();const hY=Math.sin(Game.timeMs*0.006)*4;ctx.translate(mousePos.x,mousePos.y-20+hY);ctx.font='26px Arial';ctx.fillText('🖲️',0,0);ctx.restore();} if(bt==='TAVERN'){ctx.save();ctx.font='28px Arial';ctx.fillText('🍻',mousePos.x,mousePos.y+10);ctx.restore();} 
         }
-        else if(['FLAG_EXPLORE','FLAG_ATTACK','FLAG_DEFEND','FLAG_GROUP_ATTACK'].includes(Game.mode)){
-            ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(mousePos.x,mousePos.y);ctx.lineTo(mousePos.x,mousePos.y-30);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=(Game.mode==='FLAG_ATTACK'||Game.mode==='FLAG_GROUP_ATTACK')?'#e53e3e':(Game.mode==='FLAG_DEFEND'?'#1e3a8a':'#ffcc00');ctx.beginPath();ctx.moveTo(mousePos.x,mousePos.y-30);ctx.lineTo(mousePos.x+15,mousePos.y-22);ctx.lineTo(mousePos.x,mousePos.y-15);ctx.fill();
+        else if(['FLAG_EXPLORE','FLAG_ATTACK','FLAG_PATROL','FLAG_GROUP_ATTACK'].includes(Game.mode)){
+            ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(mousePos.x,mousePos.y);ctx.lineTo(mousePos.x,mousePos.y-30);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle=(Game.mode==='FLAG_ATTACK'||Game.mode==='FLAG_GROUP_ATTACK')?'#e53e3e':(Game.mode==='FLAG_PATROL'?'#1e3a8a':'#ffcc00');ctx.beginPath();ctx.moveTo(mousePos.x,mousePos.y-30);ctx.lineTo(mousePos.x+15,mousePos.y-22);ctx.lineTo(mousePos.x,mousePos.y-15);ctx.fill();
             if (Game.mode === 'FLAG_GROUP_ATTACK') { ctx.fillStyle='white'; ctx.font='16px Arial'; ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText('🍻', mousePos.x + 18, mousePos.y - 22); }
-            if(Game.mode==='FLAG_DEFEND'){ctx.beginPath();ctx.arc(mousePos.x,mousePos.y,40,0,Math.PI*2);ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(49,130,206,0.5)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='white';ctx.font='12px Arial';ctx.fillText("Click Building",mousePos.x+30,mousePos.y-15);}
+            if(Game.mode==='FLAG_PATROL'){
+                const w = Game.patrolVertical ? 280 : 560; const h = Game.patrolVertical ? 560 : 280;
+                const canP = (mousePos.x - w/2 >= 0 && mousePos.x + w/2 <= WORLD_WIDTH && mousePos.y - h/2 >= 0 && mousePos.y + h/2 <= WORLD_HEIGHT);
+                ctx.beginPath(); ctx.rect(mousePos.x - w/2, mousePos.y - h/2, w, h); ctx.setLineDash([5,5]); ctx.strokeStyle=canP?'rgba(49,130,206,0.5)':'rgba(255,0,0,0.5)'; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+            }
             
             if (Game.mode === 'FLAG_GROUP_ATTACK' && Game.selectedTavernForGroupQuest) {
                 ctx.globalAlpha=1.0;
