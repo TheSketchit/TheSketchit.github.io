@@ -104,6 +104,9 @@
                     <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showTooltip(event, 'Rogue\'s Disguise', 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🕵️‍♂️</span><span class="item-cost">250g</span><span class="item-classes">🥷</span>
                     </button>
+                    <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showTooltip(event, 'Tome of Power', 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">📖</span><span class="item-cost">300g</span><span class="item-classes">🧙</span>
+                    </button>
                 </div>
             </div>
             <div id="shop-slots-ui" style="display:none;">
@@ -829,8 +832,8 @@ const ITEM_CONFIG = {
 const HERO_CONFIG = {
     WARRIOR: { maxHp: 175, speed: 1.1, damage: 15, maxAttackCooldown: 0.9, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'SWORD', 'CHAINMAIL'] },
     ROGUE: { maxHp: 90, speed: 1.32, damage: 20, maxAttackCooldown: 0.8, radius: 10, icon: '🥷', recruitCost: 85, requiredItems: ['POTION', 'DAGGER', 'ROGUES_DISGUISE'] },
-    DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.0, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 110, requiredItems: ['POTION', 'WAND', 'ROBE_OF_THORNS'] },
-    WIZARD: { maxHp: 65, speed: 1.2, damage: 18, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 150, requiredItems: ['POTION', 'WAND'] }
+    DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.3, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 110, requiredItems: ['POTION', 'WAND', 'ROBE_OF_THORNS'] },
+    WIZARD: { maxHp: 65, speed: 1.2, damage: 18, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 150, requiredItems: ['POTION', 'WAND', 'TOME_OF_POWER'] }
 };
 
 const UPGRADE_CONFIG = {
@@ -2099,10 +2102,10 @@ class DruidHero extends Hero {
         }
     }
     isValidAttackTarget(target) {
-        return target.faction === 'ENEMY' || (target.faction === 'PLAYER' && target.hp < target.maxHp);
+        return target.faction === 'ENEMY' || (target.faction === 'PLAYER' && target.hp < target.maxHp && target.classType);
     }
     shouldStopAttack(target) {
-        return target.faction === 'PLAYER' && target.hp >= target.maxHp;
+        return target.faction === 'PLAYER' && (target.hp >= target.maxHp || !target.classType);
     }
     findCustomThreatAggro(aggroSq) {
         for (let i = 0; i < Game.activeHeroes.length; i++) {
@@ -2911,7 +2914,7 @@ const Game = {
                 }
             }
         };
-        ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, this.getBuildingCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_'))));
+        ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-wizard-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, this.getBuildingCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_'))));
         ['btn-flag-explore','btn-flag-defend','btn-flag-attack', 'btn-flag-group-attack'].forEach(id => updateBtn(id, QUEST_CONFIG[id.replace('btn-', '').toUpperCase().replace(/-/g,'_')].cost));
 
         const panel = document.getElementById('info-panel');
