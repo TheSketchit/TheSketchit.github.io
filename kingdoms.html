@@ -3568,37 +3568,65 @@ const Game = {
         const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard' };
         top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${h.revives || 0}</td></tr>`);
         html += `</table></div></div>`;
-        html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Statistics</h3>`;
-        const stats = [
-            ["Days Lasted", this.day], ["Quests Completed", this.questsCompleted], ["Monsters Slain", this.monstersKilled], ["Taxes Collected", Math.floor(this.totalTaxCollected) + "g"], ["Items Bought", this.itemsPurchased],
-            ["Hero Deaths", this.heroDeaths],
-            ["Buildings Lost", this.buildingDeaths],
-            ["Monster Spawners Killed", this.spawnersKilled],
-            ["Emergency Triage Costs", `<span style="color:#e53e3e">${Math.floor(this.emergencyMedicalCosts)}g</span>`]
-        ];
+                html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Accolades & Score Details</h3>`;
 
-        if (isGameOver) {
-            const taxes = Math.floor(this.totalTaxCollected);
-            const unspentGold = Math.floor(this.gold);
-            const emergencyCosts = Math.floor(this.emergencyMedicalCosts);
-            const heroDeathPenalty = this.heroDeaths * 100;
-            const buildingDeathPenalty = this.buildingDeaths * 100;
-            const monstersKilled = this.monstersKilled;
-            const spawnersKilled = this.spawnersKilled;
+        const taxes = Math.floor(this.totalTaxCollected);
+        const unspentGold = Math.floor(this.gold);
+        const emergencyCosts = Math.floor(this.emergencyMedicalCosts);
+        const heroDeathPenalty = this.heroDeaths * 100;
+        const buildingDeathPenalty = this.buildingDeaths * 100;
+        const monstersKilled = this.monstersKilled;
+        const spawnersKilled = this.spawnersKilled;
 
-            const firstScore = taxes + unspentGold - emergencyCosts - heroDeathPenalty - buildingDeathPenalty + monstersKilled + spawnersKilled;
-            const divisor = Math.max(1, this.day - 24);
-            const secondScore = firstScore / divisor;
+        const firstScore = taxes + unspentGold - emergencyCosts - heroDeathPenalty - buildingDeathPenalty + monstersKilled + spawnersKilled;
+        const divisor = Math.max(1, this.day - 24);
+        const secondScore = Math.floor(firstScore / divisor);
 
-            let totalLevel = 0;
-            hall.forEach(h => totalLevel += h.level);
-            const avgLevel = hall.length > 0 ? (totalLevel / hall.length) : 1;
+        let totalLevel = 0;
+        const hallForLevel = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType)];
+        hallForLevel.forEach(h => totalLevel += h.level);
+        const avgLevel = hallForLevel.length > 0 ? (totalLevel / hallForLevel.length).toFixed(2) : 1;
 
-            const finalScore = Math.floor(secondScore * avgLevel);
-            stats.push(["Final Score", `<span style="color:#ffcc00; font-weight:bold;">${finalScore}</span>`]);
-        }
+        const finalScore = Math.floor(secondScore * avgLevel);
 
-        stats.forEach(s => html += `<div class="stat-row"><span class="stat-label">${s[0]}</span><span class="stat-val">${s[1]}</span></div>`);
+        html += `<div class="go-table-container">
+            <table class="go-table" style="width: 100%; text-align: left;">
+                <tr>
+                    <th colspan="2">Contributions</th>
+                    <th colspan="2">Efficiency & Multipliers</th>
+                </tr>
+                <tr>
+                    <td>Taxes Collected & Gold Left Over</td>
+                    <td>${taxes + unspentGold}g</td>
+                    <td>Time Efficiency (Days after 24)</td>
+                    <td>Divided by ${divisor}</td>
+                </tr>
+                <tr>
+                    <td>Monsters Killed</td>
+                    <td>${monstersKilled}</td>
+                    <td>Base Score ➗ ${divisor}</td>
+                    <td>${secondScore}</td>
+                </tr>
+                <tr>
+                    <td>Spawners Destroyed</td>
+                    <td>${spawnersKilled}</td>
+                    <td>Avg Hero Level Multiplier</td>
+                    <td>${avgLevel}x</td>
+                </tr>
+                <tr>
+                    <td>Penalties (Triage, Deaths, Buildings Lost)</td>
+                    <td><span style="color:#e53e3e">-${emergencyCosts + heroDeathPenalty + buildingDeathPenalty}</span></td>
+                    <td>Final Score</td>
+                    <td><span style="color:#ffcc00; font-weight:bold;">${finalScore}</span></td>
+                </tr>
+                <tr>
+                    <td>Calculated Base Score</td>
+                    <td>${firstScore}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>`;
         html += `</div><button class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
         
         const go = document.getElementById('game-over'); go.innerHTML = html; go.style.borderColor = themeColor; go.style.display = 'flex';
