@@ -823,6 +823,7 @@ const ITEM_CONFIG = {
     CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.' },
     ROBE_OF_THORNS: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, thornsPercent: 0.2 }, replaces: 'ARMOR', icon: '👘', name: 'Robe of Thorns', desc: 'Increases max HP by 50 and reduces damage taken by 2. Returns 20% of incoming damage to the attacker. Replaces Leather Armor.' },
     ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#5a4b31', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
+    TOME_OF_POWER: { cost: 300, classes: ['WIZARD'], color: '#f0e6d2', statBonus: { tomeOfPower: true }, icon: '📖', name: 'Tome of Power', desc: 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)' }
 };
 
 const HERO_CONFIG = {
@@ -878,7 +879,29 @@ class Entity {
     update(dtSec) {}
     draw(ctx) {}
     getVisionRange() { return 0; }
-    takeDamage(amt, source) { if (!this.active) return; if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); } this.hp -= amt; this.lastAttacker = source; if (source && (typeof source.gainXp === 'function' || source.type === 'TOWER')) this.attackers.add(source); if(this.flashTimer <= 0) this.flashTimer = 0.5; Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); if (this.hp <= 0) this.die(); }
+    takeDamage(amt, source) {
+        if (!this.active) return;
+        if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); }
+        this.hp -= amt;
+        this.lastAttacker = source;
+        if (source && (typeof source.gainXp === 'function' || source.type === 'TOWER')) this.attackers.add(source);
+        if(this.flashTimer <= 0) this.flashTimer = 0.5;
+        Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e');
+
+        if (this.faction === 'PLAYER') {
+            for (let i = 0; i < Game.activeHeroes.length; i++) {
+                const h = Game.activeHeroes[i];
+                if (h.classType === 'DRUID' && h.active && h.pos.distSq(this.pos) <= 40000) {
+                    if (h.target && h.target.faction === 'ENEMY') {
+                        h.target = this;
+                        h.state = 'MOVE';
+                    }
+                }
+            }
+        }
+
+        if (this.hp <= 0) this.die();
+    }
     die() { if (!this.active) return; this.active = false; if (this === Game.selectedEntity) Game.selectedEntity = null; }
     drawHP(ctx, yOff = -15) { if (this.hp >= this.maxHp) return; const pct = Math.max(0, this.hp / this.maxHp); ctx.fillStyle = 'red'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30, 4); ctx.fillStyle = '#48bb78'; ctx.fillRect(this.pos.x - 15, this.pos.y + yOff, 30 * pct, 4); }
 }
@@ -923,6 +946,10 @@ class Projectile {
                 if (healAmt > 0) {
                     this.target.hp += healAmt;
                     Game.spawnFloatingText(this.target.pos.x, this.target.pos.y, `+${Math.floor(healAmt)}`, '#48bb78', 1.0, 16);
+                }
+                if (this.target.state === 'FLEE') {
+                    this.target.state = 'IDLE';
+                    this.target.isHealingAt = null;
                 }
             } else {
                 this.target.takeDamage(this.damage, this.source);
@@ -1272,6 +1299,7 @@ class Hero extends Unit {
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
         this.damageReduction = 0; this.thornsPercent = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
+        this.tomeOfPower = false;
 
         if (availableHeroNames.length === 0) { availableHeroNames = [...BASE_HERO_NAMES]; heroGeneration++; }
         this.name = availableHeroNames.splice(Math.floor(Math.random()*availableHeroNames.length), 1)[0] + getHeroSuffix(heroGeneration);
@@ -1321,7 +1349,6 @@ class Hero extends Unit {
         }
         
         if (this.active && src && src.faction==='ENEMY' && this.state !== 'FLEE') {
-            if (this.classType === 'DRUID' && src.type === 'MONSTER') return;
             if (this.state !== 'ATTACK' || (this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') && src.type === 'MONSTER')) {
                 this.target = src;
                 this.state = 'ATTACK';
@@ -1504,7 +1531,18 @@ class Hero extends Unit {
         }
         if (this.classType==='DRUID' && this.regrowthCooldown<=0 && this.skills.includes('REGROWTH')) {
             let bestA = null, low = 1.0; for(let i=0; i<Game.activeHeroes.length; i++) { const e = Game.activeHeroes[i]; if(e.hp<e.maxHp && this.pos.distSq(e.pos)<=40000) { if(e.hp/e.maxHp < low) { low = e.hp/e.maxHp; bestA = e; } } }
-            if (bestA) { bestA.hp=bestA.maxHp; this.regrowthCooldown=30.0; this.regrowthCastVfxTimer=1.5; bestA.regrowthHealVfxTimer=1.5; for(let i=0;i<5;i++) Game.spawnParticle(bestA.pos.x,bestA.pos.y,'#48bb78'); if(this.state==='MOVE' && this.target===bestA && !this.currentQuest) this.state='IDLE'; }
+            if (bestA) {
+                bestA.hp=bestA.maxHp;
+                this.regrowthCooldown=30.0;
+                this.regrowthCastVfxTimer=1.5;
+                bestA.regrowthHealVfxTimer=1.5;
+                for(let i=0;i<5;i++) Game.spawnParticle(bestA.pos.x,bestA.pos.y,'#48bb78');
+                if(this.state==='MOVE' && this.target===bestA && !this.currentQuest) this.state='IDLE';
+                if (bestA.state === 'FLEE') {
+                    bestA.state = 'IDLE';
+                    bestA.isHealingAt = null;
+                }
+            }
         }
         
         if (this.classType === 'DRUID' && this.markOfTheWildCooldown <= 0 && this.skills.includes('MARK_OF_THE_WILD')) {
@@ -1601,7 +1639,6 @@ class Hero extends Unit {
                         }
                         if (!foundTarget) {
                             Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
-                                if (this.classType === 'DRUID' && enemy.type === 'MONSTER') return false;
                                 if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
                                     this.target=enemy; this.state='MOVE'; return true;
                                 }
@@ -1644,7 +1681,9 @@ class Hero extends Unit {
                                 const targetsToShoot = Math.min(3, validEnemies.length);
 
                                 for (let i = 0; i < targetsToShoot; i++) {
-                                    Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, validEnemies[i], d, this, 'MAGIC_MISSILE'));
+                                    let projDmg = d;
+                                    if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                                    Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, validEnemies[i], projDmg, this, 'MAGIC_MISSILE'));
                                 }
                                 if (targetsToShoot > 1) {
                                     this.attackCooldown = this.maxAttackCooldown * 1.5;
@@ -1652,11 +1691,15 @@ class Hero extends Unit {
                                     this.attackCooldown = this.maxAttackCooldown;
                                 }
                             } else {
-                                Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'MAGIC_MISSILE'));
+                                let projDmg = d;
+                                if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                                Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,projDmg,this,'MAGIC_MISSILE'));
                                 this.attackCooldown = this.maxAttackCooldown;
                             }
                         } else {
-                            Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'MAGIC_MISSILE'));
+                            let projDmg = d;
+                            if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                            Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,projDmg,this,'MAGIC_MISSILE'));
                             this.attackCooldown = this.maxAttackCooldown;
                         }
                     } else {
@@ -1716,7 +1759,6 @@ class Hero extends Unit {
         }
 
         Grid.getNearby(this.pos, 40000, (enemy, ds) => {
-            if (this.classType === 'DRUID' && enemy.type === 'MONSTER') return;
             if(!enemy.isVisible && ds > 22500) return;
 
             let s = 1000/Math.sqrt(ds); 
@@ -1875,6 +1917,7 @@ class Hero extends Unit {
                     if (oldItem.statBonus.stealth) this.stealth = false;
                     if (oldItem.statBonus.critChance) this.critChance -= oldItem.statBonus.critChance;
                     if (oldItem.statBonus.critMult) this.critMult = 1.0;
+                    if (oldItem.statBonus.tomeOfPower) { this.tomeOfPower = false; this.maxAttackCooldown /= 0.8; }
                 }
             }
             
@@ -1889,6 +1932,7 @@ class Hero extends Unit {
                 if (item.statBonus.stealth) this.stealth = item.statBonus.stealth;
                 if (item.statBonus.critChance) this.critChance += item.statBonus.critChance;
                 if (item.statBonus.critMult) this.critMult = item.statBonus.critMult;
+                if (item.statBonus.tomeOfPower) { this.tomeOfPower = true; this.maxAttackCooldown *= 0.8; }
             }
             
             Game.spawnParticle(this.pos.x, this.pos.y, item.color || '#f0e6d2');
