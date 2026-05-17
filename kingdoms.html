@@ -2015,6 +2015,35 @@ class WarriorHero extends Hero {
             this.tauntVfxTimer = 1.0;
         }
     }
+        evaluateGoals(myBase, hasHeal) {
+        super.evaluateGoals(myBase, hasHeal);
+        if (this.state === 'MOVE' && this.target instanceof Vec2 && !this.groupId && !this.currentQuest) {
+            let f1 = Game.base.pos;
+            let f2 = (this.guild && this.guild.active) ? this.guild.pos : Game.base.pos;
+
+            let mx = (f1.x + f2.x) / 2;
+            let my = (f1.y + f2.y) / 2;
+
+            let dx = f2.x - f1.x;
+            let dy = f2.y - f1.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            let angle = Math.atan2(dy, dx);
+
+            let a = (dist / 2) + 150;
+            let b = 150;
+
+            if (this.patrolAngle === undefined) this.patrolAngle = Math.random() * Math.PI * 2;
+            this.patrolAngle += 0.5 + Math.random();
+
+            let localX = Math.cos(this.patrolAngle) * a;
+            let localY = Math.sin(this.patrolAngle) * b;
+
+            let rx = localX * Math.cos(angle) - localY * Math.sin(angle);
+            let ry = localX * Math.sin(angle) + localY * Math.cos(angle);
+
+            this.target = new Vec2(mx + rx, my + ry);
+        }
+    }
     getEnemyScoreMult(enemy, ds, s) { return s * 2; }
     getFlagScoreMult(f, d, s) {
         if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type)) return s * 2.5;
