@@ -1021,6 +1021,11 @@ class Trap extends Entity {
 
 class Monster extends Unit {
     constructor(x, y, mT = 'RAT', bS = 0, nest = null) {
+        if (new.target === Monster) {
+            if (mT === 'RAT') return new RatMonster(x, y, mT, bS, nest);
+            if (mT === 'SPIDER') return new SpiderMonster(x, y, mT, bS, nest);
+            if (mT === 'SNAKE') return new SnakeMonster(x, y, mT, bS, nest);
+        }
         super(x, y); this.type = 'MONSTER'; this.monsterType = mT; this.faction = 'ENEMY';
 
         const conf = MONSTER_CONFIG[mT] || MONSTER_CONFIG['RAT'];
@@ -1112,6 +1117,10 @@ class Monster extends Unit {
         }
         return best || Game.base;
     }
+    findCustomTarget(targ, ds) { return false; }
+    onDeath(attacker) {}
+    getDrawOffset() { return { dX: 0, dY: 0 }; }
+
     update(dtSec) {
         if (this.stunTimer > 0) { this.stunTimer -= dtSec; return; } if (this.attackCooldown > 0) this.attackCooldown -= dtSec;
         this.repathTimer -= dtSec;
@@ -1125,7 +1134,7 @@ class Monster extends Unit {
             Grid.getNearby(this.pos, 22500, (targ, ds) => {
                 if (targ.stealth === true && !this.attackers.has(targ)) return;
 
-                if (this.monsterType==='RAT'&&targ.type==='TRAP'&&ds<62500) { nT=targ; nD=ds; } // Note: can't break early easily, so just overwrite
+                if (this.findCustomTarget(targ, ds)) { nT=targ; nD=ds; } // Note: can't break early easily, so just overwrite
                 else if (ds < nD) { nD = ds; nT = targ; }
             }, 'PLAYER');
         }
@@ -1241,10 +1250,7 @@ class Monster extends Unit {
                     attacker.personalGold += heroSharePostTax;
                     attacker.lifetimeGold += heroSharePostTax;
 
-                    if (this.monsterType === 'RAT' && attacker.classType === 'ROGUE' && attacker.skills.includes('RAT_TRAP') && attacker.ratTrapCooldown <= 0) {
-                        attacker.ratTrapCooldown = 20.0;
-                        Game.addEntity(new Trap(this.pos.x, this.pos.y));
-                    }
+                    this.onDeath(attacker);
                 }
             });
 
@@ -1265,7 +1271,8 @@ class Monster extends Unit {
         Game.spawnParticle(this.pos.x, this.pos.y, '#ffcc00');
     }
     draw(ctx) {
-        let dX=this.pos.x, dY=this.pos.y; if(this.attackCooldown>this.maxAttackCooldown-0.25) { if(this.monsterType==='SNAKE') dX+=Math.sin(this.attackCooldown*90)*6; else dY+=Math.sin(this.attackCooldown*90)*5; }
+        let { dX, dY } = this.getDrawOffset();
+        dX += this.pos.x; dY += this.pos.y;
         const conf = MONSTER_CONFIG[this.monsterType] || MONSTER_CONFIG['RAT'];
         const ic = conf.icon;
         
@@ -1286,6 +1293,35 @@ class Monster extends Unit {
             ctx.drawImage(stun.img, this.pos.x - stun.ox, this.pos.y - 35 + stunY - stun.oy);
         }
         this.drawHP(ctx, -20);
+    }
+}
+
+class RatMonster extends Monster {
+    findCustomTarget(targ, ds) { return targ.type === 'TRAP' && ds < 62500; }
+    onDeath(attacker) {
+        if (attacker.classType === 'ROGUE' && attacker.skills.includes('RAT_TRAP') && attacker.ratTrapCooldown <= 0) {
+            attacker.ratTrapCooldown = 20.0;
+            Game.addEntity(new Trap(this.pos.x, this.pos.y));
+        }
+    }
+    getDrawOffset() {
+        let dX = 0, dY = 0;
+        if (this.attackCooldown > this.maxAttackCooldown - 0.25) dY += Math.sin(this.attackCooldown * 90) * 5;
+        return { dX, dY };
+    }
+}
+class SpiderMonster extends Monster {
+    getDrawOffset() {
+        let dX = 0, dY = 0;
+        if (this.attackCooldown > this.maxAttackCooldown - 0.25) dY += Math.sin(this.attackCooldown * 90) * 5;
+        return { dX, dY };
+    }
+}
+class SnakeMonster extends Monster {
+    getDrawOffset() {
+        let dX = 0, dY = 0;
+        if (this.attackCooldown > this.maxAttackCooldown - 0.25) dX += Math.sin(this.attackCooldown * 90) * 6;
+        return { dX, dY };
     }
 }
 
@@ -2455,6 +2491,11 @@ class Flag extends Entity {
 
 class Spawner extends Entity {
     constructor(x, y, t = 'RAT_HOLE') {
+        if (new.target === Spawner) {
+            if (t === 'RAT_HOLE') return new RatHoleSpawner(x, y, t);
+            if (t === 'WEB') return new WebSpawner(x, y, t);
+            if (t === 'SNAKE_NEST') return new SnakeNestSpawner(x, y, t);
+        }
         super(x, y); this.isStatic = true; this.spawnerType = t; this.faction = 'ENEMY'; this.type = 'SPAWNER';
 
         const conf = SPAWNER_CONFIG[t] || SPAWNER_CONFIG['RAT_HOLE'];
@@ -2483,6 +2524,7 @@ class Spawner extends Entity {
         this.spawnRate = conf.spawnRate;
         this.spawnTimer = Math.random() * this.spawnRate;
     }
+    getSpawnType() { return 'RAT'; }
     update(dtSec) { 
         if (this.flashTimer > 0) this.flashTimer -= dtSec;
         const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
@@ -2495,7 +2537,7 @@ class Spawner extends Entity {
                 for (let i = 0; i < spawnCount; i++) {
                     const mx = this.pos.x + (Math.random() - 0.5) * 10;
                     const my = this.pos.y + (Math.random() - 0.5) * 10;
-                    Game.addEntity(new Monster(mx, my, this.spawnerType==='WEB'?'SPIDER':(this.spawnerType==='SNAKE_NEST'?'SNAKE':'RAT'), this.daysSurvived, this));
+                    Game.addEntity(new Monster(mx, my, this.getSpawnType(), this.daysSurvived, this));
                 }
             } 
         }
@@ -2564,6 +2606,10 @@ class Spawner extends Entity {
         this.drawHP(ctx, -25-(this.daysSurvived*2));
     }
 }
+
+class RatHoleSpawner extends Spawner { getSpawnType() { return 'RAT'; } }
+class WebSpawner extends Spawner { getSpawnType() { return 'SPIDER'; } }
+class SnakeNestSpawner extends Spawner { getSpawnType() { return 'SNAKE'; } }
 
 class Volcano extends Entity {
     constructor(x, y) {
