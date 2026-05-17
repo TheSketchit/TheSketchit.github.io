@@ -1291,6 +1291,12 @@ class Monster extends Unit {
 
 class Hero extends Unit {
     constructor(x, y, cT, g) {
+        if (new.target === Hero) {
+            if (cT === 'WARRIOR') return new WarriorHero(x, y, cT, g);
+            if (cT === 'ROGUE') return new RogueHero(x, y, cT, g);
+            if (cT === 'DRUID') return new DruidHero(x, y, cT, g);
+            if (cT === 'WIZARD') return new WizardHero(x, y, cT, g);
+        }
         super(x, y); this.faction = 'PLAYER'; this.classType = cT; this.guild = g; this.state = 'IDLE'; this.wanderAngle = Math.random()*Math.PI*2; this.stateTimer = 0;
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.ratTrapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.markOfTheWildTimer = 0; this.markOfTheWildCooldown = 0; this.tauntCooldown = 0; this.tauntVfxTimer = 0; this.motwHpBuff = 0; this.motwDmgBuff = 0;
@@ -1312,6 +1318,26 @@ class Hero extends Unit {
         this.radius = hConf.radius;
         if (hConf.attackRange) this.attackRange = hConf.attackRange;
     }
+
+    // --- Hero Hooks ---
+    getClassName() { return this.classType.charAt(0).toUpperCase() + this.classType.slice(1).toLowerCase(); }
+    getTargetGuildType() { return this.classType + '_GUILD'; }
+    customUpdate(dtSec) {}
+    isValidAttackTarget(target) { return target.faction === 'ENEMY'; }
+    onMoveToAttackTarget(dtSec, distSq) {}
+    shouldStopAttack(target) { return false; }
+    findCustomThreatAggro(aggroSq) { return false; }
+    onAttackTick() {}
+    performAttack(d, cr) {
+        this.target.takeDamage(d, this);
+        if(cr) Game.spawnParticle(this.target.pos.x, this.target.pos.y, '#e53e3e');
+        this.attackCooldown = this.maxAttackCooldown;
+    }
+    evaluateCustomGoals(bS, bT) { return null; }
+    getEnemyScoreMult(enemy, ds, s) { return s; }
+    getFlagScoreMult(f, d, s) { return s; }
+    getDrawOffset() { return { dX: 0, dY: 0, rot: 0 }; }
+
     getDisplayState() {
         if (this.isDead) return 'Dead';
         if (this.state === 'FLEE') return 'Fleeing';
@@ -1398,7 +1424,7 @@ class Hero extends Unit {
         this.isDead = true;
         Game.heroDeaths++; 
         Game.hallOfFame.push({ name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, damageDealt: this.damageDealt });
-        let gN = this.classType === 'WARRIOR' ? 'Warrior' : (this.classType === 'ROGUE' ? 'Rogue' : (this.classType === 'DRUID' ? 'Druid' : 'Wizard'));
+        let gN = this.getClassName();
         this.tombstoneEntity = new Tombstone(this.pos.x, this.pos.y, this.name, gN, this.level, this.kills);
         this.tombstoneEntity.heroRef = this;
         Game.addEntity(this.tombstoneEntity);
@@ -1450,7 +1476,7 @@ class Hero extends Unit {
         } else if (this.guild && this.guild.active) {
             myBase = this.guild;
         } else {
-            const targetGuildType = this.classType === 'WARRIOR' ? 'WARRIOR_GUILD' : (this.classType === 'ROGUE' ? 'ROGUE_GUILD' : (this.classType === 'DRUID' ? 'DRUID_GUILD' : 'WIZARD_GUILD'));
+            const targetGuildType = this.getTargetGuildType();
             myBase = Game.playerEntities.find(e => e.type === targetGuildType && e.active);
             if (!myBase) {
                 myBase = Game.base;
@@ -1529,40 +1555,9 @@ class Hero extends Unit {
                 let amt = Math.min(Game.guildBanks[this.classType], 300 - this.personalGold); this.personalGold += amt; Game.guildBanks[this.classType] -= amt; Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00');
             } 
         }
-        if (this.classType==='DRUID' && this.regrowthCooldown<=0 && this.skills.includes('REGROWTH')) {
-            let bestA = null, low = 1.0; for(let i=0; i<Game.activeHeroes.length; i++) { const e = Game.activeHeroes[i]; if(e.hp<e.maxHp && this.pos.distSq(e.pos)<=40000) { if(e.hp/e.maxHp < low) { low = e.hp/e.maxHp; bestA = e; } } }
-            if (bestA) {
-                bestA.hp=bestA.maxHp;
-                this.regrowthCooldown=30.0;
-                this.regrowthCastVfxTimer=1.5;
-                bestA.regrowthHealVfxTimer=1.5;
-                for(let i=0;i<5;i++) Game.spawnParticle(bestA.pos.x,bestA.pos.y,'#48bb78');
-                if(this.state==='MOVE' && this.target===bestA && !this.currentQuest) this.state='IDLE';
-                if (bestA.state === 'FLEE') {
-                    bestA.state = 'IDLE';
-                    bestA.isHealingAt = null;
-                }
-            }
-        }
+
         
-        if (this.classType === 'DRUID' && this.markOfTheWildCooldown <= 0 && this.skills.includes('MARK_OF_THE_WILD')) {
-            let targets = [this];
-            if (this.groupId) {
-                for (let i = 0; i < Game.activeHeroes.length; i++) {
-                    if (Game.activeHeroes[i].groupId === this.groupId && Game.activeHeroes[i] !== this) targets.push(Game.activeHeroes[i]);
-                }
-            } else {
-                let closest = null, bestD = 40000;
-                for (let i = 0; i < Game.activeHeroes.length; i++) {
-                    const h = Game.activeHeroes[i];
-                    if (h !== this && this.pos.distSq(h.pos) < bestD) { bestD = this.pos.distSq(h.pos); closest = h; }
-                }
-                if (closest) targets.push(closest);
-            }
-            targets.forEach(t => t.applyMotw());
-            this.markOfTheWildCooldown = 30.0;
-            for(let i=0;i<5;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#48bb78');
-        }
+        this.customUpdate(dtSec);
 
         if (this.currentQuest && ['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.state !== 'FLEE') {
             let activeEnemyTarget = null;
@@ -1622,21 +1617,14 @@ class Hero extends Unit {
                 }
                 if (this.target.type === 'SHOP' && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); this.state='IDLE'; }
                 if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
-                if (this.target.faction === 'ENEMY' || (this.classType === 'DRUID' && this.target.faction === 'PLAYER' && this.target.hp < this.target.maxHp)) { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else if(this.classType==='WARRIOR' && this.skills.includes('CHARGE') && this.chargeCooldown<=0 && ds<=10000) { const dx=this.target.pos.x-this.pos.x, dy=this.target.pos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){ this.pos.x = this.target.pos.x - (dx/d)*(this.target.radius+this.radius+2); this.pos.y = this.target.pos.y - (dy/d)*(this.target.radius+this.radius+2); } this.target.takeDamage(this.damage, this); this.target.stunTimer=2.0; this.chargeCooldown=20.0; this.chargeVfxTimer=1.0; for(let i=0;i<8;i++) Game.spawnParticle(this.pos.x,this.pos.y,'#aaaaaa'); this.state='ATTACK'; } }
-                else if (this.classType === 'DRUID' && this.target.faction === 'PLAYER' && this.target.hp >= this.target.maxHp) { this.state = 'IDLE'; }
+                if (this.isValidAttackTarget(this.target)) { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else { this.onMoveToAttackTarget(dtSec, ds); } }
+                else if (this.shouldStopAttack(this.target)) { this.state = 'IDLE'; }
                 else if (this.questPhase==='NONE'||this.questPhase==='DO_QUEST'||this.questPhase==='MOVE_TO_TARGET'||this.questPhase==='AT_TARGET') { 
                     if(this.checkThreatTimer<=0) { 
                         this.checkThreatTimer=0.1; 
                         let aggroSq = 40000;
                         let foundTarget = false;
-                        if (this.classType === 'DRUID') {
-                            for (let i = 0; i < Game.activeHeroes.length; i++) {
-                                const h = Game.activeHeroes[i];
-                                if (h !== this && h.hp < h.maxHp && this.pos.distSq(h.pos) <= aggroSq) {
-                                    this.target = h; this.state = 'MOVE'; foundTarget = true; break;
-                                }
-                            }
-                        }
+                        foundTarget = this.findCustomThreatAggro(aggroSq);
                         if (!foundTarget) {
                             Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
                                 if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
@@ -1650,66 +1638,13 @@ class Hero extends Unit {
                 break;
             case 'ATTACK':
                 if (!this.target || !this.target.active) { this.state='IDLE'; break; }
-                if (this.classType === 'DRUID' && this.target.faction === 'PLAYER' && this.target.hp >= this.target.maxHp) { this.state = 'IDLE'; break; }
+                if (this.shouldStopAttack(this.target)) { this.state = 'IDLE'; break; }
                 if (this.pos.distSq(this.target.pos) > (this.attackRange+this.target.radius+5)**2) { this.state='MOVE'; break; }
-                if (this.classType === 'WARRIOR' && this.skills.includes('TAUNT') && this.tauntCooldown <= 0 && this.target && this.target.faction === 'ENEMY') {
-                    this.target.target = this;
-                    this.tauntCooldown = 10.0;
-                    this.tauntVfxTimer = 1.0;
-                }
+                this.onAttackTick();
                 if (this.attackCooldown <= 0) {
                     let d = this.damage, cr = false;
                     if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; }
-                    if(this.classType==='DRUID') {
-                        if (this.target.faction === 'PLAYER') {
-                            Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,'HEAL'));
-                        } else {
-                            Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,d,this,"DRUID_MAGIC"));
-                        }
-                        this.attackCooldown = this.maxAttackCooldown;
-                    } else if(this.classType==='WIZARD') {
-                        if (this.skills.includes('MAGICAL_BARRAGE')) {
-                            let validEnemies = [];
-                            Grid.getNearby(this.pos, this.attackRange * this.attackRange, (e, distSq) => {
-                                if (e.isVisible && e.type !== 'SPAWNER' && e.hp > 0 && e.faction === 'ENEMY' && !validEnemies.includes(e)) {
-                                    validEnemies.push(e);
-                                }
-                            }, 'ENEMY');
-
-                            if (validEnemies.length > 0) {
-                                validEnemies.sort((a,b) => this.pos.distSq(a.pos) - this.pos.distSq(b.pos));
-                                const targetsToShoot = Math.min(3, validEnemies.length);
-
-                                for (let i = 0; i < targetsToShoot; i++) {
-                                    let projDmg = d;
-                                    if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
-                                    Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, validEnemies[i], projDmg, this, 'MAGIC_MISSILE'));
-                                }
-                                if (targetsToShoot > 1) {
-                                    this.attackCooldown = this.maxAttackCooldown * 1.5;
-                                } else {
-                                    this.attackCooldown = this.maxAttackCooldown;
-                                }
-                            } else {
-                                let projDmg = d;
-                                if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
-                                Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,projDmg,this,'MAGIC_MISSILE'));
-                                this.attackCooldown = this.maxAttackCooldown;
-                            }
-                        } else {
-                            let projDmg = d;
-                            if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
-                            Game.projectiles.push(new Projectile(this.pos.x,this.pos.y,this.target,projDmg,this,'MAGIC_MISSILE'));
-                            this.attackCooldown = this.maxAttackCooldown;
-                        }
-                    } else {
-                        this.target.takeDamage(d,this);
-                        if(cr) Game.spawnParticle(this.target.pos.x,this.target.pos.y,'#e53e3e');
-                        if (this.classType === 'ROGUE' && this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) {
-                            this.target.stunTimer = 3.0;
-                        }
-                        this.attackCooldown = this.maxAttackCooldown;
-                    }
+                    this.performAttack(d, cr);
                 }
                 break;
             case 'FLEE':
@@ -1744,25 +1679,14 @@ class Hero extends Unit {
         }
         
         let bS = -1, bT = null, isQ = false;
-        if (this.classType === 'DRUID') {
-            for (let i = 0; i < Game.activeHeroes.length; i++) {
-                const h = Game.activeHeroes[i];
-                if (h !== this && h.hp < h.maxHp) {
-                    const ds = this.pos.distSq(h.pos);
-                    if (ds <= 40000) {
-                        let missingHpPercent = (h.maxHp - h.hp) / h.maxHp;
-                        let s = (1000 / Math.max(Math.sqrt(ds), 10)) * (1 + missingHpPercent * 5);
-                        if (s > bS) { bS = s; bT = h; }
-                    }
-                }
-            }
-        }
+        let customGoal = this.evaluateCustomGoals(bS, bT);
+        if (customGoal) { bS = customGoal.bS; bT = customGoal.bT; }
 
         Grid.getNearby(this.pos, 40000, (enemy, ds) => {
             if(!enemy.isVisible && ds > 22500) return;
 
             let s = 1000/Math.sqrt(ds); 
-            if(this.classType==='WARRIOR') s*=2; 
+            s = this.getEnemyScoreMult(enemy, ds, s);
             if(s>bS) { bS=s; bT=enemy; }
         }, 'ENEMY');
         if(bT) { this.target=bT; this.state='MOVE'; return; } if(this.currentQuest) return;
@@ -1795,8 +1719,7 @@ class Hero extends Unit {
             let effectiveBounty = f.bounty + (f.targetEntity && f.targetEntity.bounty ? f.targetEntity.bounty * 0.5 : 0);
             let s=(effectiveBounty/Math.max(d,10))*10*(this.hp/this.maxHp);
             if(this.hp/this.maxHp<0.4) s*=0.1;
-            if(this.classType==='ROGUE') s*=3;
-            if(['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type) && this.classType==='WARRIOR') s*=2.5;
+            s = this.getFlagScoreMult(f, d, s);
             if(s>bS && s>0.5) { bS=s; bT=f; isQ=true; }
         }
         if(!isQ) {
@@ -1846,7 +1769,7 @@ class Hero extends Unit {
         return bS;
     }
     getDesiredTraining() {
-        const targetGuildType = this.classType === 'WARRIOR' ? 'WARRIOR_GUILD' : (this.classType === 'ROGUE' ? 'ROGUE_GUILD' : (this.classType === 'DRUID' ? 'DRUID_GUILD' : 'WIZARD_GUILD'));
+        const targetGuildType = this.getTargetGuildType();
         let bG = null, bSc = -1;
         
         for (let i = 0; i < Game.playerEntities.length; i++) {
@@ -1881,7 +1804,7 @@ class Hero extends Unit {
                 return true;
             }
         }
-        const targetGuildType = this.classType === 'WARRIOR' ? 'WARRIOR_GUILD' : (this.classType === 'ROGUE' ? 'ROGUE_GUILD' : (this.classType === 'DRUID' ? 'DRUID_GUILD' : 'WIZARD_GUILD'));
+        const targetGuildType = this.getTargetGuildType();
         for (let i = 0; i < Game.playerEntities.length; i++) {
             const g = Game.playerEntities[i];
             if (g.type === targetGuildType && g.active && g.slots) {
@@ -1966,8 +1889,6 @@ class Hero extends Unit {
         }
         const conf = HERO_CONFIG[this.classType];
         const e = conf.icon; let dX=this.pos.x, dY=this.pos.y, rot=0;
-        if(this.classType==='DRUID' || this.classType==='WIZARD') dY+=Math.sin(Game.timeMs*0.006)*3;
-
         // Determine facing direction
         if (this.state === 'MOVE' && this.target && this.target.pos) {
             this.facingLeft = this.target.pos.x < this.pos.x;
@@ -1979,12 +1900,10 @@ class Hero extends Unit {
             this.facingLeft = this.target.pos.x < this.pos.x;
         }
 
-        if (this.classType === 'WARRIOR' && ['MOVE', 'IDLE', 'FLEE'].includes(this.state)) {
-            dY += Math.abs(Math.sin(Game.timeMs * 0.01)) * -4;
-            rot = Math.cos(Game.timeMs * 0.01) * 0.1;
-        }
 
-        if(this.state==='ATTACK'&&this.attackCooldown>this.maxAttackCooldown-0.25) { if(this.classType==='ROGUE') dX+=Math.sin(this.attackCooldown*90)*5; else if(this.classType==='WARRIOR'&&this.target) { const dir=this.target.pos.x>this.pos.x?1:-1; rot=0.5*dir; dX+=dir*3; } }
+
+                let drawOffset = this.getDrawOffset();
+        dX += drawOffset.dX; dY += drawOffset.dY; rot = drawOffset.rot;
         ctx.save(); ctx.translate(dX, dY);
 
         if (!this.facingLeft && conf.imageSrc) {
@@ -2027,6 +1946,201 @@ class Hero extends Unit {
         }
         this.drawHP(ctx, -25);
     }
+}
+
+
+
+class WarriorHero extends Hero {
+    getClassName() { return 'Warrior'; }
+    onMoveToAttackTarget(dtSec, distSq) {
+        if (this.skills.includes('CHARGE') && this.chargeCooldown <= 0 && distSq <= 10000) {
+            const dx = this.target.pos.x - this.pos.x;
+            const dy = this.target.pos.y - this.pos.y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (d > 0) {
+                this.pos.x = this.target.pos.x - (dx / d) * (this.target.radius + this.radius + 2);
+                this.pos.y = this.target.pos.y - (dy / d) * (this.target.radius + this.radius + 2);
+            }
+            this.target.takeDamage(this.damage, this);
+            this.target.stunTimer = 2.0;
+            this.chargeCooldown = 20.0;
+            this.chargeVfxTimer = 1.0;
+            for (let i = 0; i < 8; i++) Game.spawnParticle(this.pos.x, this.pos.y, '#aaaaaa');
+            this.state = 'ATTACK';
+        }
+    }
+    onAttackTick() {
+        if (this.skills.includes('TAUNT') && this.tauntCooldown <= 0 && this.target && this.target.faction === 'ENEMY') {
+            this.target.target = this;
+            this.tauntCooldown = 10.0;
+            this.tauntVfxTimer = 1.0;
+        }
+    }
+    getEnemyScoreMult(enemy, ds, s) { return s * 2; }
+    getFlagScoreMult(f, d, s) {
+        if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type)) return s * 2.5;
+        return s;
+    }
+    getDrawOffset() {
+        let dY = 0, dX = 0, rot = 0;
+        if (['MOVE', 'IDLE', 'FLEE'].includes(this.state)) {
+            dY += Math.abs(Math.sin(Game.timeMs * 0.01)) * -4;
+            rot = Math.cos(Game.timeMs * 0.01) * 0.1;
+        }
+        if (this.state === 'ATTACK' && this.attackCooldown > this.maxAttackCooldown - 0.25) {
+            if (this.target) {
+                const dir = this.target.pos.x > this.pos.x ? 1 : -1;
+                rot = 0.5 * dir;
+                dX += dir * 3;
+            }
+        }
+        return { dX, dY, rot };
+    }
+}
+
+class RogueHero extends Hero {
+    getClassName() { return 'Rogue'; }
+    performAttack(d, cr) {
+        super.performAttack(d, cr);
+        if (this.skills.includes('CHEAP_SHOT') && Math.random() < 0.25) {
+            this.target.stunTimer = 3.0;
+        }
+    }
+    getFlagScoreMult(f, d, s) { return s * 3; }
+    getDrawOffset() {
+        let dX = 0, dY = 0, rot = 0;
+        if (this.state === 'ATTACK' && this.attackCooldown > this.maxAttackCooldown - 0.25) {
+            dX += Math.sin(this.attackCooldown * 90) * 5;
+        }
+        return { dX, dY, rot };
+    }
+}
+
+class DruidHero extends Hero {
+    getClassName() { return 'Druid'; }
+    customUpdate(dtSec) {
+        if (this.regrowthCooldown <= 0 && this.skills.includes('REGROWTH')) {
+            let bestA = null, low = 1.0;
+            for (let i = 0; i < Game.activeHeroes.length; i++) {
+                const e = Game.activeHeroes[i];
+                if (e.hp < e.maxHp && this.pos.distSq(e.pos) <= 40000) {
+                    if (e.hp / e.maxHp < low) {
+                        low = e.hp / e.maxHp;
+                        bestA = e;
+                    }
+                }
+            }
+            if (bestA) {
+                bestA.hp = bestA.maxHp;
+                this.regrowthCooldown = 30.0;
+                this.regrowthCastVfxTimer = 1.5;
+                bestA.regrowthHealVfxTimer = 1.5;
+                for (let i = 0; i < 5; i++) Game.spawnParticle(bestA.pos.x, bestA.pos.y, '#48bb78');
+                if (this.state === 'MOVE' && this.target === bestA && !this.currentQuest) this.state = 'IDLE';
+                if (bestA.state === 'FLEE') {
+                    bestA.state = 'IDLE';
+                    bestA.isHealingAt = null;
+                }
+            }
+        }
+        if (this.markOfTheWildCooldown <= 0 && this.skills.includes('MARK_OF_THE_WILD')) {
+            let targets = [this];
+            if (this.groupId) {
+                for (let i = 0; i < Game.activeHeroes.length; i++) {
+                    if (Game.activeHeroes[i].groupId === this.groupId && Game.activeHeroes[i] !== this) targets.push(Game.activeHeroes[i]);
+                }
+            } else {
+                let closest = null, bestD = 40000;
+                for (let i = 0; i < Game.activeHeroes.length; i++) {
+                    const h = Game.activeHeroes[i];
+                    if (h !== this && this.pos.distSq(h.pos) < bestD) { bestD = this.pos.distSq(h.pos); closest = h; }
+                }
+                if (closest) targets.push(closest);
+            }
+            targets.forEach(t => t.applyMotw());
+            this.markOfTheWildCooldown = 30.0;
+            for (let i = 0; i < 5; i++) Game.spawnParticle(this.pos.x, this.pos.y, '#48bb78');
+        }
+    }
+    isValidAttackTarget(target) {
+        return target.faction === 'ENEMY' || (target.faction === 'PLAYER' && target.hp < target.maxHp);
+    }
+    shouldStopAttack(target) {
+        return target.faction === 'PLAYER' && target.hp >= target.maxHp;
+    }
+    findCustomThreatAggro(aggroSq) {
+        for (let i = 0; i < Game.activeHeroes.length; i++) {
+            const h = Game.activeHeroes[i];
+            if (h !== this && h.hp < h.maxHp && this.pos.distSq(h.pos) <= aggroSq) {
+                this.target = h; this.state = 'MOVE'; return true;
+            }
+        }
+        return false;
+    }
+    performAttack(d, cr) {
+        if (this.target.faction === 'PLAYER') {
+            Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, this.target, d, this, 'HEAL'));
+        } else {
+            Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, this.target, d, this, "DRUID_MAGIC"));
+        }
+        this.attackCooldown = this.maxAttackCooldown;
+    }
+    evaluateCustomGoals(bS, bT) {
+        for (let i = 0; i < Game.activeHeroes.length; i++) {
+            const h = Game.activeHeroes[i];
+            if (h !== this && h.hp < h.maxHp) {
+                const ds = this.pos.distSq(h.pos);
+                if (ds <= 40000) {
+                    let missingHpPercent = (h.maxHp - h.hp) / h.maxHp;
+                    let s = (1000 / Math.max(Math.sqrt(ds), 10)) * (1 + missingHpPercent * 5);
+                    if (s > bS) { bS = s; bT = h; }
+                }
+            }
+        }
+        return { bS, bT };
+    }
+    getDrawOffset() { return { dX: 0, dY: Math.sin(Game.timeMs * 0.006) * 3, rot: 0 }; }
+}
+
+class WizardHero extends Hero {
+    getClassName() { return 'Wizard'; }
+    performAttack(d, cr) {
+        if (this.skills.includes('MAGICAL_BARRAGE')) {
+            let validEnemies = [];
+            Grid.getNearby(this.pos, this.attackRange * this.attackRange, (e, distSq) => {
+                if (e.isVisible && e.type !== 'SPAWNER' && e.hp > 0 && e.faction === 'ENEMY' && !validEnemies.includes(e)) {
+                    validEnemies.push(e);
+                }
+            }, 'ENEMY');
+
+            if (validEnemies.length > 0) {
+                validEnemies.sort((a, b) => this.pos.distSq(a.pos) - this.pos.distSq(b.pos));
+                const targetsToShoot = Math.min(3, validEnemies.length);
+
+                for (let i = 0; i < targetsToShoot; i++) {
+                    let projDmg = d;
+                    if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                    Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, validEnemies[i], projDmg, this, 'MAGIC_MISSILE'));
+                }
+                if (targetsToShoot > 1) {
+                    this.attackCooldown = this.maxAttackCooldown * 1.5;
+                } else {
+                    this.attackCooldown = this.maxAttackCooldown;
+                }
+            } else {
+                let projDmg = d;
+                if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, this.target, projDmg, this, 'MAGIC_MISSILE'));
+                this.attackCooldown = this.maxAttackCooldown;
+            }
+        } else {
+            let projDmg = d;
+            if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+            Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, this.target, projDmg, this, 'MAGIC_MISSILE'));
+            this.attackCooldown = this.maxAttackCooldown;
+        }
+    }
+    getDrawOffset() { return { dX: 0, dY: Math.sin(Game.timeMs * 0.006) * 3, rot: 0 }; }
 }
 
 class Building extends Entity {
