@@ -884,6 +884,7 @@ class Entity {
     getVisionRange() { return 0; }
     takeDamage(amt, source) {
         if (!this.active) return;
+        this.lastDamagedTime = Game.timeMs;
         if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); }
         this.hp -= amt;
         this.lastAttacker = source;
@@ -1414,7 +1415,7 @@ class Hero extends Unit {
         }
         
         if (this.active && src && src.faction==='ENEMY' && this.state !== 'FLEE') {
-            if (this.state !== 'ATTACK' || (this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') && src.type === 'MONSTER')) {
+            if (this.state !== 'ATTACK' || (this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') && src.type === 'MONSTER') || (this.target && this.target.type === 'MONSTER' && src.type === 'MONSTER')) {
                 this.target = src;
                 this.state = 'ATTACK';
             }
@@ -1670,6 +1671,18 @@ class Hero extends Unit {
                                     this.target=enemy; this.state='MOVE'; return true;
                                 }
                             }, 'ENEMY');
+
+                            if (!this.target || this.target.faction !== 'ENEMY' || this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') {
+                                for (let i = 0; i < Game.activeHeroes.length; i++) {
+                                    const h = Game.activeHeroes[i];
+                                    if (h !== this && h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.type !== 'SPAWNER' && h.target.spawnerType !== 'VOLCANO' && this.pos.distSq(h.pos) <= aggroSq) {
+                                        this.target = h.target;
+                                        this.state = 'MOVE';
+                                        foundTarget = true;
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     } 
                 }
@@ -2137,11 +2150,27 @@ class DruidHero extends Hero {
         return target.faction === 'PLAYER' && (target.hp >= target.maxHp || !target.classType);
     }
     findCustomThreatAggro(aggroSq) {
+        let bestTarget = null;
+        let highestPriority = -1;
+
         for (let i = 0; i < Game.activeHeroes.length; i++) {
             const h = Game.activeHeroes[i];
             if (h !== this && h.hp < h.maxHp && this.pos.distSq(h.pos) <= aggroSq) {
-                this.target = h; this.state = 'MOVE'; return true;
+                const isBeingAttacked = ((h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000));
+                let priority = (1.0 - (h.hp / h.maxHp));
+                if (isBeingAttacked) priority += 2.0;
+
+                if (priority > highestPriority) {
+                    highestPriority = priority;
+                    bestTarget = h;
+                }
             }
+        }
+
+        if (bestTarget) {
+            this.target = bestTarget;
+            this.state = 'MOVE';
+            return true;
         }
         return false;
     }
@@ -2727,10 +2756,6 @@ class Volcano extends Entity {
         if (areaInfo) {
             const corridor = Game.corridors.find(c => c.dir === areaInfo.dir);
             if (corridor) corridor.volcanoDestroyed = true;
-        }
-
-        if (Game.corridors.length === 4 && Game.corridors.every(c => c.volcanoDestroyed)) {
-            Game.winGame();
         }
 
         const validAttackers = [];
@@ -3656,6 +3681,13 @@ function loop(timestamp) {
         if (!isPanning) { const ps=15/Camera.zoom; if(keys['w']||keys['arrowup']) Camera.y-=ps; if(keys['s']||keys['arrowdown']) Camera.y+=ps; if(keys['a']||keys['arrowleft']) Camera.x-=ps; if(keys['d']||keys['arrowright']) Camera.x+=ps; }
         Camera.x=Math.max(-800,Math.min(WORLD_WIDTH+800,Camera.x)); Camera.y=Math.max(-800,Math.min(WORLD_HEIGHT+800,Camera.y));
         Game.dayTimer-=dtS; if(Game.dayTimer<=0) { 
+            if (Game.corridors.length === 4 && Game.corridors.every(c => c.volcanoDestroyed)) {
+                Game.winGame();
+                return;
+            }
+
+            Game.corridors.forEach(c => c.volcanoDestroyed = false);
+
             Game.day++; Game.dayTimer=GAME_CONFIG.dayLengthSec;
 
             let eRats=0, eSpiders=0, eSnakes=0;
@@ -3744,7 +3776,7 @@ function loop(timestamp) {
                     }
                 });
 
-                if (counts['VOLCANO'] === 0 && !c.volcanoDestroyed) Game.spawnVolcano(c.dir);
+                if (counts['VOLCANO'] === 0) Game.spawnVolcano(c.dir);
 
                 let daysOpen = Game.day - c.dayOpened + 1;
                 let targetRats = 0, targetSpiders = 0, targetSnakes = 0;
