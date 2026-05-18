@@ -857,7 +857,7 @@ const GAME_CONFIG = {
 
 const QUEST_CONFIG = {
     FLAG_EXPLORE: { cost: 25, bounty: 25, name: 'Explore Quest ⚑', icon: '⚑', maxReq: 1, duration: 20 },
-    FLAG_PATROL: { cost: 50, bounty: 50, name: 'Patrol Quest ⚑', icon: '⚑', maxReq: 4, duration: 20 },
+    FLAG_PATROL: { cost: 100, bounty: 50, name: 'Patrol Quest ⚑', icon: '⚑', maxReq: 4, duration: 20 },
     FLAG_ATTACK: { cost: 75, bounty: 75, name: 'Attack Quest ⚑', icon: '⚑', maxReq: 3, duration: 20 },
     FLAG_GROUP_ATTACK: { cost: 75, bounty: 75, name: 'Group Quest ⚑', icon: '🍻', maxReq: 3, duration: 20 }
 };
@@ -1691,9 +1691,52 @@ class Hero extends Unit {
                         const tPos = this.currentQuest.targetEntity ? this.currentQuest.targetEntity.pos : this.currentQuest.pos;
                         if (this.currentQuest.type==='FLAG_EXPLORE' && this.questPhase==='DO_QUEST' && (reached || this.pos.distSq(tPos)<400)) { this.personalGold += this.currentQuest.bounty; this.lifetimeGold += this.currentQuest.bounty; this.gainXp(10); Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00'); this.currentQuest.active=false; Game.questsCompleted++; this.currentQuest=null; this.questPhase='NONE'; this.state='IDLE'; }
                         else if (this.currentQuest.type==='FLAG_PATROL') {
-                            this.patrolIndex = this.patrolIndex || 0;
                             if (this.currentQuest.patrolPoints) {
-                                const pt = this.currentQuest.patrolPoints[this.patrolIndex % this.currentQuest.patrolPoints.length];
+                                const pts = this.currentQuest.patrolPoints;
+                                const distSqToSeg = (p, v, w) => {
+                                    let l2 = v.distSq(w); if (l2 === 0) return p.distSq(v);
+                                    let t = Math.max(0, Math.min(1, ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2));
+                                    return p.distSq(new Vec2(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
+                                };
+                                let bestDist = Infinity;
+                                let bestIdx = 0;
+                                for (let i = 0; i < pts.length; i++) {
+                                    let prevIdx = (i - 1 + pts.length) % pts.length;
+                                    let d = distSqToSeg(this.pos, pts[prevIdx], pts[i]);
+                                    if (d < bestDist) {
+                                        bestDist = d;
+                                        bestIdx = i;
+                                    }
+                                }
+
+                                if (this.patrolIndex === undefined || this.patrolIndex === null) {
+                                    this.patrolIndex = bestIdx;
+                                } else {
+                                    // Make sure it doesn't just backtrack if they get moved slightly backward.
+                                    let curTargetIdx = this.patrolIndex % pts.length;
+
+                                    // If we are significantly closer to the NEXT segment (like engaged in combat and moved)
+                                    let curSegDist = distSqToSeg(this.pos, pts[(curTargetIdx - 1 + pts.length) % pts.length], pts[curTargetIdx]);
+
+                                    // Look ahead to next segments to see if we skipped
+                                    let lookaheadTarget = curTargetIdx;
+                                    for(let k = 1; k <= 2; k++) {
+                                        let nextIdx = (curTargetIdx + k) % pts.length;
+                                        let nextSegDist = distSqToSeg(this.pos, pts[(nextIdx - 1 + pts.length) % pts.length], pts[nextIdx]);
+                                        if (nextSegDist < curSegDist - 400) {
+                                            lookaheadTarget = nextIdx;
+                                            curSegDist = nextSegDist;
+                                        }
+                                    }
+
+                                    // Calculate how many indices we advanced
+                                    let advanced = (lookaheadTarget - curTargetIdx + pts.length) % pts.length;
+                                    if (advanced > 0) {
+                                        this.patrolIndex += advanced;
+                                    }
+                                }
+
+                                const pt = pts[this.patrolIndex % pts.length];
                                 this.moveTowards(pt);
                                 if (this.pos.distSq(pt) < 400) this.patrolIndex++;
                             }
@@ -2552,7 +2595,11 @@ class Flag extends Entity {
             }
             if (this.type === 'FLAG_PATROL') {
                 let anyFinished = false;
+                let activeCount = 0;
                 ass.forEach(a => {
+                    if (a.state !== 'FLEE') {
+                        activeCount++;
+                    }
                     if (a.patrolIndex >= 4) {
                         anyFinished = true;
                         const s = Math.floor(this.bounty / maxReq);
@@ -2565,6 +2612,11 @@ class Flag extends Entity {
                     if (ass.length === 0) {
                         this.active = false; Game.questsCompleted++;
                     }
+                }
+
+                if (activeCount === 0 && ass.length > 0) {
+                    ass.forEach(a => { a.currentQuest = null; a.questPhase = 'NONE'; });
+                    this.active = false;
                 }
             } else if (this.type === 'FLAG_ATTACK') {
                 const fleeLimit = maxReq === 3 ? 2 : 1;
