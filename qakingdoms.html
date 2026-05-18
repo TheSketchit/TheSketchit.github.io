@@ -367,6 +367,58 @@ const Engine = {
     audioCtx: null,
     masterGain: null,
     reverbNode: null,
+    coinBuffer: null,
+    fireballHitBuffer: null,
+
+    async loadBuffer(url, propName) {
+        if (!this.audioCtx) return;
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            this[propName] = await this.audioCtx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+            console.error("Failed to load sound:", url, e);
+        }
+    },
+
+    playSound(buffer, x, y, volume = 1.0, maxDist = null) {
+        if (!this.audioCtx || !buffer) return;
+
+        const dx = x - Camera.x;
+        const dy = y - Camera.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        const halfW = (canvas.width / 2) / Camera.zoom;
+        const halfH = (canvas.height / 2) / Camera.zoom;
+
+        let distanceGain = 1.0;
+
+        if (maxDist === 'visible') {
+            if (Math.abs(dx) > halfW || Math.abs(dy) > halfH) return;
+        } else if (maxDist !== null) {
+            const effectiveMaxDist = maxDist / Camera.zoom;
+            if (dist > effectiveMaxDist) return;
+            distanceGain = Math.max(0, 1.0 - (dist / effectiveMaxDist));
+        }
+
+        let pan = dx / halfW;
+        pan = Math.max(-1, Math.min(1, pan));
+
+        const source = this.audioCtx.createBufferSource();
+        source.buffer = buffer;
+
+        const gainNode = this.audioCtx.createGain();
+        gainNode.gain.value = volume * distanceGain;
+
+        const panner = this.audioCtx.createStereoPanner();
+        panner.pan.value = pan;
+
+        source.connect(gainNode);
+        gainNode.connect(panner);
+        panner.connect(this.masterGain);
+
+        source.start();
+    },
 
     initAudio() {
         if (this.audioCtx) return;
@@ -388,6 +440,9 @@ const Engine = {
         }
         this.reverbNode.buffer = impulse;
         this.reverbNode.connect(this.masterGain);
+
+        this.loadBuffer('assets/coin.wav', 'coinBuffer');
+        this.loadBuffer('assets/fireball_hit.wav', 'fireballHitBuffer');
     },
 
     playDoomStab(time, freq, duration) {
@@ -521,6 +576,66 @@ function screenToWorld(sx, sy) {
 }
 
 const GameBounds = {
+    getNavWaypoint(p1, p2, radius) {
+        const cx = WORLD_WIDTH / 2, cy = WORLD_HEIGHT / 2;
+        const w = 400;
+
+        const getReg = (p) => {
+            if (p.y < 150) return 'NORTH';
+            if (p.y > WORLD_HEIGHT - 150) return 'SOUTH';
+            if (p.x < 150) return 'WEST';
+            if (p.x > WORLD_WIDTH - 150) return 'EAST';
+            return 'MAIN';
+        };
+
+        const r1 = getReg(p1);
+        const r2 = getReg(p2);
+
+        if (r1 === r2) return p2;
+
+        let target = p2;
+        let effectiveR2 = r2;
+        if (r1 !== 'MAIN' && r2 !== 'MAIN') {
+            target = new Vec2(cx, cy);
+            effectiveR2 = 'MAIN';
+        }
+
+        const isMain1 = (r1 === 'MAIN');
+        const corr = isMain1 ? effectiveR2 : r1;
+
+        let edgeCoord, minBound, maxBound, isHorizontal;
+
+        if (corr === 'NORTH') {
+            edgeCoord = 150; minBound = cx - w/2; maxBound = cx + w/2; isHorizontal = true;
+        } else if (corr === 'SOUTH') {
+            edgeCoord = WORLD_HEIGHT - 150; minBound = cx - w/2; maxBound = cx + w/2; isHorizontal = true;
+        } else if (corr === 'WEST') {
+            edgeCoord = 150; minBound = cy - w/2; maxBound = cy + w/2; isHorizontal = false;
+        } else if (corr === 'EAST') {
+            edgeCoord = WORLD_WIDTH - 150; minBound = cy - w/2; maxBound = cy + w/2; isHorizontal = false;
+        }
+
+        const pad = radius + 5;
+        minBound += pad;
+        maxBound -= pad;
+
+        if (isHorizontal) {
+            if (p1.y === target.y) return target;
+            const t = (edgeCoord - p1.y) / (target.y - p1.y);
+            const crossX = p1.x + t * (target.x - p1.x);
+            if (crossX < minBound - 0.1) return new Vec2(minBound, edgeCoord);
+            if (crossX > maxBound + 0.1) return new Vec2(maxBound, edgeCoord);
+            return isMain1 ? target : new Vec2(crossX, edgeCoord);
+        } else {
+            if (p1.x === target.x) return target;
+            const t = (edgeCoord - p1.x) / (target.x - p1.x);
+            const crossY = p1.y + t * (target.y - p1.y);
+            if (crossY < minBound - 0.1) return new Vec2(edgeCoord, minBound);
+            if (crossY > maxBound + 0.1) return new Vec2(edgeCoord, maxBound);
+            return isMain1 ? target : new Vec2(edgeCoord, crossY);
+        }
+    },
+
     getMain() { return { x1: 150, x2: WORLD_WIDTH - 150, y1: 150, y2: WORLD_HEIGHT - 150 }; },
     getCorridor(dir) {
         const mw = WORLD_WIDTH, mh = WORLD_HEIGHT;
@@ -913,8 +1028,12 @@ class Entity {
 class Unit extends Entity { 
     constructor(x,y) { super(x,y); this.speed=1; this.target=null; this.attackRange=15; this.damage=5; this.attackCooldown=0; this.maxAttackCooldown=1.0; } 
     moveTowards(tp) { 
-        const dx = tp.x - this.pos.x, dy = tp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
-        if (d <= this.speed) { this.pos.x = tp.x; this.pos.y = tp.y; return true; } 
+        const navTp = GameBounds.getNavWaypoint(this.pos, tp, this.radius);
+        const dx = navTp.x - this.pos.x, dy = navTp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
+        if (d <= this.speed) {
+            if (navTp === tp) { this.pos.x = tp.x; this.pos.y = tp.y; return true; }
+            else { this.pos.x = navTp.x; this.pos.y = navTp.y; return false; }
+        }
         if (d > 0) { this.pos.x += (dx/d)*this.speed; this.pos.y += (dy/d)*this.speed; }
         return false; 
     }
@@ -959,6 +1078,9 @@ class Projectile {
                 this.target.takeDamage(this.damage, this.source);
                 if (this.projType === 'FIREBALL' && typeof this.target.fireTimer !== 'undefined') {
                     this.target.fireTimer = 4.0;
+                }
+                if (this.projType === 'FIREBALL' && this.source && this.source.spawnerType === 'VOLCANO' && !this.target.classType) {
+                    Engine.playSound(Engine.fireballHitBuffer, this.pos.x, this.pos.y, 1.0, 600);
                 }
             }
             this.active = false; 
@@ -1881,6 +2003,8 @@ class Hero extends Unit {
             this.personalGold -= item.cost; 
             Game.gold += Math.floor(item.cost * Game.getUpkeepInfo().rate); Game.itemsPurchased++;
             
+            Engine.playSound(Engine.coinBuffer, s.pos.x, s.pos.y, 1.0, 'visible');
+
             if (item.replaces && this.items.includes(item.replaces)) {
                 this.items.splice(this.items.indexOf(item.replaces), 1);
                 const oldItem = ITEM_CONFIG[item.replaces];
@@ -3649,6 +3773,9 @@ function setMode(m) {
     document.querySelectorAll('#bottom-bar button').forEach(b => UI.setClass(b, 'active', false)); 
     const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_WIZARD':'btn-wizard-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','BUILD_TEMPLE':'btn-temple','FLAG_EXPLORE':'btn-flag-explore','FLAG_DEFEND':'btn-flag-defend','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack', 'REPAIR': 'btn-repair-mode'}[m];
     if(id) UI.setClass(id, 'active', true); 
+    // ⚡ Bolt Optimization: Update cursor immediately instead of waiting for next mousemove
+    // This prevents a perceived delay when users use hotkeys to switch to/from repair mode
+    canvas.style.cursor = Game.mode === 'REPAIR' ? 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' style=\'font-size: 24px\'><text y=\'24\'>🔨</text></svg>") 0 24, auto' : (isPanning ? 'grabbing' : 'auto');
 }
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
