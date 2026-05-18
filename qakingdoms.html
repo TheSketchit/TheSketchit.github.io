@@ -576,66 +576,6 @@ function screenToWorld(sx, sy) {
 }
 
 const GameBounds = {
-    getNavWaypoint(p1, p2, radius) {
-        const cx = WORLD_WIDTH / 2, cy = WORLD_HEIGHT / 2;
-        const w = 400;
-
-        const getReg = (p) => {
-            if (p.y < 150) return 'NORTH';
-            if (p.y > WORLD_HEIGHT - 150) return 'SOUTH';
-            if (p.x < 150) return 'WEST';
-            if (p.x > WORLD_WIDTH - 150) return 'EAST';
-            return 'MAIN';
-        };
-
-        const r1 = getReg(p1);
-        const r2 = getReg(p2);
-
-        if (r1 === r2) return p2;
-
-        let target = p2;
-        let effectiveR2 = r2;
-        if (r1 !== 'MAIN' && r2 !== 'MAIN') {
-            target = new Vec2(cx, cy);
-            effectiveR2 = 'MAIN';
-        }
-
-        const isMain1 = (r1 === 'MAIN');
-        const corr = isMain1 ? effectiveR2 : r1;
-
-        let edgeCoord, minBound, maxBound, isHorizontal;
-
-        if (corr === 'NORTH') {
-            edgeCoord = 150; minBound = cx - w/2; maxBound = cx + w/2; isHorizontal = true;
-        } else if (corr === 'SOUTH') {
-            edgeCoord = WORLD_HEIGHT - 150; minBound = cx - w/2; maxBound = cx + w/2; isHorizontal = true;
-        } else if (corr === 'WEST') {
-            edgeCoord = 150; minBound = cy - w/2; maxBound = cy + w/2; isHorizontal = false;
-        } else if (corr === 'EAST') {
-            edgeCoord = WORLD_WIDTH - 150; minBound = cy - w/2; maxBound = cy + w/2; isHorizontal = false;
-        }
-
-        const pad = radius + 5;
-        minBound += pad;
-        maxBound -= pad;
-
-        if (isHorizontal) {
-            if (p1.y === target.y) return target;
-            const t = (edgeCoord - p1.y) / (target.y - p1.y);
-            const crossX = p1.x + t * (target.x - p1.x);
-            if (crossX < minBound - 0.1) return new Vec2(minBound, edgeCoord);
-            if (crossX > maxBound + 0.1) return new Vec2(maxBound, edgeCoord);
-            return isMain1 ? target : new Vec2(crossX, edgeCoord);
-        } else {
-            if (p1.x === target.x) return target;
-            const t = (edgeCoord - p1.x) / (target.x - p1.x);
-            const crossY = p1.y + t * (target.y - p1.y);
-            if (crossY < minBound - 0.1) return new Vec2(edgeCoord, minBound);
-            if (crossY > maxBound + 0.1) return new Vec2(edgeCoord, maxBound);
-            return isMain1 ? target : new Vec2(edgeCoord, crossY);
-        }
-    },
-
     getMain() { return { x1: 150, x2: WORLD_WIDTH - 150, y1: 150, y2: WORLD_HEIGHT - 150 }; },
     getCorridor(dir) {
         const mw = WORLD_WIDTH, mh = WORLD_HEIGHT;
@@ -1028,12 +968,8 @@ class Entity {
 class Unit extends Entity { 
     constructor(x,y) { super(x,y); this.speed=1; this.target=null; this.attackRange=15; this.damage=5; this.attackCooldown=0; this.maxAttackCooldown=1.0; } 
     moveTowards(tp) { 
-        const navTp = GameBounds.getNavWaypoint(this.pos, tp, this.radius);
-        const dx = navTp.x - this.pos.x, dy = navTp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
-        if (d <= this.speed) {
-            if (navTp === tp) { this.pos.x = tp.x; this.pos.y = tp.y; return true; }
-            else { this.pos.x = navTp.x; this.pos.y = navTp.y; return false; }
-        }
+        const dx = tp.x - this.pos.x, dy = tp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
+        if (d <= this.speed) { this.pos.x = tp.x; this.pos.y = tp.y; return true; } 
         if (d > 0) { this.pos.x += (dx/d)*this.speed; this.pos.y += (dy/d)*this.speed; }
         return false; 
     }
