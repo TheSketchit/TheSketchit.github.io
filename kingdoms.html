@@ -561,6 +561,8 @@ window.addEventListener('keydown', e => {
             } else if (type === 'TEMPLE') {
                 if (k === 'r') Game.resurrectHighestLevelHero();
             }
+        } else if (Game.hoveredEntity && Game.hoveredEntity.active && Game.hoveredEntity.type.startsWith('FLAG_') && k === 'a') {
+            Game.abandonQuest(Game.hoveredEntity);
         }
         const buildMenuVisible = document.getElementById('menu-build').style.display !== 'none';
         const commandMenuVisible = document.getElementById('menu-command').style.display !== 'none';
@@ -2093,7 +2095,12 @@ class Hero extends Unit {
 
         if(rot) ctx.rotate(rot);
         
-        const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
+        let outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
+        if (!outC && this.currentQuest) {
+            if (Game.selectedEntity === this.currentQuest) outC = '#ffcc00';
+            else if (Game.hoveredEntity === this.currentQuest) outC = '#90ee90';
+        }
+
         let sp;
         if (conf.imageSrc) {
             ctx.save();
@@ -3482,13 +3489,15 @@ const Game = {
             for(let i=0; i<15; i++) Game.spawnParticle(h.pos.x, h.pos.y, '#ffcc00');
         }
     },
-    abandonQuest() {
-        const e = this.selectedEntity;
+    abandonQuest(entityToAbandon = this.selectedEntity) {
+        const e = entityToAbandon;
         if (e && e.type.startsWith('FLAG_')) {
             e.active = false;
-            this.selectedEntity = null;
-            this.hideTooltip();
-            this.updateUI(true);
+            if (this.selectedEntity === e) {
+                this.selectedEntity = null;
+                this.hideTooltip();
+                this.updateUI(true);
+            }
         }
     },
     upgradeFarm() {
