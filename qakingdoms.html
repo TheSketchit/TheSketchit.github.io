@@ -698,11 +698,11 @@ function generateTerrain() {
 
 const SpriteCache = {
     cache: {},
-    get(icon, size, drawShadow = true, stroke = true, outlineColor = null, isFlashed = false, feralGlow = false) {
-        const key = `${icon}_${size}_${drawShadow}_${stroke}_${outlineColor}_${isFlashed}_${feralGlow}`;
+    get(icon, size, drawShadow = true, stroke = true, outlineColor = null) {
+        const key = `${icon}_${size}_${drawShadow}_${stroke}_${outlineColor}`;
         if (this.cache[key]) return this.cache[key];
         const c = document.createElement('canvas');
-        const pad = drawShadow || outlineColor || feralGlow ? 15 : 5;
+        const pad = drawShadow || outlineColor ? 15 : 5;
         c.width = size + pad * 2; c.height = size + pad * 2;
         const ctx = c.getContext('2d');
         const cx = c.width/2, cy = c.height/2;
@@ -723,31 +723,17 @@ const SpriteCache = {
             ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=8; ctx.shadowOffsetX=3; ctx.shadowOffsetY=5; 
         }
 
-        if (feralGlow) {
-            ctx.shadowColor = 'darkred';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-        }
-
         ctx.font = `${size}px Arial`; ctx.textAlign='center'; ctx.textBaseline='middle';
         if (stroke && !outlineColor) { ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,0.8)'; ctx.strokeText(icon, cx, cy); }
         
         ctx.shadowColor = 'transparent';
         ctx.fillText(icon, cx, cy);
-
-        if (isFlashed) {
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, c.width, c.height);
-            ctx.globalCompositeOperation = 'source-over';
-        }
         
         this.cache[key] = { img: c, ox: cx, oy: cy };
         return this.cache[key];
     },
-    getImage(src, size, drawShadow = true, stroke = true, outlineColor = null, isFlashed = false) {
-        const key = `img_${src}_${size}_${drawShadow}_${stroke}_${outlineColor}_${isFlashed}`;
+    getImage(src, size, drawShadow = true, stroke = true, outlineColor = null) {
+        const key = `img_${src}_${size}_${drawShadow}_${stroke}_${outlineColor}`;
         if (this.cache[key] && this.cache[key].loaded) return this.cache[key];
 
         if (!this.cache[key]) {
@@ -799,14 +785,6 @@ const SpriteCache = {
 
                 ctx.shadowColor = 'transparent';
                 ctx.drawImage(img, cx - size/2, cy - size/2, size, size);
-
-                if (isFlashed) {
-                    ctx.globalCompositeOperation = 'source-atop';
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(0, 0, c.width, c.height);
-                    ctx.globalCompositeOperation = 'source-over';
-                }
-
                 this.cache[key].loaded = true;
             };
         }
@@ -1365,9 +1343,15 @@ class Monster extends Unit {
         const ic = conf.icon;
         
         const outC = Game.hoveredEntity === this ? '#90ee90' : (Game.selectedEntity === this ? '#ffcc00' : null);
-        const sp = SpriteCache.get(ic, this.baseFontSize, true, true, outC, false, this.isFeral);
+        const sp = SpriteCache.get(ic, this.baseFontSize, true, true, outC); 
 
+        ctx.save();
+        if (this.isFeral) {
+            ctx.shadowColor = 'darkred';
+            ctx.shadowBlur = 15;
+        }
         ctx.drawImage(sp.img, dX - sp.ox, dY - sp.oy);
+        ctx.restore();
 
         if (this.stunTimer > 0) {
             const stunY = Math.sin(Game.timeMs * 0.01) * 4;
@@ -1702,6 +1686,50 @@ class Hero extends Unit {
                 if (this.questPhase==='DO_QUEST' || this.questPhase==='MOVE_TO_TARGET' || this.questPhase==='AT_TARGET') { this.target = (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.currentQuest.targetEntity) ? this.currentQuest.targetEntity : this.currentQuest; this.state='MOVE'; }
             }
         }
+
+        if (this.state !== 'FLEE' && this.questPhase !== 'HEAL_AT_BASE' && this.questPhase !== 'BUY_ITEMS' && this.questPhase !== 'WAITING_FOR_GROUP' && this.checkThreatTimer <= 0) {
+            this.checkThreatTimer = 0.1;
+            let aggroSq = 40000;
+            let foundTarget = false;
+
+            const isEngagedWithMonster = (this.state === 'ATTACK' || this.state === 'MOVE') && this.target && this.target.faction === 'ENEMY' && this.target.type !== 'SPAWNER' && this.target.spawnerType !== 'VOLCANO';
+
+            if (!isEngagedWithMonster || this.classType === 'DRUID') {
+                foundTarget = this.findCustomThreatAggro(aggroSq);
+
+                if (!foundTarget) {
+                    for (let i = 0; i < Game.activeHeroes.length; i++) {
+                        const h = Game.activeHeroes[i];
+                        if (h !== this && this.pos.distSq(h.pos) <= aggroSq) {
+                            const allyIsAttacked = (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000);
+                            if (allyIsAttacked && h.lastAttacker && h.lastAttacker.active && h.lastAttacker.faction === 'ENEMY' && h.lastAttacker.type !== 'SPAWNER' && h.lastAttacker.spawnerType !== 'VOLCANO') {
+                                this.target = (this.classType === 'DRUID' && h.hp < h.maxHp) ? h : h.lastAttacker;
+                                if (this.state !== 'ATTACK') this.state = 'MOVE';
+                                foundTarget = true;
+                                break;
+                            } else if (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.type !== 'SPAWNER' && h.target.spawnerType !== 'VOLCANO') {
+                                this.target = h.target;
+                                if (this.state !== 'ATTACK') this.state = 'MOVE';
+                                foundTarget = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!foundTarget) {
+                    Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
+                        if ((enemy.isVisible || distSq <= 22500)) {
+                            this.target = enemy;
+                            if (this.state !== 'ATTACK') this.state = 'MOVE';
+                            foundTarget = true;
+                            return true;
+                        }
+                    }, 'ENEMY');
+                }
+            }
+        }
+
         switch(this.state) {
             case 'IDLE':
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
@@ -1737,33 +1765,6 @@ class Hero extends Unit {
                 if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
                 if (this.isValidAttackTarget(this.target)) { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else { this.onMoveToAttackTarget(dtSec, ds); } }
                 else if (this.shouldStopAttack(this.target)) { this.state = 'IDLE'; }
-                else if (this.questPhase==='NONE'||this.questPhase==='DO_QUEST'||this.questPhase==='MOVE_TO_TARGET'||this.questPhase==='AT_TARGET') { 
-                    if(this.checkThreatTimer<=0) { 
-                        this.checkThreatTimer=0.1; 
-                        let aggroSq = 40000;
-                        let foundTarget = false;
-                        foundTarget = this.findCustomThreatAggro(aggroSq);
-                        if (!foundTarget) {
-                            Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
-                                if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
-                                    this.target=enemy; this.state='MOVE'; return true;
-                                }
-                            }, 'ENEMY');
-
-                            if (!this.target || this.target.faction !== 'ENEMY' || this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') {
-                                for (let i = 0; i < Game.activeHeroes.length; i++) {
-                                    const h = Game.activeHeroes[i];
-                                    if (h !== this && h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.type !== 'SPAWNER' && h.target.spawnerType !== 'VOLCANO' && this.pos.distSq(h.pos) <= aggroSq) {
-                                        this.target = h.target;
-                                        this.state = 'MOVE';
-                                        foundTarget = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    } 
-                }
                 if (this.stateTimer <= 0) { this.evaluateGoals(myBase, hasHeal); this.stateTimer = 1.0; }
                 break;
             case 'ATTACK':
@@ -2386,9 +2387,8 @@ class Building extends Entity {
             
             const iconToDraw = (this.isUpgraded && conf.upgradedIcon) ? conf.upgradedIcon : conf.icon;
             const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
-            const isFlashed = this.flashTimer > 0;
-            const sp = conf.imageSrc ? SpriteCache.getImage(conf.imageSrc, parseInt(conf.fontSize), true, true, outC, isFlashed) : SpriteCache.get(iconToDraw, parseInt(conf.fontSize), true, true, outC, isFlashed);
-            ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+            const sp = conf.imageSrc ? SpriteCache.getImage(conf.imageSrc, parseInt(conf.fontSize), true, true, outC) : SpriteCache.get(iconToDraw, parseInt(conf.fontSize), true, true, outC);
+            if (this.flashTimer > 0) ctx.filter = 'brightness(2.5)'; ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy); if (this.flashTimer > 0) ctx.filter = 'none';
             
             if (this.type === 'TOWER') { 
                 const hY = Math.sin(Game.timeMs * 0.006) * 4; 
@@ -2743,9 +2743,8 @@ class Spawner extends Entity {
         const ic = conf.icon;
         
         const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
-        const isFlashed = this.flashTimer > 0;
-        const sp = SpriteCache.get(ic, 40+(this.daysSurvived*4), true, true, outC, isFlashed);
-        ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+        const sp = SpriteCache.get(ic, 40+(this.daysSurvived*4), true, true, outC); 
+        if (this.flashTimer > 0) ctx.filter = 'brightness(2.5)'; ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy); if (this.flashTimer > 0) ctx.filter = 'none';
         this.drawHP(ctx, -25-(this.daysSurvived*2));
     }
 }
@@ -2899,9 +2898,8 @@ class Volcano extends Entity {
         ctx.save(); ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(this.pos.x, this.pos.y+20, 50, 15, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
         
         const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
-        const isFlashed = this.flashTimer > 0;
-        const sp = SpriteCache.get('🗻', 80, true, true, outC, isFlashed);
-        ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+        const sp = SpriteCache.get('🗻', 80, true, true, outC); 
+        if (this.flashTimer > 0) ctx.filter = 'brightness(2.5)'; ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy); if (this.flashTimer > 0) ctx.filter = 'none';
         
         ctx.fillStyle = '#e53e3e'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
         ctx.fillText(Math.ceil(this.attackTimer) + "s", this.pos.x, this.pos.y - 60);
@@ -3988,7 +3986,7 @@ function loop(timestamp) {
     ctx.drawImage(bgCanvas, Game.bgBounds.x, Game.bgBounds.y); 
     
     if (Game.fogOfWar) {
-        fogCtx.globalCompositeOperation='source-over';
+        fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
         fogCtx.fillStyle='rgba(0,0,0,0.7)'; fogCtx.fillRect(0, 0, canvas.width, canvas.height); 
         fogCtx.globalCompositeOperation='destination-out'; 
         fogCtx.save();
@@ -4077,19 +4075,8 @@ function loop(timestamp) {
 
     Game.positionUI();
 }
-window.addEventListener('resize', () => {
-    canvas.width=window.innerWidth;
-    canvas.height=window.innerHeight;
-    fogCanvas.width = canvas.width;
-    fogCanvas.height = canvas.height;
-});
-window.onload = () => {
-    canvas.width=window.innerWidth;
-    canvas.height=window.innerHeight;
-    fogCanvas.width = canvas.width;
-    fogCanvas.height = canvas.height;
-    init();
-};
+window.addEventListener('resize', () => { canvas.width=window.innerWidth; canvas.height=window.innerHeight; });
+window.onload = () => { canvas.width=window.innerWidth; canvas.height=window.innerHeight; init(); };
 </script>
 </body>
 </html>
