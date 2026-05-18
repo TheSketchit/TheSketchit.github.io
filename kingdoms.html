@@ -368,6 +368,7 @@ const Engine = {
     masterGain: null,
     reverbNode: null,
     fireballBuffer: null,
+    coinBuffer: null,
 
     initAudio() {
         if (this.audioCtx) return;
@@ -381,6 +382,12 @@ const Engine = {
             .then(buf => this.audioCtx.decodeAudioData(buf))
             .then(decoded => { this.fireballBuffer = decoded; })
             .catch(e => console.error('Failed to load fireball_hit.wav', e));
+
+        fetch('assets/coin.wav')
+            .then(res => res.arrayBuffer())
+            .then(buf => this.audioCtx.decodeAudioData(buf))
+            .then(decoded => { this.coinBuffer = decoded; })
+            .catch(e => console.error('Failed to load coin.wav', e));
 
         this.reverbNode = this.audioCtx.createConvolver();
         const rate = this.audioCtx.sampleRate;
@@ -479,6 +486,44 @@ const Engine = {
 
         const source = this.audioCtx.createBufferSource();
         source.buffer = this.fireballBuffer;
+
+        const panner = this.audioCtx.createStereoPanner();
+        panner.pan.value = panVal;
+
+        const gainNode = this.audioCtx.createGain();
+        gainNode.gain.value = vol;
+
+        source.connect(panner);
+        panner.connect(gainNode);
+        gainNode.connect(this.masterGain);
+
+        source.start(0);
+    },
+
+    playCoinSound(x, y) {
+        if (!this.audioCtx || !this.coinBuffer) return;
+        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+
+        const dx = x - Camera.x;
+        const dy = y - Camera.y;
+        const distSq = dx * dx + dy * dy;
+
+        const maxDist = 1200; // Shorter distance to fade off faster
+        const maxDistSq = maxDist * maxDist;
+
+        let vol = 0;
+        if (distSq < maxDistSq) {
+            const dist = Math.sqrt(distSq);
+            // power of 4 makes it fade faster over distance than fireball
+            vol = Math.pow(1 - (dist / maxDist), 4);
+        }
+
+        if (vol <= 0.01) return;
+
+        const panVal = Math.max(-1, Math.min(1, dx / (maxDist * 0.5)));
+
+        const source = this.audioCtx.createBufferSource();
+        source.buffer = this.coinBuffer;
 
         const panner = this.audioCtx.createStereoPanner();
         panner.pan.value = panVal;
@@ -2070,6 +2115,7 @@ class Hero extends Unit {
             this.purchasedItemVfxTimer = 2.0;
             this.purchasedItemIcon = item.icon;
             Game.spawnFloatingText(s.pos.x, s.pos.y - 30, '🪙', '#ffcc00', 1.0, 22);
+            Engine.playCoinSound(s.pos.x, s.pos.y);
             break;
         }
     }
