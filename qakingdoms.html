@@ -392,17 +392,21 @@ const Engine = {
         const halfH = (canvas.height / 2) / Camera.zoom;
 
         let distanceGain = 1.0;
+        let pan = 0;
 
         if (maxDist === 'visible') {
-            if (Math.abs(dx) > halfW || Math.abs(dy) > halfH) return;
+            if (Math.abs(dx) > halfW + 100 || Math.abs(dy) > halfH + 100) return;
+            pan = 0;
         } else if (maxDist !== null) {
             const effectiveMaxDist = maxDist / Camera.zoom;
             if (dist > effectiveMaxDist) return;
             distanceGain = Math.max(0, 1.0 - (dist / effectiveMaxDist));
+            pan = dx / halfW;
+            pan = Math.max(-1, Math.min(1, pan));
+        } else {
+            pan = dx / halfW;
+            pan = Math.max(-1, Math.min(1, pan));
         }
-
-        let pan = dx / halfW;
-        pan = Math.max(-1, Math.min(1, pan));
 
         const source = this.audioCtx.createBufferSource();
         source.buffer = buffer;
