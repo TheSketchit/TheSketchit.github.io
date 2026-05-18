@@ -192,7 +192,7 @@
                             <div class="build-btn-title">Arcane Aura</div>
                         </div>
                         <div class="build-btn-icon">🔮</div>
-                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙115</span></div>
                     </button>
                     <button id="btn-upg-MAGICAL_BARRAGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('MAGICAL_BARRAGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Magical Barrage', 'The wizard\'s magical prowess allows them to shoot at up to 3 enemies at once, at the cost of a slower attack speed. If the wizard is only shooting at one enemy, their attack speed goes back to normal.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
@@ -200,7 +200,7 @@
                             <div class="build-btn-title">Magical Barrage</div>
                         </div>
                         <div class="build-btn-icon">✨</div>
-                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙300</span></div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙215</span></div>
                     </button>
                 </div>
             </div>
@@ -892,8 +892,8 @@ const HERO_CONFIG = {
 };
 
 const UPGRADE_CONFIG = {
-    ARCANE_AURA: { cost: 200 },
-    MAGICAL_BARRAGE: { cost: 300 },
+    ARCANE_AURA: { cost: 115 },
+    MAGICAL_BARRAGE: { cost: 215 },
     CHARGE: { cost: 100 },
     RAT_TRAP: { cost: 100 },
     REGROWTH: { cost: 100 },
@@ -3196,7 +3196,7 @@ const Game = {
                                 <div class="build-btn-title">${title}</div>
                             </div>
                             <div class="build-btn-icon">${iStr}</div>
-                            <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙${upg.cost}</span></div>
+                            <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙${upg.cost / 2}</span></div>
                         `;
                         UI.setHTML(`guild-slot-0`, iconHTML);
                         slotBtn.onmouseenter = (ev) => Game.showTooltip(ev, title, desc);
