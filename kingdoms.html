@@ -1483,7 +1483,10 @@ class Hero extends Unit {
         return 'Idling';
     }
 
-    getVisionRange() { return Math.max(150, this.attackRange || 0); }
+    getVisionRange() {
+        let base = (this.classType === 'WIZARD' || this.classType === 'DRUID') ? 150 : 100;
+        return Math.max(base, this.attackRange || 0);
+    }
     
     applyMotw() {
         if (this.markOfTheWildTimer <= 0) {
@@ -1725,7 +1728,7 @@ class Hero extends Unit {
 
         if (this.state !== 'FLEE' && this.questPhase !== 'HEAL_AT_BASE' && this.questPhase !== 'BUY_ITEMS' && this.questPhase !== 'WAITING_FOR_GROUP' && this.checkThreatTimer <= 0) {
             this.checkThreatTimer = 0.1;
-            let aggroSq = 40000;
+            let aggroSq = (this.classType === 'WIZARD' || this.classType === 'DRUID') ? 40000 : 10000;
             let foundTarget = false;
 
             const isEngagedWithMonster = (this.state === 'ATTACK' || this.state === 'MOVE') && this.target && this.target.faction === 'ENEMY' && this.target.type !== 'SPAWNER' && this.target.spawnerType !== 'VOLCANO';
@@ -1737,6 +1740,7 @@ class Hero extends Unit {
                     for (let i = 0; i < Game.activeHeroes.length; i++) {
                         const h = Game.activeHeroes[i];
                         if (h !== this && this.pos.distSq(h.pos) <= aggroSq) {
+                            if (this.currentQuest && h.currentQuest !== this.currentQuest) continue;
                             const allyIsAttacked = (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000);
                             if (allyIsAttacked && h.lastAttacker && h.lastAttacker.active && h.lastAttacker.faction === 'ENEMY' && h.lastAttacker.type !== 'SPAWNER' && h.lastAttacker.spawnerType !== 'VOLCANO') {
                                 this.target = (this.classType === 'DRUID' && h.hp < h.maxHp) ? h : h.lastAttacker;
@@ -1756,6 +1760,10 @@ class Hero extends Unit {
                 if (!foundTarget) {
                     Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
                         if ((enemy.isVisible || distSq <= 22500)) {
+                            if (this.currentQuest && this.questPhase !== 'AT_TARGET') {
+                                if (enemy.type === 'SPAWNER' || enemy.spawnerType === 'VOLCANO') return false;
+                                if (enemy.target !== this && (!enemy.target || enemy.target.currentQuest !== this.currentQuest)) return false;
+                            }
                             this.target = enemy;
                             if (this.state !== 'ATTACK') this.state = 'MOVE';
                             foundTarget = true;
@@ -2182,6 +2190,7 @@ class WarriorHero extends Hero {
         for (let i = 0; i < Game.activeHeroes.length; i++) {
             const h = Game.activeHeroes[i];
             if (h !== this && (h.classType === 'DRUID' || h.classType === 'WIZARD') && this.pos.distSq(h.pos) <= aggroSq) {
+                if (this.currentQuest && h.currentQuest !== this.currentQuest) continue;
                 const allyIsAttacked = (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000);
                 if (allyIsAttacked && h.lastAttacker && h.lastAttacker.active && h.lastAttacker.faction === 'ENEMY' && h.lastAttacker.type !== 'SPAWNER' && h.lastAttacker.spawnerType !== 'VOLCANO') {
                     // Try to taunt if available
@@ -2198,10 +2207,11 @@ class WarriorHero extends Hero {
         }
 
         // Find spawners
-        let bestSpawner = null;
-        let bestDistSq = Infinity;
-        Grid.getNearby(this.pos, aggroSq, (e, distSq) => {
-            if (e.isVisible && e.faction === 'ENEMY' && (e.type === 'SPAWNER' || e.spawnerType === 'VOLCANO') && distSq <= aggroSq) {
+        if (!(this.currentQuest && this.questPhase !== 'AT_TARGET')) {
+            let bestSpawner = null;
+            let bestDistSq = Infinity;
+            Grid.getNearby(this.pos, aggroSq, (e, distSq) => {
+                if (e.isVisible && e.faction === 'ENEMY' && (e.type === 'SPAWNER' || e.spawnerType === 'VOLCANO') && distSq <= aggroSq) {
                 if (distSq < bestDistSq) {
                     bestDistSq = distSq;
                     bestSpawner = e;
@@ -2209,10 +2219,11 @@ class WarriorHero extends Hero {
             }
         }, 'ENEMY');
 
-        if (bestSpawner) {
-            this.target = bestSpawner;
-            if (this.state !== 'ATTACK') this.state = 'MOVE';
-            return true;
+            if (bestSpawner) {
+                this.target = bestSpawner;
+                if (this.state !== 'ATTACK') this.state = 'MOVE';
+                return true;
+            }
         }
 
         return false;
@@ -2346,6 +2357,7 @@ class DruidHero extends Hero {
         for (let i = 0; i < Game.activeHeroes.length; i++) {
             const h = Game.activeHeroes[i];
             if (h !== this && h.hp < h.maxHp && this.pos.distSq(h.pos) <= aggroSq) {
+                if (this.currentQuest && h.currentQuest !== this.currentQuest) continue;
                 const isBeingAttacked = ((h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000));
                 let priority = (1.0 - (h.hp / h.maxHp));
                 if (isBeingAttacked) priority += 2.0;
@@ -2621,7 +2633,7 @@ class Flag extends Entity {
                     if (availableGroups.length > 0) {
                         availableGroups.sort((a,b) => a[0].pos.distSq(this.pos) - b[0].pos.distSq(this.pos));
                         let chosenGroup = availableGroups[0];
-                        chosenGroup.forEach(h => { h.currentQuest = this; h.questPhase = (h.target && h.target.faction==='ENEMY')?'FINISH_COMBAT':'HEAL_AT_BASE'; });
+                        chosenGroup.forEach(h => { h.currentQuest = this; h.target = null; h.state = 'IDLE'; h.questPhase = 'HEAL_AT_BASE'; });
                     }
                 } else {
                     let maxReq = ass.length; 
@@ -2675,19 +2687,11 @@ class Flag extends Entity {
 
             if (ass.length < maxReq) {
                 if (av.length > 0) {
-                    if (this.type === 'FLAG_ATTACK') {
-                        av.sort((a,b) => {
-                            let scoreA = (10000 / Math.max(1, a.pos.distSq(Game.base.pos))) * (a.hp / a.maxHp);
-                            let scoreB = (10000 / Math.max(1, b.pos.distSq(Game.base.pos))) * (b.hp / b.maxHp);
-                            return scoreB - scoreA; 
-                        });
-                    } else {
-                        av.sort((a,b) => { let getS = h => (h.target && h.target.faction==='ENEMY')?2:(h.state==='IDLE'?0:1); return getS(a) - getS(b) || (b.hp/b.maxHp - a.hp/a.maxHp) || a.pos.distSq(this.pos) - b.pos.distSq(this.pos); });
-                    }
+                    av.sort((a,b) => { let getS = h => (h.target && h.target.faction==='ENEMY')?2:(h.state==='IDLE'?0:1); return getS(a) - getS(b) || (b.hp/b.maxHp - a.hp/a.maxHp) || a.pos.distSq(this.pos) - b.pos.distSq(this.pos); });
                     while (ass.length < maxReq && av.length > 0) { 
                         let h = av.shift();
                         if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
-                        h.currentQuest = this; h.questPhase = (h.target && h.target.faction==='ENEMY')?'FINISH_COMBAT':'HEAL_AT_BASE'; ass.push(h);
+                        h.currentQuest = this; h.target = null; h.state = 'IDLE'; h.questPhase = 'HEAL_AT_BASE'; ass.push(h);
                         if (h.classType === 'DRUID') druidCountAssigned++;
                     }
                 }
