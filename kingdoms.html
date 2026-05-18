@@ -607,6 +607,7 @@ const GameBounds = {
         Game.corridors.forEach(c => rects.push(this.getCorridor(c.dir)));
         return rects;
     },
+
     clamp(x, y, radius = 0) {
         const rects = this.getAllRects();
         let insideAny = false;
@@ -973,8 +974,34 @@ class Unit extends Entity {
     constructor(x,y) { super(x,y); this.speed=1; this.target=null; this.attackRange=15; this.damage=5; this.attackCooldown=0; this.maxAttackCooldown=1.0; } 
     moveTowards(tp) { 
         const dx = tp.x - this.pos.x, dy = tp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
-        if (d <= this.speed) { this.pos.x = tp.x; this.pos.y = tp.y; return true; } 
-        if (d > 0) { this.pos.x += (dx/d)*this.speed; this.pos.y += (dy/d)*this.speed; }
+        if (d <= this.speed) {
+            this.pos.x = tp.x; this.pos.y = tp.y; return true;
+        }
+
+        if (d > 0) {
+            let vx = (dx/d)*this.speed;
+            let vy = (dy/d)*this.speed;
+
+            let nextX = this.pos.x + vx;
+            let nextY = this.pos.y + vy;
+
+            let clamped = GameBounds.clamp(nextX, nextY, this.radius);
+            let actualVx = clamped.x - this.pos.x;
+            let actualVy = clamped.y - this.pos.y;
+            let actualDist = Math.sqrt(actualVx*actualVx + actualVy*actualVy);
+
+            // If clamping reduces our speed significantly AND we hit a wall but have a valid component
+            if (actualDist > 0 && actualDist < this.speed - 0.01 && (actualVx !== vx || actualVy !== vy)) {
+                this.pos.x += (actualVx / actualDist) * this.speed;
+                this.pos.y += (actualVy / actualDist) * this.speed;
+                this.pos = GameBounds.clamp(this.pos.x, this.pos.y, this.radius);
+            } else {
+                this.pos.x = nextX;
+                this.pos.y = nextY;
+                // Double check clamp after move to prevent phasing
+                this.pos = GameBounds.clamp(this.pos.x, this.pos.y, this.radius);
+            }
+        }
         return false; 
     }
     applySoftCollision() {
@@ -1842,7 +1869,26 @@ class Hero extends Unit {
                 }
             }
 
-            const maxReq = f.type==='FLAG_EXPLORE' ? 1 : Math.min(3, Math.max(1, totalNoGroup));
+            let maxReq = f.type==='FLAG_EXPLORE' ? 1 : Math.min(3, Math.max(1, totalNoGroup));
+            if (f.type !== 'FLAG_EXPLORE') {
+                let validAvailableCount = 0;
+                let tempDruidCount = 0;
+                for (let k = 0; k < Game.activeHeroes.length; k++) {
+                    const hk = Game.activeHeroes[k];
+                    if (hk.currentQuest === f && hk.classType === 'DRUID') tempDruidCount++;
+                }
+                for (let k = 0; k < Game.activeHeroes.length; k++) {
+                    const hk = Game.activeHeroes[k];
+                    if (!hk.currentQuest && !hk.groupId) {
+                        if ((f.type === 'FLAG_ATTACK' || f.type === 'FLAG_DEFEND') && hk.classType === 'DRUID') {
+                            if (tempDruidCount >= 1) continue;
+                            tempDruidCount++;
+                        }
+                        validAvailableCount++;
+                    }
+                }
+                maxReq = Math.min(3, Math.max(1, assCount + validAvailableCount));
+            }
             if(assCount >= maxReq) continue;
             if(betterCandidates >= maxReq - assCount) continue;
             
@@ -2540,19 +2586,31 @@ class Flag extends Entity {
                 return;
             }
 
-            const maxReq = this.type === 'FLAG_EXPLORE' ? 1 : Math.min(3, Math.max(1, totalHeroesNoGroup));
+            let maxReq = this.type === 'FLAG_EXPLORE' ? 1 : Math.min(3, Math.max(1, totalHeroesNoGroup));
             if (maxReq === 0) return;
             
-            if (ass.length < maxReq) {
-                let av = [];
-                for (let i = 0; i < Game.activeHeroes.length; i++) {
-                    const h = Game.activeHeroes[i];
-                    if (!h.currentQuest && !h.groupId) {
-                        if (this.type === 'FLAG_EXPLORE' && h.classType === 'DRUID') continue;
-                        if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
-                        av.push(h);
+            let av = [];
+            let validAvailableCount = 0;
+            let tempDruidCount = druidCountAssigned;
+
+            for (let i = 0; i < Game.activeHeroes.length; i++) {
+                const h = Game.activeHeroes[i];
+                if (!h.currentQuest && !h.groupId) {
+                    if (this.type === 'FLAG_EXPLORE' && h.classType === 'DRUID') continue;
+                    if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID') {
+                        if (tempDruidCount >= 1) continue;
+                        tempDruidCount++;
                     }
+                    av.push(h);
+                    validAvailableCount++;
                 }
+            }
+
+            if (this.type !== 'FLAG_EXPLORE') {
+                maxReq = Math.min(3, Math.max(1, ass.length + validAvailableCount));
+            }
+
+            if (ass.length < maxReq) {
                 if (av.length > 0) {
                     if (this.type === 'FLAG_ATTACK') {
                         av.sort((a,b) => {
@@ -2620,11 +2678,29 @@ class Flag extends Entity {
         
         let assCount = 0;
         let totalHNoGroup = 0;
+        let validAvailableCount = 0;
+        let druidCountAssigned = 0;
         for (let i = 0; i < Game.activeHeroes.length; i++) {
-            if (Game.activeHeroes[i].currentQuest === this) assCount++;
-            if (!Game.activeHeroes[i].groupId) totalHNoGroup++;
+            const h = Game.activeHeroes[i];
+            if (h.currentQuest === this) {
+                assCount++;
+                if (h.classType === 'DRUID') druidCountAssigned++;
+            }
+            if (!h.groupId) totalHNoGroup++;
         }
-        const maxR = this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? assCount : Math.min(3, Math.max(1, totalHNoGroup))); 
+        let tempDruidCount = druidCountAssigned;
+        for (let i = 0; i < Game.activeHeroes.length; i++) {
+            const h = Game.activeHeroes[i];
+            if (!h.currentQuest && !h.groupId) {
+                if (this.type === 'FLAG_EXPLORE' && h.classType === 'DRUID') continue;
+                if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID') {
+                    if (tempDruidCount >= 1) continue;
+                    tempDruidCount++;
+                }
+                validAvailableCount++;
+            }
+        }
+        const maxR = this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? assCount : Math.min(3, Math.max(1, assCount + validAvailableCount)));
         
         ctx.fillStyle='white'; ctx.font='11px Arial'; ctx.textAlign='center'; ctx.fillText(`${assCount}/${maxR}`, this.pos.x, this.pos.y-35); 
         if (this.type==='FLAG_DEFEND' && this.defendTimer<20) { ctx.fillStyle='#ffcc00'; ctx.font='bold 12px Arial'; ctx.fillText(`${Math.ceil(this.defendTimer)}s`, this.pos.x, this.pos.y-48); }
