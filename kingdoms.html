@@ -83,8 +83,8 @@
                     <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showTooltip(event, 'Health Potion', 'Restores 50 HP when health drops below 30%')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚🧙</span>
                     </button>
-                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 150)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 30%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">⚔️</span><span class="item-cost">150g</span><span class="item-classes">🧌</span>
+                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 100)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">⚔️</span><span class="item-cost">100g</span><span class="item-classes">🧌</span>
                     </button>
                     <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 75)" onmouseenter="Game.showTooltip(event, 'Dagger', 'Increases attack damage by 3. 5% chance to deal double damage.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🗡️</span><span class="item-cost">75g</span><span class="item-classes">🥷</span>
@@ -304,7 +304,7 @@
                 <div class="build-btn-icon">🏡</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-tower" onclick="setMode('BUILD_TOWER')" onmouseenter="Game.showTooltip(event, 'Tower', 'A defensive structure that shoots magic missiles at oncoming enemies.', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-tower" onclick="setMode('BUILD_TOWER')" onmouseenter="Game.showTooltip(event, 'Tower', 'A defensive structure that shoots magic missiles at oncoming enemies.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Reduces hero EXP from kills it helps with by 50%.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">7</div><div class="build-btn-title">Tower</div></div>
                 <div class="build-btn-icon" style="font-size: 1.5rem; line-height: 1.1; margin-top: -2px;">🖲️<br>🔲</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙250 | 1 🫂</span></div>
@@ -1329,7 +1329,7 @@ class Monster extends Unit {
             const heroTax = Math.floor(heroSharePreTax * Game.taxRate);
             const heroSharePostTax = heroSharePreTax - heroTax;
 
-            const sharedXpBase = hasTowerAttacker ? 0 : (Math.floor(10 / validAttackers.length) || 1);
+            const sharedXpBase = Math.floor((hasTowerAttacker ? 0.5 : 1) * (10 / validAttackers.length)) || 1;
 
             validAttackers.forEach(attacker => {
                 if (attacker.kills !== undefined) attacker.kills++;
@@ -1458,9 +1458,6 @@ class Hero extends Unit {
     findCustomThreatAggro(aggroSq) { return false; }
     onAttackTick() {}
     performAttack(d, cr) {
-        if (this.spawnerDamageMult && this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO')) {
-            d = Math.floor(d * this.spawnerDamageMult);
-        }
         this.target.takeDamage(d, this);
         if(cr) Game.spawnParticle(this.target.pos.x, this.target.pos.y, '#e53e3e');
         this.attackCooldown = this.maxAttackCooldown;
@@ -1495,11 +1492,7 @@ class Hero extends Unit {
     }
 
     takeDamage(amt, src) { 
-        if (!this.active) return;
-        if (this.parryChance && Math.random() < this.parryChance) {
-            Game.spawnParticle(this.pos.x, this.pos.y, '#ffffff'); // visual for parry
-            return;
-        } 
+        if (!this.active) return; 
         let red = this.damageReduction || 0;
         let final = Math.max(1, amt - red); 
         if (this.markOfTheWildTimer > 0) final = Math.max(1, Math.floor(final * 0.9));
@@ -1728,7 +1721,7 @@ class Hero extends Unit {
 
             const isEngagedWithMonster = (this.state === 'ATTACK' || this.state === 'MOVE') && this.target && this.target.faction === 'ENEMY' && this.target.type !== 'SPAWNER' && this.target.spawnerType !== 'VOLCANO';
 
-            if (!isEngagedWithMonster || this.classType === 'DRUID' || this.classType === 'WARRIOR') {
+            if (!isEngagedWithMonster || this.classType === 'DRUID') {
                 foundTarget = this.findCustomThreatAggro(aggroSq);
 
                 if (!foundTarget) {
@@ -2027,8 +2020,6 @@ class Hero extends Unit {
                     if (oldItem.statBonus.critChance) this.critChance -= oldItem.statBonus.critChance;
                     if (oldItem.statBonus.critMult) this.critMult = 1.0;
                     if (oldItem.statBonus.tomeOfPower) { this.tomeOfPower = false; this.maxAttackCooldown /= 0.8; }
-                    if (oldItem.statBonus.parryChance !== undefined) this.parryChance -= oldItem.statBonus.parryChance;
-                    if (oldItem.statBonus.spawnerDamageMult !== undefined) this.spawnerDamageMult /= oldItem.statBonus.spawnerDamageMult;
                 }
             }
             
@@ -2044,8 +2035,6 @@ class Hero extends Unit {
                 if (item.statBonus.critChance) this.critChance += item.statBonus.critChance;
                 if (item.statBonus.critMult) this.critMult = item.statBonus.critMult;
                 if (item.statBonus.tomeOfPower) { this.tomeOfPower = true; this.maxAttackCooldown *= 0.8; }
-                if (item.statBonus.parryChance !== undefined) this.parryChance = (this.parryChance || 0) + item.statBonus.parryChance;
-                if (item.statBonus.spawnerDamageMult !== undefined) this.spawnerDamageMult = (this.spawnerDamageMult || 1) * item.statBonus.spawnerDamageMult;
             }
             
             Game.spawnParticle(this.pos.x, this.pos.y, item.color || '#f0e6d2');
@@ -2168,54 +2157,6 @@ class WarriorHero extends Hero {
             this.tauntVfxTimer = 1.0;
         }
     }
-    findCustomThreatAggro(aggroSq) {
-        let bestTarget = null;
-        let highestPriority = -1;
-
-        for (let i = 0; i < Game.activeHeroes.length; i++) {
-            const h = Game.activeHeroes[i];
-            if (h !== this && (h.classType === 'DRUID' || h.classType === 'WIZARD') && this.pos.distSq(h.pos) <= aggroSq) {
-                const allyIsAttacked = (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000);
-                if (allyIsAttacked && h.lastAttacker && h.lastAttacker.active && h.lastAttacker.faction === 'ENEMY' && h.lastAttacker.type !== 'SPAWNER' && h.lastAttacker.spawnerType !== 'VOLCANO') {
-                    // Try to taunt if available
-                    if (this.skills.includes('TAUNT') && this.tauntCooldown <= 0) {
-                        h.lastAttacker.target = this;
-                        this.tauntCooldown = 10.0;
-                        this.tauntVfxTimer = 1.0;
-                    }
-                    this.target = h.lastAttacker;
-                    this.state = 'MOVE';
-                    return true;
-                } else if (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.type !== 'SPAWNER' && h.target.spawnerType !== 'VOLCANO') {
-                    // Help attack their target
-                    this.target = h.target;
-                    this.state = 'MOVE';
-                    return true;
-                }
-            }
-        }
-        
-        // Find spawners
-        let bestSpawner = null;
-        let bestDistSq = Infinity;
-        Grid.getNearby(this.pos, aggroSq, (e, distSq) => {
-            if (e.isVisible && e.faction === 'ENEMY' && (e.type === 'SPAWNER' || e.spawnerType === 'VOLCANO')) {
-                if (distSq < bestDistSq) {
-                    bestDistSq = distSq;
-                    bestSpawner = e;
-                }
-            }
-        }, 'ENEMY');
-        
-        if (bestSpawner) {
-            this.target = bestSpawner;
-            if (this.state !== 'ATTACK') this.state = 'MOVE';
-            return true;
-        }
-        
-        return false;
-    }
-    
         evaluateGoals(myBase, hasHeal) {
         super.evaluateGoals(myBase, hasHeal);
         if (this.state === 'MOVE' && this.target instanceof Vec2 && !this.groupId && !this.currentQuest) {
@@ -2842,7 +2783,7 @@ class Spawner extends Entity {
             const heroTax = Math.floor(heroSharePreTax * Game.taxRate);
             const heroSharePostTax = heroSharePreTax - heroTax;
 
-            const sharedXpBase = hasTowerAttacker ? 0 : (Math.floor(this.bounty / validAttackers.length) || 1);
+            const sharedXpBase = Math.floor((hasTowerAttacker ? 0.5 : 1) * (this.bounty / validAttackers.length)) || 1;
 
             validAttackers.forEach(attacker => {
                 if (attacker.kills !== undefined) attacker.kills++;
@@ -2994,7 +2935,7 @@ class Volcano extends Entity {
             const heroTax = Math.floor(heroSharePreTax * Game.taxRate);
             const heroSharePostTax = heroSharePreTax - heroTax;
 
-            const sharedXpBase = hasTowerAttacker ? 0 : (Math.floor(this.bounty / validAttackers.length) || 1);
+            const sharedXpBase = Math.floor((hasTowerAttacker ? 0.5 : 1) * (this.bounty / validAttackers.length)) || 1;
 
             validAttackers.forEach(attacker => {
                 if (attacker.kills !== undefined) attacker.kills++;
