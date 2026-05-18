@@ -368,7 +368,6 @@ const Engine = {
     masterGain: null,
     reverbNode: null,
     fireballBuffer: null,
-    coinBuffer: null,
 
     initAudio() {
         if (this.audioCtx) return;
@@ -382,12 +381,6 @@ const Engine = {
             .then(buf => this.audioCtx.decodeAudioData(buf))
             .then(decoded => { this.fireballBuffer = decoded; })
             .catch(e => console.error('Failed to load fireball_hit.wav', e));
-
-        fetch('assets/coin.wav')
-            .then(res => res.arrayBuffer())
-            .then(buf => this.audioCtx.decodeAudioData(buf))
-            .then(decoded => { this.coinBuffer = decoded; })
-            .catch(e => console.error('Failed to load coin.wav', e));
 
         this.reverbNode = this.audioCtx.createConvolver();
         const rate = this.audioCtx.sampleRate;
@@ -486,44 +479,6 @@ const Engine = {
 
         const source = this.audioCtx.createBufferSource();
         source.buffer = this.fireballBuffer;
-
-        const panner = this.audioCtx.createStereoPanner();
-        panner.pan.value = panVal;
-
-        const gainNode = this.audioCtx.createGain();
-        gainNode.gain.value = vol;
-
-        source.connect(panner);
-        panner.connect(gainNode);
-        gainNode.connect(this.masterGain);
-
-        source.start(0);
-    },
-
-    playCoinSound(x, y) {
-        if (!this.audioCtx || !this.coinBuffer) return;
-        if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
-
-        const dx = x - Camera.x;
-        const dy = y - Camera.y;
-        const distSq = dx * dx + dy * dy;
-
-        const maxDist = 3000 / Camera.zoom; // Scale max distance with zoom
-        const maxDistSq = maxDist * maxDist;
-
-        let vol = 0;
-        if (distSq < maxDistSq) {
-            const dist = Math.sqrt(distSq);
-            // power of 2 with 2.0x multiplier to make inherently quiet sound louder while in view
-            vol = Math.min(1.0, Math.pow(1 - (dist / maxDist), 2) * 2.0);
-        }
-
-        if (vol <= 0.01) return;
-
-        const panVal = Math.max(-1, Math.min(1, dx / (maxDist * 0.5)));
-
-        const source = this.audioCtx.createBufferSource();
-        source.buffer = this.coinBuffer;
 
         const panner = this.audioCtx.createStereoPanner();
         panner.pan.value = panVal;
@@ -902,7 +857,7 @@ const GAME_CONFIG = {
 
 const QUEST_CONFIG = {
     FLAG_EXPLORE: { cost: 25, bounty: 25, name: 'Explore Quest ⚑', icon: '⚑', maxReq: 1, duration: 20 },
-    FLAG_PATROL: { cost: 100, bounty: 50, name: 'Patrol Quest ⚑', icon: '⚑', maxReq: 4, duration: 20 },
+    FLAG_PATROL: { cost: 50, bounty: 50, name: 'Patrol Quest ⚑', icon: '⚑', maxReq: 4, duration: 20 },
     FLAG_ATTACK: { cost: 75, bounty: 75, name: 'Attack Quest ⚑', icon: '⚑', maxReq: 3, duration: 20 },
     FLAG_GROUP_ATTACK: { cost: 75, bounty: 75, name: 'Group Quest ⚑', icon: '🍻', maxReq: 3, duration: 20 }
 };
@@ -1711,62 +1666,8 @@ class Hero extends Unit {
                 if (this.questPhase==='FINISH_COMBAT' && !(this.target && this.target.active && this.target.faction==='ENEMY')) this.questPhase='HEAL_AT_BASE';
                 if (this.questPhase==='HEAL_AT_BASE') { if(this.hp<this.maxHp && hasHeal) { this.state='MOVE'; this.target=myBase; if(this.hp>=this.maxHp) this.questPhase='BUY_ITEMS'; } else this.questPhase='BUY_ITEMS'; }
                 if (this.questPhase==='BUY_ITEMS') { let s = this.getDesiredShop(); if(s) { this.state='MOVE'; this.target=s; if(this.pos.distSq(s.pos) < (s.radius+15)**2) { this.buyFromShop(s); this.questPhase='WAITING_FOR_GROUP'; } } else this.questPhase='WAITING_FOR_GROUP'; }
-                if (this.questPhase==='WAITING_FOR_GROUP') { if (!['FLAG_ATTACK', 'FLAG_GROUP_ATTACK', 'FLAG_PATROL'].includes(this.currentQuest.type)) { this.questPhase='DO_QUEST'; } else { this.target=myBase; this.state='MOVE'; } }
-                if (this.questPhase==='DO_QUEST' || this.questPhase==='MOVE_TO_TARGET' || this.questPhase==='AT_TARGET') {
-                    if (this.currentQuest.type === 'FLAG_PATROL' && this.currentQuest.patrolPoints) {
-                        const pts = this.currentQuest.patrolPoints;
-                        const distSqToSeg = (p, v, w) => {
-                            let l2 = v.distSq(w); if (l2 === 0) return p.distSq(v);
-                            let t = Math.max(0, Math.min(1, ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2));
-                            return p.distSq(new Vec2(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
-                        };
-                        let bestDist = Infinity;
-                        let bestIdx = 0;
-                        for (let i = 0; i < pts.length; i++) {
-                            let prevIdx = (i - 1 + pts.length) % pts.length;
-                            let d = distSqToSeg(this.pos, pts[prevIdx], pts[i]);
-                            if (d < bestDist) {
-                                bestDist = d;
-                                bestIdx = i;
-                            }
-                        }
-
-                        if (this.patrolIndex === undefined || this.patrolIndex === null) {
-                            let maxIdx = -1;
-                            for (let i = 0; i < Game.activeHeroes.length; i++) {
-                                let h = Game.activeHeroes[i];
-                                if (h !== this && h.currentQuest === this.currentQuest && h.patrolIndex !== undefined && h.patrolIndex !== null) {
-                                    if (h.patrolIndex > maxIdx) maxIdx = h.patrolIndex;
-                                }
-                            }
-                            if (maxIdx !== -1) {
-                                this.patrolIndex = maxIdx;
-                            } else {
-                                this.patrolIndex = bestIdx;
-                            }
-                        } else {
-                            let curTargetIdx = this.patrolIndex % pts.length;
-                            let curSegDist = distSqToSeg(this.pos, pts[(curTargetIdx - 1 + pts.length) % pts.length], pts[curTargetIdx]);
-                            let lookaheadTarget = curTargetIdx;
-                            for(let k = 1; k <= 2; k++) {
-                                let nextIdx = (curTargetIdx + k) % pts.length;
-                                let nextSegDist = distSqToSeg(this.pos, pts[(nextIdx - 1 + pts.length) % pts.length], pts[nextIdx]);
-                                if (nextSegDist < curSegDist - 400) {
-                                    lookaheadTarget = nextIdx;
-                                    curSegDist = nextSegDist;
-                                }
-                            }
-                            let advanced = (lookaheadTarget - curTargetIdx + pts.length) % pts.length;
-                            if (advanced > 0) {
-                                this.patrolIndex += advanced;
-                            }
-                        }
-                        this.target = pts[this.patrolIndex % pts.length];
-                    } else {
-                        this.target = (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.currentQuest.targetEntity) ? this.currentQuest.targetEntity : this.currentQuest;
-                    }
-                    this.state='MOVE';
-                }
+                if (this.questPhase==='WAITING_FOR_GROUP') { if (!['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type)) { this.questPhase='DO_QUEST'; } else { this.target=myBase; this.state='MOVE'; } }
+                if (this.questPhase==='DO_QUEST' || this.questPhase==='MOVE_TO_TARGET' || this.questPhase==='AT_TARGET') { this.target = (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.currentQuest.targetEntity) ? this.currentQuest.targetEntity : this.currentQuest; this.state='MOVE'; }
             }
         }
         switch(this.state) {
@@ -1782,74 +1683,22 @@ class Hero extends Unit {
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
                 if (!this.target || (this.target.active !== undefined && !this.target.active)) { this.state='IDLE'; break; }
                 const dest = this.target.pos || this.target, reached = this.moveTowards(dest);
-                if (reached && !(this.target.active !== undefined)) {
-                    if (!(this.currentQuest && this.currentQuest.type === 'FLAG_PATROL' && this.currentQuest.patrolPoints && this.currentQuest.patrolPoints.includes(this.target))) {
-                        this.state = 'IDLE';
-                    }
-                }
-                if (this.currentQuest && (this.target === this.currentQuest || this.target === this.currentQuest.targetEntity || (this.currentQuest.type === 'FLAG_PATROL' && this.currentQuest.patrolPoints && this.currentQuest.patrolPoints.includes(this.target)) || (this.target === myBase && this.questPhase === 'WAITING_FOR_GROUP'))) {
+                if (reached && !(this.target.active !== undefined)) this.state = 'IDLE'; 
+                if (this.currentQuest && (this.target === this.currentQuest || this.target === this.currentQuest.targetEntity || (this.target === myBase && this.questPhase === 'WAITING_FOR_GROUP'))) {
                     if (this.questPhase === 'WAITING_FOR_GROUP') {
                         if (reached || this.pos.distSq(myBase.pos) < 2500) { this.pos.x += Math.cos(this.wanderAngle)*0.5; this.pos.y += Math.sin(this.wanderAngle)*0.5; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); }
                     } else {
                         const tPos = this.currentQuest.targetEntity ? this.currentQuest.targetEntity.pos : this.currentQuest.pos;
                         if (this.currentQuest.type==='FLAG_EXPLORE' && this.questPhase==='DO_QUEST' && (reached || this.pos.distSq(tPos)<400)) { this.personalGold += this.currentQuest.bounty; this.lifetimeGold += this.currentQuest.bounty; this.gainXp(10); Game.spawnParticle(this.pos.x,this.pos.y,'#ffcc00'); this.currentQuest.active=false; Game.questsCompleted++; this.currentQuest=null; this.questPhase='NONE'; this.state='IDLE'; }
                         else if (this.currentQuest.type==='FLAG_PATROL') {
+                            this.patrolIndex = this.patrolIndex || 0;
                             if (this.currentQuest.patrolPoints) {
-                                const pts = this.currentQuest.patrolPoints;
-                                const distSqToSeg = (p, v, w) => {
-                                    let l2 = v.distSq(w); if (l2 === 0) return p.distSq(v);
-                                    let t = Math.max(0, Math.min(1, ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2));
-                                    return p.distSq(new Vec2(v.x + t * (w.x - v.x), v.y + t * (w.y - v.y)));
-                                };
-                                let bestDist = Infinity;
-                                let bestIdx = 0;
-                                for (let i = 0; i < pts.length; i++) {
-                                    let prevIdx = (i - 1 + pts.length) % pts.length;
-                                    let d = distSqToSeg(this.pos, pts[prevIdx], pts[i]);
-                                    if (d < bestDist) {
-                                        bestDist = d;
-                                        bestIdx = i;
-                                    }
-                                }
-
-                                if (this.patrolIndex === undefined || this.patrolIndex === null) {
-                                    this.patrolIndex = bestIdx;
-                                } else {
-                                    // Make sure it doesn't just backtrack if they get moved slightly backward.
-                                    let curTargetIdx = this.patrolIndex % pts.length;
-
-                                    // If we are significantly closer to the NEXT segment (like engaged in combat and moved)
-                                    let curSegDist = distSqToSeg(this.pos, pts[(curTargetIdx - 1 + pts.length) % pts.length], pts[curTargetIdx]);
-
-                                    // Look ahead to next segments to see if we skipped
-                                    let lookaheadTarget = curTargetIdx;
-                                    for(let k = 1; k <= 2; k++) {
-                                        let nextIdx = (curTargetIdx + k) % pts.length;
-                                        let nextSegDist = distSqToSeg(this.pos, pts[(nextIdx - 1 + pts.length) % pts.length], pts[nextIdx]);
-                                        if (nextSegDist < curSegDist - 400) {
-                                            lookaheadTarget = nextIdx;
-                                            curSegDist = nextSegDist;
-                                        }
-                                    }
-
-                                    // Calculate how many indices we advanced
-                                    let advanced = (lookaheadTarget - curTargetIdx + pts.length) % pts.length;
-                                    if (advanced > 0) {
-                                        this.patrolIndex += advanced;
-                                    }
-                                }
-
-                                const pt = pts[this.patrolIndex % pts.length];
-                                if (this.pos.distSq(pt) < 400) {
-                                    this.patrolIndex++;
-                                }
-                                this.target = pts[this.patrolIndex % pts.length];
-                                this.state = 'MOVE';
+                                const pt = this.currentQuest.patrolPoints[this.patrolIndex % this.currentQuest.patrolPoints.length];
+                                this.moveTowards(pt);
+                                if (this.pos.distSq(pt) < 400) this.patrolIndex++;
                             }
                         }
                         else if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type)) {
-                            this.target = this.currentQuest.targetEntity ? this.currentQuest.targetEntity : this.currentQuest;
-                            this.state = 'MOVE';
                             if (this.questPhase==='MOVE_TO_TARGET' && (reached || this.pos.distSq(tPos) < 22500)) this.questPhase='AT_TARGET';
                             if (this.questPhase==='AT_TARGET') {
                                 if(this.pos.distSq(tPos)>10000) { const dx=tPos.x-this.pos.x, dy=tPos.y-this.pos.y, d=Math.sqrt(dx*dx+dy*dy); if(d>0){this.pos.x+=(dx/d)*0.5; this.pos.y+=(dy/d)*0.5;} } else { this.pos.x += Math.cos(this.wanderAngle)*0.5; this.pos.y += Math.sin(this.wanderAngle)*0.5; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); }
@@ -1965,7 +1814,7 @@ class Hero extends Unit {
                 }
             }
 
-            const maxReq = QUEST_CONFIG[f.type] ? QUEST_CONFIG[f.type].maxReq : (f.type === 'FLAG_EXPLORE' ? 1 : 3);
+            const maxReq = f.type==='FLAG_EXPLORE' ? 1 : Math.min(3, Math.max(1, totalNoGroup));
             if(assCount >= maxReq) continue;
             if(betterCandidates >= maxReq - assCount) continue;
             
@@ -2116,7 +1965,6 @@ class Hero extends Unit {
             this.purchasedItemVfxTimer = 2.0;
             this.purchasedItemIcon = item.icon;
             Game.spawnFloatingText(s.pos.x, s.pos.y - 30, '🪙', '#ffcc00', 1.0, 22);
-            Engine.playCoinSound(s.pos.x, s.pos.y);
             break;
         }
     }
@@ -2671,7 +2519,7 @@ class Flag extends Entity {
                 return;
             }
 
-            const maxReq = QUEST_CONFIG[this.type] ? QUEST_CONFIG[this.type].maxReq : (this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? ass.length : (this.type === 'FLAG_PATROL' ? 4 : 3)));
+            const maxReq = this.type === 'FLAG_EXPLORE' ? 1 : Math.min(3, Math.max(1, totalHeroesNoGroup));
             if (maxReq === 0) return;
             
             if (ass.length < maxReq) {
@@ -2703,24 +2551,19 @@ class Flag extends Entity {
                 }
             }
             if (this.type === 'FLAG_PATROL') {
-                if (ass.length > 0) { ass.forEach(a => { if (a.questPhase === 'WAITING_FOR_GROUP') a.questPhase = 'MOVE_TO_TARGET'; }); }
-                let activeCount = 0;
+                let anyFinished = false;
                 ass.forEach(a => {
-                    if (a.state !== 'FLEE') {
-                        activeCount++;
-                    }
                     if (a.patrolIndex >= 4) {
+                        anyFinished = true;
                         const s = Math.floor(this.bounty / maxReq);
                         a.personalGold += s; a.lifetimeGold += s; a.gainXp(15); Game.spawnParticle(a.pos.x, a.pos.y, '#1e3a8a');
-                        a.patrolIndex = 0;
+                        a.currentQuest = null; a.questPhase = 'NONE'; a.state = 'IDLE'; a.patrolIndex = 0;
                     }
                 });
-
-                if (activeCount === 0 && ass.length > 0) {
-                    let hasOnTheWay = ass.some(a => ['WAITING_FOR_GROUP', 'MOVE_TO_TARGET', 'AT_TARGET', 'BUY_ITEMS', 'HEAL_AT_BASE'].includes(a.questPhase));
-                    if (!hasOnTheWay) {
-                        ass.forEach(a => { a.currentQuest = null; a.questPhase = 'NONE'; });
-                        this.active = false;
+                if (anyFinished) {
+                    ass = ass.filter(a => a.currentQuest === this);
+                    if (ass.length === 0) {
+                        this.active = false; Game.questsCompleted++;
                     }
                 }
             } else if (this.type === 'FLAG_ATTACK') {
@@ -2782,7 +2625,7 @@ class Flag extends Entity {
             if (Game.activeHeroes[i].currentQuest === this) assCount++;
             if (!Game.activeHeroes[i].groupId) totalHNoGroup++;
         }
-        const maxR = QUEST_CONFIG[this.type] ? QUEST_CONFIG[this.type].maxReq : (this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? assCount : (this.type === 'FLAG_PATROL' ? 4 : 3)));
+        const maxR = this.type === 'FLAG_EXPLORE' ? 1 : (this.type === 'FLAG_GROUP_ATTACK' ? assCount : (this.type === 'FLAG_PATROL' ? Math.min(4, Math.max(1, totalHNoGroup)) : Math.min(3, Math.max(1, totalHNoGroup))));
         
         ctx.fillStyle='white'; ctx.font='11px Arial'; ctx.textAlign='center'; ctx.fillText(`${assCount}/${maxR}`, this.pos.x, this.pos.y-35); 
     }
