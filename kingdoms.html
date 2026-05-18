@@ -2209,17 +2209,25 @@ class WarriorHero extends Hero {
         // Find spawners
         if (!(this.currentQuest && this.questPhase !== 'AT_TARGET')) {
             let bestSpawner = null;
-            let bestDistSq = Infinity;
-            Grid.getNearby(this.pos, aggroSq, (e, distSq) => {
-                if (e.isVisible && e.faction === 'ENEMY' && (e.type === 'SPAWNER' || e.spawnerType === 'VOLCANO') && distSq <= aggroSq) {
-                if (distSq < bestDistSq) {
-                    bestDistSq = distSq;
-                    bestSpawner = e;
-                }
-            }
-        }, 'ENEMY');
+            let bestSpawnerDistSq = Infinity;
+            let closestEnemyDistSq = Infinity;
 
-            if (bestSpawner) {
+            Grid.getNearby(this.pos, aggroSq, (e, distSq) => {
+                if (e.isVisible && e.faction === 'ENEMY' && distSq <= aggroSq) {
+                    if (e.type === 'SPAWNER' || e.spawnerType === 'VOLCANO') {
+                        if (distSq < bestSpawnerDistSq) {
+                            bestSpawnerDistSq = distSq;
+                            bestSpawner = e;
+                        }
+                    } else {
+                        if (distSq < closestEnemyDistSq) {
+                            closestEnemyDistSq = distSq;
+                        }
+                    }
+                }
+            }, 'ENEMY');
+
+            if (bestSpawner && (bestSpawnerDistSq < closestEnemyDistSq || closestEnemyDistSq > 10000)) {
                 this.target = bestSpawner;
                 if (this.state !== 'ATTACK') this.state = 'MOVE';
                 return true;
@@ -2361,6 +2369,7 @@ class DruidHero extends Hero {
                 const isBeingAttacked = ((h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000));
                 let priority = (1.0 - (h.hp / h.maxHp));
                 if (isBeingAttacked) priority += 2.0;
+                if (h.state === 'FLEE') priority += 5.0;
 
                 if (priority > highestPriority) {
                     highestPriority = priority;
@@ -2647,7 +2656,7 @@ class Flag extends Entity {
                     if (atTargCount >= maxReq) {
                         const tp = this.targetEntity ? this.targetEntity.pos : this.pos;
                         let isClear = true;
-                        Grid.getNearby(tp, 40000, (threat, distSq) => {
+                        Grid.getNearby(tp, 10000, (threat, distSq) => {
                             if (threat.isVisible) { isClear = false; return true; }
                         }, 'ENEMY');
                         
@@ -2687,12 +2696,44 @@ class Flag extends Entity {
 
             if (ass.length < maxReq) {
                 if (av.length > 0) {
-                    av.sort((a,b) => { let getS = h => (h.target && h.target.faction==='ENEMY')?2:(h.state==='IDLE'?0:1); return getS(a) - getS(b) || (b.hp/b.maxHp - a.hp/a.maxHp) || a.pos.distSq(this.pos) - b.pos.distSq(this.pos); });
+                    av.sort((a,b) => {
+                        let getS = h => (h.target && h.target.faction==='ENEMY')?2:(h.state==='IDLE'?0:1);
+                        let aIsNeededDruid = (a.classType === 'DRUID' && druidCountAssigned === 0) ? -10 : 0;
+                        let bIsNeededDruid = (b.classType === 'DRUID' && druidCountAssigned === 0) ? -10 : 0;
+                        return (getS(a) + aIsNeededDruid) - (getS(b) + bIsNeededDruid) || (b.hp/b.maxHp - a.hp/a.maxHp) || a.pos.distSq(this.pos) - b.pos.distSq(this.pos);
+                    });
+
                     while (ass.length < maxReq && av.length > 0) { 
-                        let h = av.shift();
-                        if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID' && druidCountAssigned >= 1) continue;
-                        h.currentQuest = this; h.target = null; h.state = 'IDLE'; h.questPhase = 'HEAL_AT_BASE'; ass.push(h);
-                        if (h.classType === 'DRUID') druidCountAssigned++;
+                        let classCounts = { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0 };
+                        ass.forEach(a => classCounts[a.classType]++);
+
+                        let chosenIndex = -1;
+                        for (let k = 0; k < av.length; k++) {
+                            let h = av[k];
+                            if ((this.type === 'FLAG_ATTACK' || this.type === 'FLAG_DEFEND') && h.classType === 'DRUID' && classCounts.DRUID >= 1) continue;
+
+                            if (this.type === 'FLAG_ATTACK' && classCounts[h.classType] >= 2) {
+                                let hasOtherOptions = false;
+                                for (let j = k + 1; j < av.length; j++) {
+                                    if (classCounts[av[j].classType] < 2 && (av[j].classType !== 'DRUID' || classCounts.DRUID === 0)) {
+                                        hasOtherOptions = true;
+                                        break;
+                                    }
+                                }
+                                if (hasOtherOptions) continue;
+                            }
+
+                            chosenIndex = k;
+                            break;
+                        }
+
+                        if (chosenIndex !== -1) {
+                            let h = av.splice(chosenIndex, 1)[0];
+                            h.currentQuest = this; h.target = null; h.state = 'IDLE'; h.questPhase = 'HEAL_AT_BASE'; ass.push(h);
+                            if (h.classType === 'DRUID') druidCountAssigned++;
+                        } else {
+                            break;
+                        }
                     }
                 }
             }
