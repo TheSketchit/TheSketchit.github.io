@@ -192,7 +192,7 @@
                             <div class="build-btn-title">Arcane Aura</div>
                         </div>
                         <div class="build-btn-icon">🔮</div>
-                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙115</span></div>
                     </button>
                     <button id="btn-upg-MAGICAL_BARRAGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('MAGICAL_BARRAGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Magical Barrage', 'The wizard\'s magical prowess allows them to shoot at up to 3 enemies at once, at the cost of a slower attack speed. If the wizard is only shooting at one enemy, their attack speed goes back to normal.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
@@ -200,7 +200,7 @@
                             <div class="build-btn-title">Magical Barrage</div>
                         </div>
                         <div class="build-btn-icon">✨</div>
-                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙300</span></div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙215</span></div>
                     </button>
                 </div>
             </div>
@@ -367,6 +367,62 @@ const Engine = {
     audioCtx: null,
     masterGain: null,
     reverbNode: null,
+    coinBuffer: null,
+    fireballHitBuffer: null,
+
+    async loadBuffer(url, propName) {
+        if (!this.audioCtx) return;
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            this[propName] = await this.audioCtx.decodeAudioData(arrayBuffer);
+        } catch (e) {
+            console.error("Failed to load sound:", url, e);
+        }
+    },
+
+    playSound(buffer, x, y, volume = 1.0, maxDist = null) {
+        if (!this.audioCtx || !buffer) return;
+
+        const dx = x - Camera.x;
+        const dy = y - Camera.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        const halfW = (canvas.width / 2) / Camera.zoom;
+        const halfH = (canvas.height / 2) / Camera.zoom;
+
+        let distanceGain = 1.0;
+        let pan = 0;
+
+        if (maxDist === 'visible') {
+            if (Math.abs(dx) > halfW + 100 || Math.abs(dy) > halfH + 100) return;
+            pan = 0;
+        } else if (maxDist !== null) {
+            const effectiveMaxDist = maxDist / Camera.zoom;
+            if (dist > effectiveMaxDist) return;
+            distanceGain = Math.max(0, 1.0 - (dist / effectiveMaxDist));
+            pan = dx / halfW;
+            pan = Math.max(-1, Math.min(1, pan));
+        } else {
+            pan = dx / halfW;
+            pan = Math.max(-1, Math.min(1, pan));
+        }
+
+        const source = this.audioCtx.createBufferSource();
+        source.buffer = buffer;
+
+        const gainNode = this.audioCtx.createGain();
+        gainNode.gain.value = volume * distanceGain;
+
+        const panner = this.audioCtx.createStereoPanner();
+        panner.pan.value = pan;
+
+        source.connect(gainNode);
+        gainNode.connect(panner);
+        panner.connect(this.masterGain);
+
+        source.start();
+    },
 
     initAudio() {
         if (this.audioCtx) return;
@@ -388,6 +444,9 @@ const Engine = {
         }
         this.reverbNode.buffer = impulse;
         this.reverbNode.connect(this.masterGain);
+
+        this.loadBuffer('assets/coin.wav', 'coinBuffer');
+        this.loadBuffer('assets/fireball_hit.wav', 'fireballHitBuffer');
     },
 
     playDoomStab(time, freq, duration) {
@@ -837,8 +896,8 @@ const HERO_CONFIG = {
 };
 
 const UPGRADE_CONFIG = {
-    ARCANE_AURA: { cost: 200 },
-    MAGICAL_BARRAGE: { cost: 300 },
+    ARCANE_AURA: { cost: 115 },
+    MAGICAL_BARRAGE: { cost: 215 },
     CHARGE: { cost: 100 },
     RAT_TRAP: { cost: 100 },
     REGROWTH: { cost: 100 },
@@ -959,6 +1018,9 @@ class Projectile {
                 this.target.takeDamage(this.damage, this.source);
                 if (this.projType === 'FIREBALL' && typeof this.target.fireTimer !== 'undefined') {
                     this.target.fireTimer = 4.0;
+                }
+                if (this.projType === 'FIREBALL' && this.source && this.source.spawnerType === 'VOLCANO' && !this.target.classType) {
+                    Engine.playSound(Engine.fireballHitBuffer, this.pos.x, this.pos.y, 1.0, 600);
                 }
             }
             this.active = false; 
@@ -1624,6 +1686,50 @@ class Hero extends Unit {
                 if (this.questPhase==='DO_QUEST' || this.questPhase==='MOVE_TO_TARGET' || this.questPhase==='AT_TARGET') { this.target = (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.currentQuest.targetEntity) ? this.currentQuest.targetEntity : this.currentQuest; this.state='MOVE'; }
             }
         }
+
+        if (this.state !== 'FLEE' && this.questPhase !== 'HEAL_AT_BASE' && this.questPhase !== 'BUY_ITEMS' && this.questPhase !== 'WAITING_FOR_GROUP' && this.checkThreatTimer <= 0) {
+            this.checkThreatTimer = 0.1;
+            let aggroSq = 40000;
+            let foundTarget = false;
+
+            const isEngagedWithMonster = (this.state === 'ATTACK' || this.state === 'MOVE') && this.target && this.target.faction === 'ENEMY' && this.target.type !== 'SPAWNER' && this.target.spawnerType !== 'VOLCANO';
+
+            if (!isEngagedWithMonster || this.classType === 'DRUID') {
+                foundTarget = this.findCustomThreatAggro(aggroSq);
+
+                if (!foundTarget) {
+                    for (let i = 0; i < Game.activeHeroes.length; i++) {
+                        const h = Game.activeHeroes[i];
+                        if (h !== this && this.pos.distSq(h.pos) <= aggroSq) {
+                            const allyIsAttacked = (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.target === h) || (h.lastDamagedTime && Game.timeMs - h.lastDamagedTime < 2000);
+                            if (allyIsAttacked && h.lastAttacker && h.lastAttacker.active && h.lastAttacker.faction === 'ENEMY' && h.lastAttacker.type !== 'SPAWNER' && h.lastAttacker.spawnerType !== 'VOLCANO') {
+                                this.target = (this.classType === 'DRUID' && h.hp < h.maxHp) ? h : h.lastAttacker;
+                                if (this.state !== 'ATTACK') this.state = 'MOVE';
+                                foundTarget = true;
+                                break;
+                            } else if (h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.type !== 'SPAWNER' && h.target.spawnerType !== 'VOLCANO') {
+                                this.target = h.target;
+                                if (this.state !== 'ATTACK') this.state = 'MOVE';
+                                foundTarget = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!foundTarget) {
+                    Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
+                        if ((enemy.isVisible || distSq <= 22500)) {
+                            this.target = enemy;
+                            if (this.state !== 'ATTACK') this.state = 'MOVE';
+                            foundTarget = true;
+                            return true;
+                        }
+                    }, 'ENEMY');
+                }
+            }
+        }
+
         switch(this.state) {
             case 'IDLE':
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
@@ -1659,33 +1765,6 @@ class Hero extends Unit {
                 if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
                 if (this.isValidAttackTarget(this.target)) { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else { this.onMoveToAttackTarget(dtSec, ds); } }
                 else if (this.shouldStopAttack(this.target)) { this.state = 'IDLE'; }
-                else if (this.questPhase==='NONE'||this.questPhase==='DO_QUEST'||this.questPhase==='MOVE_TO_TARGET'||this.questPhase==='AT_TARGET') { 
-                    if(this.checkThreatTimer<=0) { 
-                        this.checkThreatTimer=0.1; 
-                        let aggroSq = 40000;
-                        let foundTarget = false;
-                        foundTarget = this.findCustomThreatAggro(aggroSq);
-                        if (!foundTarget) {
-                            Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
-                                if ((this.state !== 'MOVE' || this.questPhase === 'AT_TARGET' || this.questPhase === 'DO_QUEST') && (enemy.isVisible || distSq <= 22500)) {
-                                    this.target=enemy; this.state='MOVE'; return true;
-                                }
-                            }, 'ENEMY');
-
-                            if (!this.target || this.target.faction !== 'ENEMY' || this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO') {
-                                for (let i = 0; i < Game.activeHeroes.length; i++) {
-                                    const h = Game.activeHeroes[i];
-                                    if (h !== this && h.state === 'ATTACK' && h.target && h.target.faction === 'ENEMY' && h.target.type !== 'SPAWNER' && h.target.spawnerType !== 'VOLCANO' && this.pos.distSq(h.pos) <= aggroSq) {
-                                        this.target = h.target;
-                                        this.state = 'MOVE';
-                                        foundTarget = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    } 
-                }
                 if (this.stateTimer <= 0) { this.evaluateGoals(myBase, hasHeal); this.stateTimer = 1.0; }
                 break;
             case 'ATTACK':
@@ -1881,6 +1960,8 @@ class Hero extends Unit {
             this.personalGold -= item.cost; 
             Game.gold += Math.floor(item.cost * Game.getUpkeepInfo().rate); Game.itemsPurchased++;
             
+            Engine.playSound(Engine.coinBuffer, s.pos.x, s.pos.y, 1.0, 'visible');
+
             if (item.replaces && this.items.includes(item.replaces)) {
                 this.items.splice(this.items.indexOf(item.replaces), 1);
                 const oldItem = ITEM_CONFIG[item.replaces];
@@ -3136,7 +3217,7 @@ const Game = {
                                 <div class="build-btn-title">${title}</div>
                             </div>
                             <div class="build-btn-icon">${iStr}</div>
-                            <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙${upg.cost}</span></div>
+                            <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙${upg.cost / 2}</span></div>
                         `;
                         UI.setHTML(`guild-slot-0`, iconHTML);
                         slotBtn.onmouseenter = (ev) => Game.showTooltip(ev, title, desc);
@@ -3649,6 +3730,9 @@ function setMode(m) {
     document.querySelectorAll('#bottom-bar button').forEach(b => UI.setClass(b, 'active', false)); 
     const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_WIZARD':'btn-wizard-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','BUILD_TEMPLE':'btn-temple','FLAG_EXPLORE':'btn-flag-explore','FLAG_DEFEND':'btn-flag-defend','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack', 'REPAIR': 'btn-repair-mode'}[m];
     if(id) UI.setClass(id, 'active', true); 
+    // ⚡ Bolt Optimization: Update cursor immediately instead of waiting for next mousemove
+    // This prevents a perceived delay when users use hotkeys to switch to/from repair mode
+    canvas.style.cursor = Game.mode === 'REPAIR' ? 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' style=\'font-size: 24px\'><text y=\'24\'>🔨</text></svg>") 0 24, auto' : (isPanning ? 'grabbing' : 'auto');
 }
 
 canvas.addEventListener('contextmenu', e => e.preventDefault());
