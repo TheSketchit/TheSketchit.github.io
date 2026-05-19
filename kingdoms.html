@@ -135,10 +135,10 @@
                     <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showTooltip(event, 'Wand', 'Increases attack damage by 8 and attack range by 25%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
-                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 2.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 10%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷🧚</span>
                     </button>
-                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌</span>
                     </button>
                     <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showTooltip(event, 'Robe of Life', 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
@@ -1195,8 +1195,8 @@ const ITEM_CONFIG = {
     SWORD: { cost: 125, classes: ['WARRIOR'], color: '#f0e6d2', statBonus: { damage: 5, parryChance: 0.15, spawnerDamageMult: 1.50 }, icon: '⚔️', name: 'Sword', desc: 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.' },
     DAGGER: { cost: 100, classes: ['ROGUE'], color: '#f0e6d2', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️', name: 'Dagger', desc: 'Increases attack damage by 3. 5% chance to deal double damage.' },
     WAND: { cost: 120, classes: ['DRUID', 'WIZARD'], color: '#f0e6d2', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄', name: 'Wand', desc: 'Increases attack damage by 8 and attack range by 25%.' },
-    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReduction: 2 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_LIFE', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 2.' },
-    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.' },
+    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReductionPercent: 0.1 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 10%.' },
+    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReductionPercent: 0.5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.' },
     ROBE_OF_LIFE: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { lifeSteal: true }, replaces: 'ARMOR', icon: '👘', name: 'Robe of Life', desc: 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Leather Armor.' },
     ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#5a4b31', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
     TOME_OF_POWER: { cost: 300, classes: ['WIZARD'], color: '#f0e6d2', statBonus: { tomeOfPower: true }, icon: '📖', name: 'Tome of Power', desc: 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)' }
@@ -1757,7 +1757,7 @@ class Hero extends Unit {
         this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
-        this.damageReduction = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
+        this.damageReduction = 0; this.damageReductionPercent = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
         this.tomeOfPower = false; this.lifeSteal = false;
 
         if (availableHeroNames.length === 0) { availableHeroNames = [...BASE_HERO_NAMES]; heroGeneration++; }
@@ -1828,7 +1828,8 @@ class Hero extends Unit {
             return;
         }
         let red = this.damageReduction || 0;
-        let final = Math.max(1, amt - red); 
+        let redPercent = this.damageReductionPercent || 0;
+        let final = Math.max(1, Math.floor((amt - red) * (1 - redPercent)));
         if (this.markOfTheWildTimer > 0) final = Math.max(1, Math.floor(final * 0.9));
         super.takeDamage(final, src); 
         
@@ -2365,6 +2366,7 @@ class Hero extends Unit {
                     if (oldItem.statBonus.maxHp) { this.maxHp -= oldItem.statBonus.maxHp; this.hp -= oldItem.statBonus.maxHp; }
                     if (oldItem.statBonus.damage) this.damage -= oldItem.statBonus.damage;
                     if (oldItem.statBonus.damageReduction) this.damageReduction -= oldItem.statBonus.damageReduction;
+                    if (oldItem.statBonus.damageReductionPercent) this.damageReductionPercent -= oldItem.statBonus.damageReductionPercent;
                     if (oldItem.statBonus.lifeSteal) this.lifeSteal = false;
                     if (oldItem.statBonus.stealth) this.stealth = false;
                     if (oldItem.statBonus.critChance) this.critChance -= oldItem.statBonus.critChance;
@@ -2382,6 +2384,7 @@ class Hero extends Unit {
                 if (item.statBonus.damage) this.damage += item.statBonus.damage;
                 if (item.statBonus.attackRange) this.attackRange += item.statBonus.attackRange;
                 if (item.statBonus.damageReduction) this.damageReduction += item.statBonus.damageReduction;
+                if (item.statBonus.damageReductionPercent) this.damageReductionPercent += item.statBonus.damageReductionPercent;
                 if (item.statBonus.lifeSteal) this.lifeSteal = item.statBonus.lifeSteal;
                 if (item.statBonus.stealth) this.stealth = item.statBonus.stealth;
                 if (item.statBonus.critChance) this.critChance += item.statBonus.critChance;
