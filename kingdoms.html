@@ -49,6 +49,35 @@
         
         <div id="info-stats">
             <div id="stat-tombstone" style="font-style: italic; color: #aaaaaa; margin-bottom: 10px; line-height: 1.4; display:none;"></div>
+
+            <div id="stat-hero-hp" class="stat-line" style="display:none; flex-direction:column; margin-bottom: 4px;">
+                <div style="position: relative; width:100%; height:16px; background:#5a4b31; border-radius:4px; overflow:hidden; border: 1px solid #1a150e;">
+                    <div id="val-hero-hp-bar" style="height:100%; background:#e53e3e; width:100%; transition:width 0.2s;"></div>
+                    <div id="val-hero-hp-text" class="hp-text"></div>
+                </div>
+            </div>
+
+            <div id="stat-hero-xp" class="stat-line" style="display:none; flex-direction:column; margin-bottom: 8px;">
+                <div style="position: relative; width:100%; height:12px; background:#5a4b31; border-radius:4px; overflow:hidden; border: 1px solid #1a150e;">
+                    <div id="val-hero-xp-bar" style="height:100%; background:#48bb78; width:0%; transition:width 0.2s;"></div>
+                    <div id="val-hero-xp-text" class="hp-text" style="font-size: 0.65rem;"></div>
+                </div>
+            </div>
+
+            <div id="stat-hero-abilities" class="stat-line" style="display:none; flex-direction:column; margin-bottom: 4px;">
+                <div style="text-align: left; font-size: 0.8rem; color: #aaaaaa; margin-bottom: 2px;">Abilities:</div>
+                <div id="val-hero-abilities-list" style="display: flex; gap: 4px; flex-wrap: wrap;"></div>
+            </div>
+
+            <div id="stat-hero-bottom" class="monster-bottom-row" style="display:none; align-items: center; justify-content: space-between; border-top: 1px solid #5a4b31; padding-top: 8px; margin-top: 4px;">
+                <span style="flex: 1.5; text-align: left; display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #ffcc00; font-weight: bold; font-size: 0.8rem;">Inv:</span>
+                    <span id="val-hero-items" style="display: flex; gap: 2px;"></span>
+                </span>
+                <span style="flex: 1; text-align: center; font-size: 0.9rem;">⚔️<span id="val-hero-dmg"></span></span>
+                <span style="flex: 1; text-align: right; color: #ffcc00; font-size: 0.9rem;">🪙<span id="val-hero-gold"></span></span>
+            </div>
+
             <div id="stat-level" class="stat-line" style="display:none; flex-direction:column; margin-bottom: 8px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
                     <span>HP:</span> <span id="val-hp-text"></span>
@@ -97,11 +126,11 @@
                     <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showTooltip(event, 'Health Potion', 'Restores 50 HP when health drops below 30%')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚🧙</span>
                     </button>
-                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 150)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 30%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">⚔️</span><span class="item-cost">150g</span><span class="item-classes">🧌</span>
+                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 125)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">⚔️</span><span class="item-cost">125g</span><span class="item-classes">🧌</span>
                     </button>
-                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 75)" onmouseenter="Game.showTooltip(event, 'Dagger', 'Increases attack damage by 3. 5% chance to deal double damage.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">🗡️</span><span class="item-cost">75g</span><span class="item-classes">🥷</span>
+                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 100)" onmouseenter="Game.showTooltip(event, 'Dagger', 'Increases attack damage by 3. 5% chance to deal double damage.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🗡️</span><span class="item-cost">100g</span><span class="item-classes">🥷</span>
                     </button>
                     <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showTooltip(event, 'Wand', 'Increases attack damage by 8 and attack range by 25%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
@@ -1163,8 +1192,8 @@ const QUEST_CONFIG = {
 
 const ITEM_CONFIG = {
     POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID', 'WIZARD'], color: '#48bb78', icon: '🧪', name: 'Health Potion', desc: 'Restores 50 HP when health drops below 30%' },
-    SWORD: { cost: 150, classes: ['WARRIOR'], color: '#f0e6d2', statBonus: { damage: 5, parryChance: 0.15, spawnerDamageMult: 1.30 }, icon: '⚔️', name: 'Sword', desc: 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 30%.' },
-    DAGGER: { cost: 75, classes: ['ROGUE'], color: '#f0e6d2', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️', name: 'Dagger', desc: 'Increases attack damage by 3. 5% chance to deal double damage.' },
+    SWORD: { cost: 125, classes: ['WARRIOR'], color: '#f0e6d2', statBonus: { damage: 5, parryChance: 0.15, spawnerDamageMult: 1.50 }, icon: '⚔️', name: 'Sword', desc: 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.' },
+    DAGGER: { cost: 100, classes: ['ROGUE'], color: '#f0e6d2', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️', name: 'Dagger', desc: 'Increases attack damage by 3. 5% chance to deal double damage.' },
     WAND: { cost: 120, classes: ['DRUID', 'WIZARD'], color: '#f0e6d2', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄', name: 'Wand', desc: 'Increases attack damage by 8 and attack range by 25%.' },
     ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReduction: 2 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 2.' },
     CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReduction: 5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 5. Replaces Leather Armor.' },
@@ -2101,7 +2130,7 @@ class Hero extends Unit {
                 this.onAttackTick();
                 if (this.attackCooldown <= 0) {
                     let d = this.damage, cr = false;
-                    if(this.critChance > 0 && Math.random() < this.critChance) { d *= this.critMult; cr = true; }
+                    if(this.critChance > 0 && Math.random() < this.critChance && this.target.type !== 'SPAWNER' && this.target.spawnerType !== 'VOLCANO') { d *= this.critMult; cr = true; }
                     this.performAttack(d, cr);
                 }
                 break;
@@ -2209,10 +2238,16 @@ class Hero extends Unit {
                 if(this.hp<this.maxHp*0.4) s*=5; 
                 // Check if sO has a potion the hero wants to bump priority over training
                 let wantPotion = false;
+                let wantSword = false;
                 for(let itemId of sO.slots) {
                     if(itemId === 'POTION' && !this.items.includes('POTION') && this.personalGold >= ITEM_CONFIG['POTION'].cost) wantPotion = true;
+                    if(this.classType === 'WARRIOR' && itemId === 'SWORD' && !this.items.includes('SWORD') && this.personalGold >= ITEM_CONFIG['SWORD'].cost) wantSword = true;
                 }
-                if (wantPotion) s*=100;
+                if (wantPotion) {
+                    s*=100;
+                } else if (wantSword) {
+                    s*=50;
+                }
                 
                 if(s>bS) { bS=s; bT=sO; } 
             }
@@ -2239,7 +2274,11 @@ class Hero extends Unit {
             if(want) { 
                 const d=Math.sqrt(this.pos.distSq(s.pos)); 
                 let sc=500/Math.max(d,10); 
-                if (wantPotion) sc *= 100;
+                if (wantPotion) {
+                    sc *= 100;
+                } else if (this.classType === 'WARRIOR' && !this.items.includes('SWORD') && this.personalGold >= ITEM_CONFIG['SWORD'].cost) {
+                    if (s.slots.includes('SWORD')) sc *= 50;
+                }
                 if(sc>bSc) { bSc=sc; bS=s; } 
             }
         }
@@ -2257,7 +2296,13 @@ class Hero extends Unit {
                     if (tId === 'NONE') continue;
                     const t = UPGRADE_CONFIG[tId];
                     if (t && !this.skills.includes(tId) && this.personalGold >= t.cost / 2) {
-                        want = true; break;
+                        if (this.classType === 'WARRIOR' && !this.items.includes('SWORD')) {
+                            if (this.skills.length === 0) {
+                                want = true; break;
+                            }
+                        } else {
+                            want = true; break;
+                        }
                     }
                 }
                 if (want) { 
@@ -2699,7 +2744,7 @@ class WizardHero extends Hero {
         if (this.skills.includes('MAGICAL_BARRAGE')) {
             let validEnemies = [];
             Grid.getNearby(this.pos, this.attackRange * this.attackRange, (e, distSq) => {
-                if (e.isVisible && e.type !== 'SPAWNER' && e.hp > 0 && e.faction === 'ENEMY' && !validEnemies.includes(e)) {
+                if (e.isVisible && e.hp > 0 && e.faction === 'ENEMY' && !validEnemies.includes(e)) {
                     validEnemies.push(e);
                 }
             }, 'ENEMY');
@@ -3375,7 +3420,7 @@ class Volcano extends Entity {
     }
 }
 
-const Game = {
+const Game = window.Game = {
     gold: GAME_CONFIG.startingGold, taxRate: 0.5, day: 1, dayTimer: GAME_CONFIG.dayLengthSec, passiveGoldTimer: GAME_CONFIG.passiveGoldInterval, frames: 0, timeMs: 0, mode: 'NONE', isPaused: false, fogOfWar: true,
     shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [], ashPits: [], trees: null,
     renderStatic: [], renderDynamic: [], staticDirty: true,
@@ -3631,7 +3676,7 @@ const Game = {
             UI.setDisplay('btn-abandon', e.type.startsWith('FLAG_') ? 'block' : 'none');
 
             const toggle = (id, show) => UI.setDisplay(id, show ? 'flex' : 'none');
-            ['stat-tombstone','stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state','stat-tower-dmg', 'stat-tower-kills', 'stat-skills', 'stat-monster-hp', 'stat-monster-bottom'].forEach(id => toggle(id, false));
+            ['stat-tombstone','stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state','stat-tower-dmg', 'stat-tower-kills', 'stat-skills', 'stat-monster-hp', 'stat-monster-bottom', 'stat-hero-hp', 'stat-hero-xp', 'stat-hero-abilities', 'stat-hero-bottom'].forEach(id => toggle(id, false));
             UI.setDisplay('shop-config', 'none'); UI.setDisplay('guild-config', 'none'); UI.setDisplay('tavern-config', 'none'); UI.setDisplay('farm-config', 'none'); UI.setDisplay('tower-config', 'none'); UI.setDisplay('temple-config', 'none');
             
             document.getElementById('info-panel').classList.toggle('hero-window', !!(e.faction === 'PLAYER' && e.classType));
@@ -3671,19 +3716,48 @@ const Game = {
                 }
             }
             if (e.faction === 'PLAYER' && e.classType) {
-                UI.setText('val-hp-text', `${Math.floor(Math.max(0, e.hp))} / ${e.maxHp}`); document.getElementById('val-hp-bar').style.width = (Math.max(0, e.hp) / e.maxHp * 100) + '%';
-                UI.setText('val-level', e.level); UI.setText('val-xp-text', `${Math.floor(e.xp)} / ${e.level * 100}`); document.getElementById('val-xp-bar').style.width = (Math.min(1, e.xp / (e.level * 100)) * 100) + '%';
-                UI.setText('val-gold', `${Math.floor(e.personalGold)}g`); UI.setColor('val-gold', e.personalGold < 0 ? '#e53e3e' : '#ffcc00');
-                UI.setText('val-kills', e.kills); UI.setText('val-dmg', e.damage);
-                UI.setHTML('val-items', e.items.length > 0 ? e.items.map(i => {
+                const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard' };
+                const icon = HERO_CONFIG[e.classType] ? HERO_CONFIG[e.classType].icon : '🦸';
+                UI.setHTML('info-name', `
+                    <span style="width:100%; display:flex; justify-content:space-between; align-items: center;">
+                        <span style="text-align: left; flex: 1;">${displayName}</span>
+                        <span class="monster-icon-badge" style="flex-shrink: 0;">${icon}</span>
+                        <span style="text-align: right; flex: 1; color: #aaaaaa; font-size: 0.9rem;">${classNames[e.classType] || e.classType} Lvl ${e.level}</span>
+                    </span>
+                `);
+
+                UI.setText('val-hero-hp-text', `${Math.floor(Math.max(0, e.hp))} / ${e.maxHp}`);
+                document.getElementById('val-hero-hp-bar').style.width = (Math.max(0, e.hp) / e.maxHp * 100) + '%';
+
+                UI.setText('val-hero-xp-text', `${Math.floor(e.xp)} / ${e.level * 100} XP`);
+                document.getElementById('val-hero-xp-bar').style.width = (Math.min(1, e.xp / (e.level * 100)) * 100) + '%';
+
+                let abilitiesHTML = e.skills.length > 0 ? e.skills.map(s => {
+                    let iStr = '🎓';
+                    if (s === 'CHARGE') iStr = '⚡';
+                    else if (s === 'RAT_TRAP') iStr = '🪤';
+                    else if (s === 'REGROWTH') iStr = '🥬';
+                    else if (s === 'MARK_OF_THE_WILD') iStr = '🍁';
+                    else if (s === 'CHEAP_SHOT') iStr = '🤜';
+                    else if (s === 'TAUNT') iStr = '🤬';
+                    else if (s === 'ARCANE_AURA') iStr = '🔮';
+                    else if (s === 'MAGICAL_BARRAGE') iStr = '✨';
+                    return `<span style="font-size: 1.1rem;" title="${s}">${iStr}</span>`;
+                }).join('') : '<span style="color:#aaaaaa; font-style:italic;">None</span>';
+                UI.setHTML('val-hero-abilities-list', abilitiesHTML);
+
+                UI.setText('val-hero-dmg', e.damage);
+                UI.setText('val-hero-gold', `${Math.floor(e.personalGold)}`);
+                UI.setColor('val-hero-gold', e.personalGold < 0 ? '#e53e3e' : '#ffcc00');
+
+                UI.setHTML('val-hero-items', e.items.length > 0 ? e.items.map(i => {
                     const item = ITEM_CONFIG[i];
                     const safeName = item.name.replace(/'/g, "\\'");
                     const safeDesc = item.desc.replace(/'/g, "\\'");
-                    return `<span style="cursor:help; font-size:1.2rem;" onmouseenter="Game.showTooltip(event, '${safeName}', '${safeDesc}')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${item.icon}</span>`;
-                }).join(' ') : 'None');
-                UI.setText('val-skills', e.skills.length > 0 ? e.skills.join(', ') : 'None');
-                UI.setText('val-state', e.getDisplayState());
-                ['stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-skills','stat-state'].forEach(id => toggle(id, true));
+                    return `<span style="cursor:help; font-size:1.1rem;" onmouseenter="Game.showTooltip(event, '${safeName}', '${safeDesc}')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${item.icon}</span>`;
+                }).join(' ') : '<span style="color:#aaaaaa; font-style:italic; font-size: 0.8rem;">None</span>');
+
+                ['stat-hero-hp', 'stat-hero-xp', 'stat-hero-abilities', 'stat-hero-bottom'].forEach(id => toggle(id, true));
             } else if (e.type === 'TEMPLE') {
                 UI.setDisplay('temple-config', 'block');
                 const deadHeroes = Game.entities.filter(ent => ent.type === 'TOMBSTONE' && ent.heroRef);
@@ -4592,7 +4666,14 @@ function loop(timestamp) {
     ctx.drawImage(bgCanvas, Game.bgBounds.x, Game.bgBounds.y); 
     
     if (Game.fogOfWar) {
-        fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
+        // ⚡ Bolt Optimization: Prevent offscreen canvas reallocation every frame
+        if (fogCanvas.width !== canvas.width || fogCanvas.height !== canvas.height) {
+            fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
+        } else {
+            fogCtx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        // Explicitly restore composite operation before filling, as bypassing canvas reallocation persists context state
+        fogCtx.globalCompositeOperation = 'source-over';
         fogCtx.fillStyle='rgba(0,0,0,0.7)'; fogCtx.fillRect(0, 0, canvas.width, canvas.height); 
         fogCtx.globalCompositeOperation='destination-out'; 
         fogCtx.save();
