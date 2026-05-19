@@ -195,10 +195,10 @@
                         <div class="build-btn-icon">⚡</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-RAT_TRAP" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('RAT_TRAP')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Rat Trap', 'Rogues will occasionally place traps when killing rats.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-TRAP" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('TRAP')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Trap', 'Upon killing a monster, the rogue places down a trap. Rats are instantly killed, all other monsters lose 60% of their health.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
-                            <div class="build-btn-title">Rat Trap</div>
+                            <div class="build-btn-title">Trap</div>
                         </div>
                         <div class="build-btn-icon">🪤</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
@@ -868,7 +868,7 @@ window.addEventListener('keydown', e => {
             if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD' || type === 'WIZARD_GUILD') {
                 if (k === 't') Game.recruitHero();
                 else if (k === 'r') {
-                    let upg = type === 'WARRIOR_GUILD' ? 'CHARGE' : (type === 'ROGUE_GUILD' ? 'RAT_TRAP' : (type === 'DRUID_GUILD' ? 'REGROWTH' : ''));
+                    let upg = type === 'WARRIOR_GUILD' ? 'CHARGE' : (type === 'ROGUE_GUILD' ? 'TRAP' : (type === 'DRUID_GUILD' ? 'REGROWTH' : ''));
                     if (upg) Game.researchUpgrade(upg);
                 }
             } else if (type === 'FARM') {
@@ -1221,7 +1221,7 @@ const UPGRADE_CONFIG = {
     ARCANE_AURA: { cost: 115 },
     MAGICAL_BARRAGE: { cost: 215 },
     CHARGE: { cost: 100 },
-    RAT_TRAP: { cost: 100 },
+    TRAP: { cost: 100 },
     REGROWTH: { cost: 100 },
     MARK_OF_THE_WILD: { cost: 100 },
     CHEAP_SHOT: { cost: 100 },
@@ -1425,17 +1425,32 @@ class Tombstone extends Entity {
 }
 
 class Trap extends Entity { 
-    constructor(x, y) { super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = 'TRAP'; this.hp = this.maxHp = 1; this.radius = 10; } 
+    constructor(x, y, owner = null) { super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = 'TRAP'; this.hp = this.maxHp = 1; this.radius = 10; this.owner = owner; }
     update(dtSec) {
-        Grid.getNearby(this.pos, 900, (rat, distSq) => {
-            if (rat.monsterType === 'RAT') {
-                rat.takeDamage(rat.hp, this);
+        Grid.getNearby(this.pos, 900, (monster, distSq) => {
+            if (monster.type === 'MONSTER') {
+                Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e');
+                if (monster.monsterType === 'RAT') {
+                    monster.takeDamage(monster.hp, this.owner);
+                } else {
+                    monster.takeDamage(Math.floor(monster.maxHp * 0.6), this.owner);
+                }
                 this.die();
                 return true;
             }
         }, 'ENEMY');
     }
-    takeDamage(amt, source) { if (!this.active) return; if (source && source.monsterType === 'RAT') source.takeDamage(source.hp, this); super.takeDamage(amt, source); } 
+    takeDamage(amt, source) {
+        if (!this.active) return;
+        if (source && source.type === 'MONSTER') {
+            if (source.monsterType === 'RAT') {
+                source.takeDamage(source.hp, this.owner);
+            } else {
+                source.takeDamage(Math.floor(source.maxHp * 0.6), this.owner);
+            }
+        }
+        super.takeDamage(amt, source);
+    }
     draw(ctx) { 
         const outC = Game.selectedEntity === this ? '#ffcc00' : (Game.hoveredEntity === this ? '#90ee90' : null);
         const sp = SpriteCache.get('🪤', 24, true, true, outC); 
@@ -1540,7 +1555,12 @@ class Monster extends Unit {
         return best || Game.base;
     }
     findCustomTarget(targ, ds) { return false; }
-    onDeath(attacker) {}
+    onDeath(attacker) {
+        if (attacker && attacker.classType === 'ROGUE' && attacker.skills.includes('TRAP') && attacker.trapCooldown <= 0) {
+            attacker.trapCooldown = 20.0;
+            Game.addEntity(new Trap(this.pos.x, this.pos.y, attacker));
+        }
+    }
     getDrawOffset() { return { dX: 0, dY: 0 }; }
 
     update(dtSec) {
@@ -1637,7 +1657,7 @@ class Monster extends Unit {
     }
     die() {
         if (!this.active) return; super.die();
-        if (this.lastAttacker && this.lastAttacker.type === 'TRAP') { Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e'); return; }
+
         
         const validAttackers = [];
         let hasTowerAttacker = false;
@@ -1720,12 +1740,6 @@ class Monster extends Unit {
 
 class RatMonster extends Monster {
     findCustomTarget(targ, ds) { return targ.type === 'TRAP' && ds < 62500; }
-    onDeath(attacker) {
-        if (attacker.classType === 'ROGUE' && attacker.skills.includes('RAT_TRAP') && attacker.ratTrapCooldown <= 0) {
-            attacker.ratTrapCooldown = 20.0;
-            Game.addEntity(new Trap(this.pos.x, this.pos.y));
-        }
-    }
     getDrawOffset() {
         let dX = 0, dY = 0;
         if (this.attackCooldown > this.maxAttackCooldown - 0.25) dY += Math.sin(this.attackCooldown * 90) * 5;
@@ -1756,7 +1770,7 @@ class Hero extends Unit {
             if (cT === 'WIZARD') return new WizardHero(x, y, cT, g);
         }
         super(x, y); this.faction = 'PLAYER'; this.classType = cT; this.guild = g; this.state = 'IDLE'; this.wanderAngle = Math.random()*Math.PI*2; this.stateTimer = 0;
-        this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.ratTrapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
+        this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.trapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.markOfTheWildTimer = 0; this.markOfTheWildCooldown = 0; this.tauntCooldown = 0; this.tauntVfxTimer = 0; this.motwHpBuff = 0; this.motwDmgBuff = 0;
         this.purchasedItemVfxTimer = 0; this.purchasedItemIcon = ''; this.levelUpVfxTimer = 0;
         this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0;
@@ -1913,7 +1927,7 @@ class Hero extends Unit {
     update(dtSec) {
         if (this.currentQuest && !this.currentQuest.active) { this.currentQuest = null; this.questPhase = 'NONE'; }
         
-        const timers = ['chargeCooldown','chargeVfxTimer','ratTrapCooldown','regrowthCooldown','regrowthCastVfxTimer','regrowthHealVfxTimer','purchasedItemVfxTimer','levelUpVfxTimer','stateTimer','checkThreatTimer','markOfTheWildTimer','markOfTheWildCooldown','tauntCooldown','tauntVfxTimer'];
+        const timers = ['chargeCooldown','chargeVfxTimer','trapCooldown','regrowthCooldown','regrowthCastVfxTimer','regrowthHealVfxTimer','purchasedItemVfxTimer','levelUpVfxTimer','stateTimer','checkThreatTimer','markOfTheWildTimer','markOfTheWildCooldown','tauntCooldown','tauntVfxTimer'];
         timers.forEach(t => { if(this[t]>0) this[t]-=dtSec; });
         
         if (this.markOfTheWildTimer <= 0 && this.motwHpBuff > 0) {
@@ -3793,7 +3807,7 @@ const Game = window.Game = {
                 let abilitiesHTML = e.skills.length > 0 ? e.skills.map(s => {
                     let iStr = '🎓';
                     if (s === 'CHARGE') iStr = '⚡';
-                    else if (s === 'RAT_TRAP') iStr = '🪤';
+                    else if (s === 'TRAP') iStr = '🪤';
                     else if (s === 'REGROWTH') iStr = '🥬';
                     else if (s === 'MARK_OF_THE_WILD') iStr = '🍁';
                     else if (s === 'CHEAP_SHOT') iStr = '🤜';
@@ -3901,7 +3915,7 @@ const Game = window.Game = {
                     UI.setDisplay('guild-select-ui', 'block');
                     UI.setDisplay('guild-slots-ui', 'none');
 
-                    const upgs = ['CHARGE','RAT_TRAP','REGROWTH','MARK_OF_THE_WILD','CHEAP_SHOT','TAUNT','ARCANE_AURA','MAGICAL_BARRAGE'];
+                    const upgs = ['CHARGE','TRAP','REGROWTH','MARK_OF_THE_WILD','CHEAP_SHOT','TAUNT','ARCANE_AURA','MAGICAL_BARRAGE'];
                     upgs.forEach(u => UI.setDisplay(`btn-upg-${u}`, 'none'));
 
                     const showUpg = (u) => {
@@ -3912,7 +3926,7 @@ const Game = window.Game = {
                     };
 
                     if (hClass === 'WARRIOR') { showUpg('CHARGE'); showUpg('TAUNT'); }
-                    else if (hClass === 'ROGUE') { showUpg('RAT_TRAP'); showUpg('CHEAP_SHOT'); }
+                    else if (hClass === 'ROGUE') { showUpg('TRAP'); showUpg('CHEAP_SHOT'); }
                     else if (hClass === 'DRUID') { showUpg('REGROWTH'); showUpg('MARK_OF_THE_WILD'); }
                     else if (hClass === 'WIZARD') { showUpg('ARCANE_AURA'); showUpg('MAGICAL_BARRAGE'); }
                 } else {
@@ -3925,7 +3939,7 @@ const Game = window.Game = {
                         let title = '';
                         let desc = '';
                         if (e.slots[0] === 'CHARGE') { iStr = '⚡'; title = 'Charge'; desc = 'Warriors will charge at distant enemies, dealing damage and stunning them.'; }
-                        else if (e.slots[0] === 'RAT_TRAP') { iStr = '🪤'; title = 'Rat Trap'; desc = 'Rogues will occasionally place traps when killing rats.'; }
+                        else if (e.slots[0] === 'TRAP') { iStr = '🪤'; title = 'Trap'; desc = 'Upon killing a monster, the rogue places down a trap. Rats are instantly killed, all other monsters lose 60% of their health.'; }
                         else if (e.slots[0] === 'REGROWTH') { iStr = '🥬'; title = 'Regrowth'; desc = 'Druids occasionally cast a powerful healing spell on heavily injured allies.'; }
                         else if (e.slots[0] === 'MARK_OF_THE_WILD') { iStr = '🍁'; title = 'Mark of the Wild'; desc = 'Every 30 seconds, the druid casts mark of the wild on themselves and one nearby ally for 20. If they are in a group, they will cast it on all group members instead. Mark of the Wild increase health, damage, and damage resistance by 10 percent.'; }
                         else if (e.slots[0] === 'CHEAP_SHOT') { iStr = '🤜'; title = 'Cheap Shot'; desc = 'The rogue\'s melee attack will have a 25 percent chance to stun the enemy for 3 seconds.'; }
