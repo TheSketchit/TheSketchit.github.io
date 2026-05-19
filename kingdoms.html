@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sovereign: Indirect Control Strategy</title>
+    <title>Sovereign Lands</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -474,7 +474,7 @@ const Engine = {
         this.startAmbient();
     },
 
-    playDoomStab(time, freq, duration) {
+    playDoomStab(time, freq, duration, vol=1.0) {
         if (!this.audioCtx) return;
         const audioCtx = this.audioCtx;
         const masterGain = this.masterGain;
@@ -506,8 +506,8 @@ const Engine = {
 
         [subGain, sawGain].forEach(g => {
             g.gain.setValueAtTime(0, time);
-            g.gain.linearRampToValueAtTime(1.0, time + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.01, time + duration);
+            g.gain.linearRampToValueAtTime(vol, time + 0.02);
+            g.gain.exponentialRampToValueAtTime(vol * 0.01, time + duration);
         });
 
         sub.connect(subGain).connect(masterGain);
@@ -520,6 +520,110 @@ const Engine = {
         saw1.start(time); saw1.stop(time + duration);
         saw2.start(time); saw2.stop(time + duration);
         squareSub.start(time); squareSub.stop(time + duration);
+    },
+
+    playRumble(time, duration, vol=1.0) {
+        if (!this.audioCtx) return;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        const filter = this.audioCtx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(30, time);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(60, time);
+        filter.Q.setValueAtTime(5, time);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol * 0.8, time + 0.5);
+        gain.gain.setValueAtTime(vol * 0.8, time + duration - 1);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        osc.connect(filter).connect(gain).connect(this.masterGain);
+        osc.start(time);
+        osc.stop(time + duration);
+    },
+
+    playTimpani(time, vol=1.0) {
+        if (!this.audioCtx) return;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(65, time);
+        osc.frequency.exponentialRampToValueAtTime(45, time + 0.5);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol * 1.5, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 1.5);
+
+        osc.connect(gain).connect(this.masterGain);
+        osc.start(time);
+        osc.stop(time + 1.5);
+    },
+
+    playMarchSnare(time, vol=1.0) {
+        if (!this.audioCtx) return;
+        const bufferSize = this.audioCtx.sampleRate * 0.5;
+        const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.audioCtx.createBiquadFilter();
+        const gain = this.audioCtx.createGain();
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1000, time);
+        filter.Q.setValueAtTime(1, time);
+
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+
+        noise.connect(filter).connect(gain).connect(this.masterGain);
+        noise.start(time);
+        noise.stop(time + 0.2);
+    },
+
+    playBrass(note, time, duration, dry=false, vol=1.0) {
+        if (!this.audioCtx) return;
+        const osc1 = this.audioCtx.createOscillator();
+        const osc2 = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        const filter = this.audioCtx.createBiquadFilter();
+
+        const freq = mtof(note);
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
+        osc1.frequency.setValueAtTime(freq, time);
+        osc2.frequency.setValueAtTime(freq * 1.01, time);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(100, time);
+        filter.frequency.linearRampToValueAtTime(2000, time + 0.1);
+        filter.frequency.linearRampToValueAtTime(800, time + duration);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol * 0.5, time + 0.05);
+        gain.gain.setValueAtTime(vol * 0.5, time + duration - 0.1);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        if (dry) {
+            filter.connect(gain).connect(this.masterGain);
+        } else {
+            filter.connect(gain).connect(this.reverbNode);
+        }
+
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration);
+        osc2.stop(time + duration);
     },
 
     triggerDoom() {
@@ -3319,6 +3423,107 @@ const Game = {
         return c; 
     },
     
+    triggerVictory() {
+        Engine.initAudio();
+        if (Engine.audioCtx.state === 'suspended') Engine.audioCtx.resume();
+
+        const victoryBtn = document.getElementById('victoryBtn');
+        if (victoryBtn) {
+            victoryBtn.disabled = true;
+            victoryBtn.textContent = "TOTAL DOMINATION...";
+        }
+
+        const startT = Engine.audioCtx.currentTime + 0.1;
+        const bpm = 115; // Faster, driving tempo for a victorious march
+        const beatLen = 60 / bpm;
+
+        // Audio perception is logarithmic. A 0.6 multiplier is barely noticeable.
+        // Dropping to 0.2 forces a massive decibel reduction so it is noticeably quieter.
+        const vVol = 0.2;
+
+        // 1. Relentless Ground Rumble
+        Engine.playRumble(startT, 18 * beatLen, vVol);
+
+        // 2. Driving War Drums (Timpani on downbeats, aggressive galloping snare)
+        for (let b = 0; b < 16; b++) {
+            // Heavy pounding timpani on beats 1 and 3
+            if (b % 2 === 0) {
+                Engine.playTimpani(startT + (b * beatLen), vVol);
+                // Add sub-bass impact to the main chord changes
+                if (b % 4 === 0) {
+                    Engine.playDoomStab(startT + (b * beatLen), 55, beatLen * 2, vVol);
+                }
+            }
+
+            // Relentless, galloping snare pattern
+            Engine.playMarchSnare(startT + (b * beatLen), vVol);
+            if (b % 2 !== 0) {
+                Engine.playMarchSnare(startT + ((b + 0.5) * beatLen), vVol);
+                Engine.playMarchSnare(startT + ((b + 0.75) * beatLen), vVol);
+            }
+        }
+
+        // Final massive impact
+        Engine.playTimpani(startT + (16 * beatLen), vVol);
+        Engine.playDoomStab(startT + (16 * beatLen), 43, beatLen * 4, vVol);
+
+        // 3. Savage Power Chords (G minor -> Eb Major -> F Major -> G minor)
+        // These are triumphant but dark, moving in massive blocks
+        const chords = [
+            { roots: [43, 50, 55], b: 0, d: 4.0 },   // G Power Chord
+            { roots: [39, 46, 51], b: 4, d: 4.0 },   // Eb Power Chord
+            { roots: [41, 48, 53], b: 8, d: 4.0 },   // F Power Chord
+            { roots: [43, 50, 55], b: 12, d: 1.5 },  // G Power Chord (Syncopated)
+            { roots: [43, 50, 55], b: 13.5, d: 0.5 },
+            { roots: [31, 38, 43], b: 14, d: 4.0 }   // Massive low G drop
+        ];
+
+        chords.forEach(chord => {
+            chord.roots.forEach(note => {
+                Engine.playBrass(note, startT + (chord.b * beatLen), chord.d * beatLen, true, vVol);
+            });
+        });
+
+        // 4. Victorious War Cry Melody
+        // Ascending leaps of a 5th, classic victory motif but in a dark minor key
+        const melody = [
+            // Bar 1 (G minor)
+            { n: 55, b: 0, d: 1.0 },   // G3
+            { n: 55, b: 1, d: 0.5 },   // G3
+            { n: 58, b: 1.5, d: 0.5 }, // Bb3
+            { n: 62, b: 2, d: 2.0 },   // D4 (Leap up, victorious)
+
+            // Bar 2 (Eb Major)
+            { n: 63, b: 4, d: 1.5 },   // Eb4
+            { n: 62, b: 5.5, d: 0.5 }, // D4
+            { n: 60, b: 6, d: 2.0 },   // C4
+
+            // Bar 3 (F Major)
+            { n: 65, b: 8, d: 1.5 },   // F4
+            { n: 63, b: 9.5, d: 0.5 }, // Eb4
+            { n: 62, b: 10, d: 1.0 },  // D4
+            { n: 60, b: 11, d: 1.0 },  // C4
+
+            // Bar 4 (G minor ending)
+            { n: 62, b: 12, d: 1.5 },  // D4
+            { n: 62, b: 13.5, d: 0.5 },// D4
+            { n: 67, b: 14, d: 4.0 }   // G4 (High, commanding final note)
+        ];
+
+        melody.forEach(event => {
+            // Play in massive aggressive octaves directly to master (dry, upfront)
+            Engine.playBrass(event.n, startT + (event.b * beatLen), event.d * beatLen, true, vVol);
+            Engine.playBrass(event.n + 12, startT + (event.b * beatLen), event.d * beatLen, true, vVol);
+        });
+
+        if (victoryBtn) {
+            setTimeout(() => {
+                victoryBtn.disabled = false;
+                victoryBtn.textContent = "BRUTAL VICTORY";
+            }, (20 * beatLen) * 1000 + 1000);
+        }
+    },
+
     winGame() {
         this.gameOver = true;
         this.gameWon = true;
@@ -4029,6 +4234,7 @@ const Game = {
 
         const btnText = isGameOver ? "Rebuild Kingdom" : "Resume Game";
         const btnAction = isGameOver ? "location.reload()" : "Game.togglePause()";
+        const btnId = isGameOver && this.gameWon ? " id=\"victoryBtn\"" : "";
 
         const th = (col, text) => {
             const isSorted = this.statsSort.column === col;
@@ -4100,9 +4306,17 @@ const Game = {
                 </tr>
             </table>
         </div>`;
-        html += `</div><button class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
+        html += `</div><button${btnId} class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
         
         const go = document.getElementById('game-over'); go.innerHTML = html; go.style.borderColor = themeColor; go.style.display = 'flex';
+
+        if (isGameOver && this.gameWon && !this.victoryTriggered) {
+            this.victoryTriggered = true;
+            // Give UI a moment to update before running the victory sequence
+            setTimeout(() => {
+                this.triggerVictory();
+            }, 50);
+        }
     }
 
 };
