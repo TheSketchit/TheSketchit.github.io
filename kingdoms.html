@@ -333,7 +333,7 @@
                 <div class="build-btn-icon">🏚️</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙175</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally. Druids can also heal damaged buildings.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-druid-guild" onclick="setMode('BUILD_DRUID')" onmouseenter="Game.showTooltip(event, 'Druid Guild', 'Recruit up to 3 Druids per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Druids are fragile, but their ranged attack and healing capabilities make them an important ally.</span>', true, '<i>+100🪙 per 🪵</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">3</div><div class="build-btn-title">Druids</div></div>
                 <div class="build-btn-icon">🪵</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙125</span></div>
@@ -1273,7 +1273,7 @@ class Entity {
         if(this.flashTimer <= 0) this.flashTimer = 0.5;
         Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e');
 
-        if (this.faction === 'PLAYER') {
+        if (this.faction === 'PLAYER' && this.classType) {
             for (let i = 0; i < Game.activeHeroes.length; i++) {
                 const h = Game.activeHeroes[i];
                 if (h.classType === 'DRUID' && h.active && h.pos.distSq(this.pos) <= 40000) {
