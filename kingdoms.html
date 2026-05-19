@@ -72,6 +72,19 @@
             <div id="stat-state" class="stat-line" style="display:none;"><span>State:</span> <span id="val-state"></span></div>
             <div id="stat-tower-dmg" class="stat-line" style="display:none;"><span>Damage:</span> <span id="val-tower-dmg" style="color:#ffcc00;">20 (Magic)</span></div>
             <div id="stat-tower-kills" class="stat-line" style="display:none;"><span>Kills:</span> <span id="val-tower-kills">0</span></div>
+
+            <div id="stat-monster-hp" class="stat-line" style="display:none; flex-direction:column; margin-bottom: 8px;">
+                <div style="position: relative; width:100%; height:16px; background:#5a4b31; border-radius:4px; overflow:hidden; border: 1px solid #1a150e;">
+                    <div id="val-monster-hp-bar" style="height:100%; background:#e53e3e; width:100%; transition:width 0.2s;"></div>
+                    <div id="val-monster-hp-text" class="hp-text"></div>
+                </div>
+            </div>
+
+            <div id="stat-monster-bottom" class="monster-bottom-row" style="display:none;">
+                <span style="flex: 1; text-align: left; color: #800080;">XP: <span id="val-monster-xp">10</span></span>
+                <span style="flex: 1; text-align: center;">⚔️<span id="val-monster-dmg"></span></span>
+                <span style="flex: 1; text-align: right; color: #ffcc00;">🪙<span id="val-monster-gold"></span></span>
+            </div>
         </div>
         
         <div id="shop-config" style="display:none; margin-top: 10px; border-top: 1px solid #5a4b31; padding-top: 8px;">
@@ -3246,20 +3259,44 @@ const Game = {
             UI.setDisplay('btn-abandon', e.type.startsWith('FLAG_') ? 'block' : 'none');
 
             const toggle = (id, show) => UI.setDisplay(id, show ? 'flex' : 'none');
-            ['stat-tombstone','stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state','stat-tower-dmg', 'stat-tower-kills', 'stat-skills'].forEach(id => toggle(id, false));
+            ['stat-tombstone','stat-level','stat-xp','stat-gold','stat-kills','stat-dmg','stat-items','stat-state','stat-tower-dmg', 'stat-tower-kills', 'stat-skills', 'stat-monster-hp', 'stat-monster-bottom'].forEach(id => toggle(id, false));
             UI.setDisplay('shop-config', 'none'); UI.setDisplay('guild-config', 'none'); UI.setDisplay('tavern-config', 'none'); UI.setDisplay('farm-config', 'none'); UI.setDisplay('tower-config', 'none'); UI.setDisplay('temple-config', 'none');
             
             document.getElementById('info-panel').classList.toggle('hero-window', !!(e.faction === 'PLAYER' && e.classType));
 
             if (e.type === 'TOMBSTONE') { UI.setHTML('info-name', `Tombstone 🪦`); UI.setHTML('stat-tombstone', `"Here Lies ${e.name} of the ${e.guildName} Guild.<br>They were level ${e.level}, and killed ${e.kills} monsters."`); UI.setDisplay('stat-tombstone', 'block'); }
             else {
-                let bountyStr = '';
-                if (e.faction === 'ENEMY') {
-                    let gY = e.bounty || 50;
-                    bountyStr = `<span style="color:#ffcc00; font-size:0.9rem;">🪙${gY}</span>`;
+                if (e.faction === 'ENEMY' && e.type === 'MONSTER') {
+                    const icon = MONSTER_CONFIG[e.monsterType] ? MONSTER_CONFIG[e.monsterType].icon : '👹';
+                    const lvl = (e.buffStacks || 0) + 1;
+
+                    UI.setHTML('info-name', `
+                        <span style="width:100%; display:flex; justify-content:space-between; align-items: center;">
+                            <span style="text-align: left; flex: 1;">${displayName}</span>
+                            <span class="monster-icon-badge" style="flex-shrink: 0;">${icon}</span>
+                            <span style="text-align: right; flex: 1; color: #aaaaaa; font-size: 0.9rem;">Lvl ${lvl}</span>
+                        </span>
+                    `);
+
+                    toggle('stat-monster-hp', true);
+                    toggle('stat-monster-bottom', true);
+
+                    UI.setText('val-monster-hp-text', `${Math.floor(Math.max(0, e.hp))}/${e.maxHp}`);
+                    document.getElementById('val-monster-hp-bar').style.width = (Math.max(0, e.hp) / e.maxHp * 100) + '%';
+
+                    UI.setText('val-monster-xp', 10);
+                    UI.setText('val-monster-dmg', e.damage);
+                    UI.setText('val-monster-gold', e.bounty || 0);
+
+                } else {
+                    let bountyStr = '';
+                    if (e.faction === 'ENEMY') {
+                        let gY = e.bounty || 50;
+                        bountyStr = `<span style="color:#ffcc00; font-size:0.9rem;">🪙${gY}</span>`;
+                    }
+                    const hpStr = (e.faction === 'PLAYER' && e.classType) ? '' : ` <span style="font-size: 0.75rem; color: #aaaaaa;">[${Math.floor(e.hp)}/${e.maxHp} HP]</span>`;
+                    UI.setHTML('info-name', `<span style="width:100%; display:flex; justify-content:space-between;"><span>${displayName}${hpStr}</span>${bountyStr}</span>`);
                 }
-                const hpStr = (e.faction === 'PLAYER' && e.classType) ? '' : ` <span style="font-size: 0.75rem; color: #aaaaaa;">[${Math.floor(e.hp)}/${e.maxHp} HP]</span>`;
-                UI.setHTML('info-name', `<span style="width:100%; display:flex; justify-content:space-between;"><span>${displayName}${hpStr}</span>${bountyStr}</span>`);
             }
             if (e.faction === 'PLAYER' && e.classType) {
                 UI.setText('val-hp-text', `${Math.floor(Math.max(0, e.hp))} / ${e.maxHp}`); document.getElementById('val-hp-bar').style.width = (Math.max(0, e.hp) / e.maxHp * 100) + '%';
