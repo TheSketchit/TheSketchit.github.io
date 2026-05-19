@@ -326,7 +326,7 @@
             <button class="menu-btn build-btn" id="btn-warrior-guild" onclick="setMode('BUILD_WARRIOR')" onmouseenter="Game.showTooltip(event, 'Warrior Guild', 'Recruit up to 3 Warriors per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Warriors have more health and are usually in the thick of the fighting.</span>', true, '<i>+100🪙 per 🛖</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">1</div><div class="build-btn-title">Warriors</div></div>
                 <div class="build-btn-icon">🛖</div>
-                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-rogue-guild" onclick="setMode('BUILD_ROGUE')" onmouseenter="Game.showTooltip(event, 'Rogue Guild', 'Recruit up to 3 Rogues per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Rogues aren\'t as strong as warriors, but have other tricks up their sleeves.</span>', true, '<i>+100🪙 per 🏚️</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Rogues</div></div>
@@ -1230,7 +1230,7 @@ const UPGRADE_CONFIG = {
 
 const BUILDING_CONFIG = {
     CASTLE: { baseCost: 0, hp: 1000, radius: 80, icon: '🏰', imageSrc: 'assets/Castle.png', fontSize: '160px', foundationRx: 100, foundationRy: 30, yOffset: 55, vision: 300, name: 'Castle', isGuild: false, popProvided: 6 },
-    WARRIOR_GUILD: { baseCost: 200, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
+    WARRIOR_GUILD: { baseCost: 150, hp: 350, radius: 30, icon: '🛖', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Warrior Guild', isGuild: true, heroClass: 'WARRIOR' },
     ROGUE_GUILD: { baseCost: 175, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
     DRUID_GUILD: { baseCost: 125, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     WIZARD_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🏯', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Wizard Guild', isGuild: true, heroClass: 'WIZARD' },
@@ -1504,9 +1504,6 @@ class Monster extends Unit {
         this.hp = this.maxHp;
 
         let bountyMult = 1.0;
-        if (!inCorridor) {
-            bountyMult = Math.pow(0.3, Game.corridors.length);
-        }
         this.bounty = Math.floor(conf.bounty * Math.pow(1.5, bS) * bountyMult);
         
         this.baseFontSize = Math.floor(24 * (1 + (hpMult - 1) * 0.05));
@@ -3230,9 +3227,6 @@ class Spawner extends Entity {
         }
 
         let bountyMult = 1.0;
-        if (!this.inCorridor) {
-            bountyMult = Math.pow(0.3, Game.corridors.length);
-        }
 
         this.bounty = Math.floor((this.maxHp / 3) * bountyMult);
         this.hp = this.maxHp;
@@ -4603,18 +4597,6 @@ function loop(timestamp) {
                         generateTerrain();
                         Game.spawnFloatingText(WORLD_WIDTH/2, WORLD_HEIGHT/2 - 100, "A new path has opened!", "#ffcc00", 4.0, 30);
                         Engine.triggerDoom();
-
-                        const mainB = GameBounds.getMain();
-                        Game.enemyEntities.forEach(e => {
-                            if (!e.inCorridor && e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
-                                e.bounty = Math.floor(e.bounty * 0.3);
-                            }
-                        });
-                        Game.activeSpawners.forEach(s => {
-                            if (!s.inCorridor && s.pos.x >= mainB.x1 && s.pos.x <= mainB.x2 && s.pos.y >= mainB.y1 && s.pos.y <= mainB.y2) {
-                                s.bounty = Math.floor(s.bounty * 0.3);
-                            }
-                        });
 
                         let targetRatsInit = 1, targetSpidersInit = 1, targetSnakesInit = 1;
                         Game.centralSpawnerDeductions['RAT_HOLE'] += targetRatsInit;
