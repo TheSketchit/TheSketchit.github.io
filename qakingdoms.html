@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sovereign: Indirect Control Strategy</title>
+    <title>Sovereign Lands</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -33,6 +33,7 @@
             <span id="day-text" style="color: #ffcc00; font-weight: bold; text-shadow: 0 0 3px rgba(255,204,0,0.5);">Day 1:</span>
             <span id="day-timer-display" style="background: #1a1a1a; border: 1px solid #5a4b31; padding: 2px 8px; border-radius: 4px; color: #ffffff; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 1px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); display: inline-block; min-width: 24px; text-align: center;">60</span>
         </span>
+        <button id="btn-mute" aria-label="Mute Audio" onclick="Engine.toggleMute()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #f0e6d2; padding: 0;">🔊</button>
         <button id="btn-pause" aria-label="Pause Game" onclick="Game.togglePause()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #f0e6d2; padding: 0;">⏸️</button>
     </div>
 
@@ -376,9 +377,18 @@ canvas.height = window.innerHeight;
 const WORLD_WIDTH = 1500;
 const WORLD_HEIGHT = 1000;
 
+function mtof(note) {
+    return 440 * Math.pow(2, (note - 69) / 12);
+}
+
 const Engine = {
     audioCtx: null,
     masterGain: null,
+    isMuted: false,
+    isAmbientPlaying: false,
+    nextAmbientTime: 0,
+    ambientMeasureCount: 0,
+    ambientTimerID: null,
     reverbNode: null,
     coinBuffer: null,
     fireballHitBuffer: null,
@@ -460,9 +470,11 @@ const Engine = {
 
         this.loadBuffer('assets/coin.wav', 'coinBuffer');
         this.loadBuffer('assets/fireball_hit.wav', 'fireballHitBuffer');
+
+        this.startAmbient();
     },
 
-    playDoomStab(time, freq, duration) {
+    playDoomStab(time, freq, duration, vol=1.0) {
         if (!this.audioCtx) return;
         const audioCtx = this.audioCtx;
         const masterGain = this.masterGain;
@@ -494,8 +506,8 @@ const Engine = {
 
         [subGain, sawGain].forEach(g => {
             g.gain.setValueAtTime(0, time);
-            g.gain.linearRampToValueAtTime(1.0, time + 0.02);
-            g.gain.exponentialRampToValueAtTime(0.01, time + duration);
+            g.gain.linearRampToValueAtTime(vol, time + 0.02);
+            g.gain.exponentialRampToValueAtTime(vol * 0.01, time + duration);
         });
 
         sub.connect(subGain).connect(masterGain);
@@ -510,6 +522,110 @@ const Engine = {
         squareSub.start(time); squareSub.stop(time + duration);
     },
 
+    playRumble(time, duration, vol=1.0) {
+        if (!this.audioCtx) return;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        const filter = this.audioCtx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(30, time);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(60, time);
+        filter.Q.setValueAtTime(5, time);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol * 0.8, time + 0.5);
+        gain.gain.setValueAtTime(vol * 0.8, time + duration - 1);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        osc.connect(filter).connect(gain).connect(this.masterGain);
+        osc.start(time);
+        osc.stop(time + duration);
+    },
+
+    playTimpani(time, vol=1.0) {
+        if (!this.audioCtx) return;
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(65, time);
+        osc.frequency.exponentialRampToValueAtTime(45, time + 0.5);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol * 1.5, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 1.5);
+
+        osc.connect(gain).connect(this.masterGain);
+        osc.start(time);
+        osc.stop(time + 1.5);
+    },
+
+    playMarchSnare(time, vol=1.0) {
+        if (!this.audioCtx) return;
+        const bufferSize = this.audioCtx.sampleRate * 0.5;
+        const buffer = this.audioCtx.createBuffer(1, bufferSize, this.audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.audioCtx.createBiquadFilter();
+        const gain = this.audioCtx.createGain();
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1000, time);
+        filter.Q.setValueAtTime(1, time);
+
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+
+        noise.connect(filter).connect(gain).connect(this.masterGain);
+        noise.start(time);
+        noise.stop(time + 0.2);
+    },
+
+    playBrass(note, time, duration, dry=false, vol=1.0) {
+        if (!this.audioCtx) return;
+        const osc1 = this.audioCtx.createOscillator();
+        const osc2 = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        const filter = this.audioCtx.createBiquadFilter();
+
+        const freq = mtof(note);
+        osc1.type = 'sawtooth';
+        osc2.type = 'square';
+        osc1.frequency.setValueAtTime(freq, time);
+        osc2.frequency.setValueAtTime(freq * 1.01, time);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(100, time);
+        filter.frequency.linearRampToValueAtTime(2000, time + 0.1);
+        filter.frequency.linearRampToValueAtTime(800, time + duration);
+
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(vol * 0.5, time + 0.05);
+        gain.gain.setValueAtTime(vol * 0.5, time + duration - 0.1);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        if (dry) {
+            filter.connect(gain).connect(this.masterGain);
+        } else {
+            filter.connect(gain).connect(this.reverbNode);
+        }
+
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration);
+        osc2.stop(time + duration);
+    },
+
     triggerDoom() {
         this.initAudio();
         if (this.audioCtx.state === 'suspended') {
@@ -519,6 +635,159 @@ const Engine = {
         this.playDoomStab(startT, 43.65, 0.5);
         this.playDoomStab(startT + 0.4, 38.89, 0.5);
         this.playDoomStab(startT + 0.8, 36.71, 3.5);
+    },
+
+    playAmbientPad(note, time, duration) {
+        if (!this.audioCtx) return;
+        const osc1 = this.audioCtx.createOscillator();
+        const osc2 = this.audioCtx.createOscillator();
+        const filter = this.audioCtx.createBiquadFilter();
+        const gain = this.audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle'; // Mixed for a slightly warmer, breathy tone
+
+        const freq = mtof(note);
+        osc1.frequency.setValueAtTime(freq, time);
+        osc2.frequency.setValueAtTime(freq * 1.005, time); // Very subtle detune
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(450, time); // Lifted out of the mud
+
+        // Breath-like swell: fades in slowly, fades out completely, leaving silence
+        const maxVol = 0.012; // Extremely quiet
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(maxVol, time + duration * 0.4);
+        gain.gain.setValueAtTime(maxVol, time + duration * 0.6);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        // Send to reverb for a washed-out, distant sound
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain).connect(this.reverbNode);
+
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration);
+        osc2.stop(time + duration);
+    },
+
+    playAmbientChime(note, time) {
+        if (!this.audioCtx) return;
+        const osc = this.audioCtx.createOscillator();
+        const filter = this.audioCtx.createBiquadFilter();
+        const gain = this.audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(mtof(note), time);
+
+        // Bandpass helps make the sine wave sound a bit more "glassy"
+        filter.type = 'bandpass';
+        filter.frequency.value = mtof(note);
+
+        // Very low volume, quick glassy attack, long ringing release
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.015, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 4.0);
+
+        // Route exclusively through reverb for massive spatial echoing
+        osc.connect(filter).connect(gain).connect(this.reverbNode);
+
+        osc.start(time);
+        osc.stop(time + 4.0);
+    },
+
+    nextAmbientMeasure() {
+        // Raised by an octave to avoid low-end drone.
+        // Spread out 3-note voicings for a lighter, airier feel.
+        const progressions = [
+            [57, 64, 71], // Am(add9) - A3, E4, B4
+            [53, 60, 69], // Fmaj7 - F3, C4, A4
+            [50, 57, 65], // Dm9 - D3, A3, F4
+            [55, 62, 71]  // G6 - G3, D4, B4
+        ];
+
+        // Pentatonic scale corresponding to each chord for the chimes to pull from softly
+        const chimeScales = [
+            [69, 71, 74, 76, 79, 81], // A minor pentatonic
+            [65, 69, 72, 74, 77, 81], // F major pentatonic
+            [62, 65, 69, 72, 74, 77], // D minor pentatonic
+            [67, 71, 74, 76, 79, 83]  // G major pentatonic
+        ];
+
+        const currentChord = progressions[this.ambientMeasureCount % 4];
+        const currentScale = chimeScales[this.ambientMeasureCount % 4];
+
+        // 1. Play light, breathy pads
+        // Measure is 12 seconds long, but pads only play for 7 seconds.
+        // This leaves 5 seconds of total silence/reverb-tails between chords!
+        currentChord.forEach(note => {
+            this.playAmbientPad(note, this.nextAmbientTime, 7.0);
+        });
+
+        // 2. Play sparse, random glassy chimes
+        // Only 1 to 3 chimes over the entire 12 second measure
+        const numChimes = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < numChimes; i++) {
+            // Randomly place them across the 12 second measure
+            const randomDelay = Math.random() * 10.0 + 1.0;
+            const randomNote = currentScale[Math.floor(Math.random() * currentScale.length)];
+
+            this.playAmbientChime(randomNote, this.nextAmbientTime + randomDelay);
+
+            // 30% chance for a quick "double strike" echo effect
+            if (Math.random() > 0.7) {
+                this.playAmbientChime(randomNote, this.nextAmbientTime + randomDelay + 0.25);
+            }
+        }
+
+        this.nextAmbientTime += 12.0; // Advance scheduler by 12 seconds
+        this.ambientMeasureCount++;
+    },
+
+    ambientScheduler() {
+        if (!this.isAmbientPlaying || !this.audioCtx) return;
+
+        // Sync fix: If the browser tab was backgrounded and fell asleep, catch up the time
+        if (this.nextAmbientTime < this.audioCtx.currentTime) {
+            this.nextAmbientTime = this.audioCtx.currentTime + 0.1;
+        }
+
+        // Schedule ahead by 1.0 seconds.
+        // The while loop guarantees seamless playback even if JS is slightly delayed.
+        while (this.nextAmbientTime < this.audioCtx.currentTime + 1.0) {
+            this.nextAmbientMeasure();
+        }
+
+        this.ambientTimerID = setTimeout(() => this.ambientScheduler(), 250);
+    },
+
+    startAmbient() {
+        if (this.isAmbientPlaying) return;
+        this.isAmbientPlaying = true;
+        this.nextAmbientTime = this.audioCtx.currentTime + 0.1;
+        this.ambientMeasureCount = 0;
+        this.ambientScheduler();
+    },
+
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+
+        // Ensure audio context is initialized if they click mute right away
+        this.initAudio();
+        if (this.audioCtx && this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+        }
+
+        const btn = document.getElementById('btn-mute');
+        if (btn) {
+            btn.textContent = this.isMuted ? '🔇' : '🔊';
+            btn.setAttribute('aria-label', this.isMuted ? 'Unmute Audio' : 'Mute Audio');
+        }
+
+        if (this.masterGain) {
+            this.masterGain.gain.value = this.isMuted ? 0 : 0.5;
+        }
     }
 };
 
@@ -3154,6 +3423,107 @@ const Game = {
         return c; 
     },
     
+    triggerVictory() {
+        Engine.initAudio();
+        if (Engine.audioCtx.state === 'suspended') Engine.audioCtx.resume();
+
+        const victoryBtn = document.getElementById('victoryBtn');
+        if (victoryBtn) {
+            victoryBtn.disabled = true;
+            victoryBtn.textContent = "TOTAL DOMINATION...";
+        }
+
+        const startT = Engine.audioCtx.currentTime + 0.1;
+        const bpm = 115; // Faster, driving tempo for a victorious march
+        const beatLen = 60 / bpm;
+
+        // Audio perception is logarithmic. A 0.6 multiplier is barely noticeable.
+        // Dropping to 0.2 forces a massive decibel reduction so it is noticeably quieter.
+        const vVol = 0.2;
+
+        // 1. Relentless Ground Rumble
+        Engine.playRumble(startT, 18 * beatLen, vVol);
+
+        // 2. Driving War Drums (Timpani on downbeats, aggressive galloping snare)
+        for (let b = 0; b < 16; b++) {
+            // Heavy pounding timpani on beats 1 and 3
+            if (b % 2 === 0) {
+                Engine.playTimpani(startT + (b * beatLen), vVol);
+                // Add sub-bass impact to the main chord changes
+                if (b % 4 === 0) {
+                    Engine.playDoomStab(startT + (b * beatLen), 55, beatLen * 2, vVol);
+                }
+            }
+
+            // Relentless, galloping snare pattern
+            Engine.playMarchSnare(startT + (b * beatLen), vVol);
+            if (b % 2 !== 0) {
+                Engine.playMarchSnare(startT + ((b + 0.5) * beatLen), vVol);
+                Engine.playMarchSnare(startT + ((b + 0.75) * beatLen), vVol);
+            }
+        }
+
+        // Final massive impact
+        Engine.playTimpani(startT + (16 * beatLen), vVol);
+        Engine.playDoomStab(startT + (16 * beatLen), 43, beatLen * 4, vVol);
+
+        // 3. Savage Power Chords (G minor -> Eb Major -> F Major -> G minor)
+        // These are triumphant but dark, moving in massive blocks
+        const chords = [
+            { roots: [43, 50, 55], b: 0, d: 4.0 },   // G Power Chord
+            { roots: [39, 46, 51], b: 4, d: 4.0 },   // Eb Power Chord
+            { roots: [41, 48, 53], b: 8, d: 4.0 },   // F Power Chord
+            { roots: [43, 50, 55], b: 12, d: 1.5 },  // G Power Chord (Syncopated)
+            { roots: [43, 50, 55], b: 13.5, d: 0.5 },
+            { roots: [31, 38, 43], b: 14, d: 4.0 }   // Massive low G drop
+        ];
+
+        chords.forEach(chord => {
+            chord.roots.forEach(note => {
+                Engine.playBrass(note, startT + (chord.b * beatLen), chord.d * beatLen, true, vVol);
+            });
+        });
+
+        // 4. Victorious War Cry Melody
+        // Ascending leaps of a 5th, classic victory motif but in a dark minor key
+        const melody = [
+            // Bar 1 (G minor)
+            { n: 55, b: 0, d: 1.0 },   // G3
+            { n: 55, b: 1, d: 0.5 },   // G3
+            { n: 58, b: 1.5, d: 0.5 }, // Bb3
+            { n: 62, b: 2, d: 2.0 },   // D4 (Leap up, victorious)
+
+            // Bar 2 (Eb Major)
+            { n: 63, b: 4, d: 1.5 },   // Eb4
+            { n: 62, b: 5.5, d: 0.5 }, // D4
+            { n: 60, b: 6, d: 2.0 },   // C4
+
+            // Bar 3 (F Major)
+            { n: 65, b: 8, d: 1.5 },   // F4
+            { n: 63, b: 9.5, d: 0.5 }, // Eb4
+            { n: 62, b: 10, d: 1.0 },  // D4
+            { n: 60, b: 11, d: 1.0 },  // C4
+
+            // Bar 4 (G minor ending)
+            { n: 62, b: 12, d: 1.5 },  // D4
+            { n: 62, b: 13.5, d: 0.5 },// D4
+            { n: 67, b: 14, d: 4.0 }   // G4 (High, commanding final note)
+        ];
+
+        melody.forEach(event => {
+            // Play in massive aggressive octaves directly to master (dry, upfront)
+            Engine.playBrass(event.n, startT + (event.b * beatLen), event.d * beatLen, true, vVol);
+            Engine.playBrass(event.n + 12, startT + (event.b * beatLen), event.d * beatLen, true, vVol);
+        });
+
+        if (victoryBtn) {
+            setTimeout(() => {
+                victoryBtn.disabled = false;
+                victoryBtn.textContent = "BRUTAL VICTORY";
+            }, (20 * beatLen) * 1000 + 1000);
+        }
+    },
+
     winGame() {
         this.gameOver = true;
         this.gameWon = true;
@@ -3864,6 +4234,7 @@ const Game = {
 
         const btnText = isGameOver ? "Rebuild Kingdom" : "Resume Game";
         const btnAction = isGameOver ? "location.reload()" : "Game.togglePause()";
+        const btnId = isGameOver && this.gameWon ? " id=\"victoryBtn\"" : "";
 
         const th = (col, text) => {
             const isSorted = this.statsSort.column === col;
@@ -3935,9 +4306,17 @@ const Game = {
                 </tr>
             </table>
         </div>`;
-        html += `</div><button class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
+        html += `</div><button${btnId} class="btn" style="width:100%; margin-top:2px; font-size:1.1rem; padding:8px; flex-shrink:0;" onclick="${btnAction}">${btnText}</button></div>`;
         
         const go = document.getElementById('game-over'); go.innerHTML = html; go.style.borderColor = themeColor; go.style.display = 'flex';
+
+        if (isGameOver && this.gameWon && !this.victoryTriggered) {
+            this.victoryTriggered = true;
+            // Give UI a moment to update before running the victory sequence
+            setTimeout(() => {
+                this.triggerVictory();
+            }, 50);
+        }
     }
 
 };
@@ -4213,7 +4592,14 @@ function loop(timestamp) {
     ctx.drawImage(bgCanvas, Game.bgBounds.x, Game.bgBounds.y); 
     
     if (Game.fogOfWar) {
-        fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
+        // ⚡ Bolt Optimization: Prevent offscreen canvas reallocation every frame
+        if (fogCanvas.width !== canvas.width || fogCanvas.height !== canvas.height) {
+            fogCanvas.width = canvas.width; fogCanvas.height = canvas.height;
+        } else {
+            fogCtx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        // Explicitly restore composite operation before filling, as bypassing canvas reallocation persists context state
+        fogCtx.globalCompositeOperation = 'source-over';
         fogCtx.fillStyle='rgba(0,0,0,0.7)'; fogCtx.fillRect(0, 0, canvas.width, canvas.height); 
         fogCtx.globalCompositeOperation='destination-out'; 
         fogCtx.save();
