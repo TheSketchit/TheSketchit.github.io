@@ -1518,7 +1518,7 @@ class Monster extends Unit {
 
         this.hp = this.maxHp;
 
-        let bountyMult = 1.0;
+        let bountyMult = this.inCorridor ? 0.6 : 2.0;
         this.bounty = Math.floor(conf.bounty * Math.pow(1.5, bS) * bountyMult);
         
         this.baseFontSize = Math.floor(24 * (1 + (hpMult - 1) * 0.05));
@@ -3240,7 +3240,7 @@ class Spawner extends Entity {
             this.maxHp = Math.floor(this.maxHp * toughness);
         }
 
-        let bountyMult = 1.0;
+        let bountyMult = this.inCorridor ? 0.6 : 1.0;
 
         this.bounty = Math.floor((this.maxHp / 3) * bountyMult);
         this.hp = this.maxHp;
