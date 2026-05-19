@@ -3766,7 +3766,7 @@ const Game = window.Game = {
                     document.getElementById('val-monster-hp-bar').style.width = (Math.max(0, e.hp) / e.maxHp * 100) + '%';
 
                     UI.setText('val-monster-xp', 10);
-                    UI.setText('val-monster-dmg', e.damage);
+                    UI.setText('val-monster-dmg', (typeof e.damage === 'number' && !Number.isInteger(e.damage) ? e.damage.toFixed(1) : e.damage));
                     UI.setText('val-monster-gold', e.bounty || 0);
 
                 } else {
@@ -3810,7 +3810,7 @@ const Game = window.Game = {
                 }).join('') : '<span style="color:#aaaaaa; font-style:italic;">None</span>';
                 UI.setHTML('val-hero-abilities-list', abilitiesHTML);
 
-                UI.setText('val-hero-dmg', e.damage);
+                UI.setText('val-hero-dmg', (typeof e.damage === 'number' && !Number.isInteger(e.damage) ? e.damage.toFixed(1) : e.damage));
                 UI.setText('val-hero-gold', `${Math.floor(e.personalGold)}`);
                 UI.setColor('val-hero-gold', e.personalGold < 0 ? '#e53e3e' : '#ffcc00');
 
@@ -4402,20 +4402,17 @@ const Game = window.Game = {
 
         const taxes = Math.floor(this.totalTaxCollected);
         const unspentGold = Math.floor(this.gold);
-        const emergencyCosts = Math.floor(this.emergencyMedicalCosts);
-        const heroDeathPenalty = this.heroDeaths * 100;
-        const buildingDeathPenalty = this.buildingDeaths * 100;
         const monstersKilled = this.monstersKilled;
         const spawnersKilled = this.spawnersKilled;
 
-        const firstScore = taxes + unspentGold - emergencyCosts - heroDeathPenalty - buildingDeathPenalty + monstersKilled + spawnersKilled;
+        const firstScore = taxes + unspentGold + monstersKilled + spawnersKilled;
         const divisor = Math.max(1, this.day - 24);
         const secondScore = Math.floor(firstScore / divisor);
 
         let totalLevel = 0;
         const hallForLevel = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType)];
         hallForLevel.forEach(h => totalLevel += h.level);
-        const avgLevel = hallForLevel.length > 0 ? (totalLevel / hallForLevel.length).toFixed(2) : 1;
+        const avgLevel = hallForLevel.length > 0 ? (totalLevel / hallForLevel.length).toFixed(1) : 1;
 
         const finalScore = Math.floor(secondScore * avgLevel);
 
@@ -4444,16 +4441,10 @@ const Game = window.Game = {
                     <td>${avgLevel}x</td>
                 </tr>
                 <tr>
-                    <td>Penalties (Triage, Deaths, Buildings Lost)</td>
-                    <td><span style="color:#e53e3e">-${emergencyCosts + heroDeathPenalty + buildingDeathPenalty}</span></td>
-                    <td>Final Score</td>
-                    <td><span style="color:#ffcc00; font-weight:bold;">${finalScore}</span></td>
-                </tr>
-                <tr>
                     <td>Calculated Base Score</td>
                     <td>${firstScore}</td>
-                    <td></td>
-                    <td></td>
+                    <td>Final Score</td>
+                    <td><span style="color:#ffcc00; font-weight:bold;">${finalScore}</span></td>
                 </tr>
             </table>
         </div>`;
