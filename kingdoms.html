@@ -135,17 +135,23 @@
                     <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showTooltip(event, 'Wand', 'Increases attack damage by 8 and attack range by 25%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
+                    <button id="btn-shop-CASTERS_TUNIC" class="shop-item-btn" onclick="Game.buyShopItem('CASTERS_TUNIC', 120)" onmouseenter="Game.showTooltip(event, 'Caster\'s Tunic', 'Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">👕</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
+                    </button>
                     <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 10%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷🧚</span>
+                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷</span>
                     </button>
                     <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌</span>
                     </button>
-                    <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showTooltip(event, 'Robe of Life', 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showTooltip(event, 'Robe of Life', 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\'s Tunic.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">👘</span><span class="item-cost">200g</span><span class="item-classes">🧚</span>
                     </button>
                     <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showTooltip(event, 'Rogue\'s Disguise', 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🕵️‍♂️</span><span class="item-cost">250g</span><span class="item-classes">🥷</span>
+                    </button>
+                    <button id="btn-shop-ROBE_OF_MAGI" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_MAGI', 250)" onmouseenter="Game.showTooltip(event, 'Robes of Magi', 'Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\'s Tunic.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🥻</span><span class="item-cost">250g</span><span class="item-classes">🧙</span>
                     </button>
                     <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showTooltip(event, 'Tome of Power', 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">📖</span><span class="item-cost">300g</span><span class="item-classes">🧙</span>
@@ -1195,10 +1201,12 @@ const ITEM_CONFIG = {
     SWORD: { cost: 125, classes: ['WARRIOR'], color: '#f0e6d2', statBonus: { damage: 5, parryChance: 0.15, spawnerDamageMult: 1.50 }, icon: '⚔️', name: 'Sword', desc: 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.' },
     DAGGER: { cost: 100, classes: ['ROGUE'], color: '#f0e6d2', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️', name: 'Dagger', desc: 'Increases attack damage by 3. 5% chance to deal double damage.' },
     WAND: { cost: 120, classes: ['DRUID', 'WIZARD'], color: '#f0e6d2', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄', name: 'Wand', desc: 'Increases attack damage by 8 and attack range by 25%.' },
-    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'DRUID'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReductionPercent: 0.1 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 10%.' },
+    CASTERS_TUNIC: { cost: 120, classes: ['DRUID', 'WIZARD'], color: '#aaaaaa', statBonus: { maxHp: 25, hp: 25, damageReductionPercent: 0.05, damage: 5 }, downgradeOf: ['ROBE_OF_LIFE', 'ROBE_OF_MAGI'], icon: '👕', name: 'Caster\'s Tunic', desc: 'Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.' },
+    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReductionPercent: 0.1 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 10%.' },
     CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReductionPercent: 0.5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.' },
-    ROBE_OF_LIFE: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { lifeSteal: true }, replaces: 'ARMOR', icon: '👘', name: 'Robe of Life', desc: 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Leather Armor.' },
+    ROBE_OF_LIFE: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { lifeSteal: true }, replaces: 'CASTERS_TUNIC', icon: '👘', name: 'Robe of Life', desc: 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\'s Tunic.' },
     ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#5a4b31', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
+    ROBE_OF_MAGI: { cost: 250, classes: ['WIZARD'], color: '#8a2be2', statBonus: { damage: 6, structureDamageChance: 0.25, structureDamageMult: 0.5 }, replaces: 'CASTERS_TUNIC', icon: '🥻', name: 'Robes of Magi', desc: 'Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\'s Tunic.' },
     TOME_OF_POWER: { cost: 300, classes: ['WIZARD'], color: '#f0e6d2', statBonus: { tomeOfPower: true }, icon: '📖', name: 'Tome of Power', desc: 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)' }
 };
 
@@ -1206,7 +1214,7 @@ const HERO_CONFIG = {
     WARRIOR: { maxHp: 175, speed: 1.1, damage: 15, maxAttackCooldown: 0.9, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'SWORD', 'CHAINMAIL'] },
     ROGUE: { maxHp: 90, speed: 1.32, damage: 16, maxAttackCooldown: 0.8, radius: 10, icon: '🥷', recruitCost: 85, requiredItems: ['POTION', 'DAGGER', 'ROGUES_DISGUISE'] },
     DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.3, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 85, requiredItems: ['POTION', 'WAND', 'ROBE_OF_LIFE'] },
-    WIZARD: { maxHp: 65, speed: 1.2, damage: 18, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 125, requiredItems: ['POTION', 'WAND', 'TOME_OF_POWER'] }
+    WIZARD: { maxHp: 65, speed: 1.2, damage: 20, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 125, requiredItems: ['POTION', 'WAND', 'ROBE_OF_MAGI', 'TOME_OF_POWER'] }
 };
 
 const UPGRADE_CONFIG = {
@@ -1784,6 +1792,9 @@ class Hero extends Unit {
     performAttack(d, cr) {
         if (this.spawnerDamageMult && this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO')) {
             d = Math.floor(d * this.spawnerDamageMult);
+        }
+        if (this.structureDamageChance && Math.random() < this.structureDamageChance && this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO')) {
+            d += Math.floor(this.damage * this.structureDamageMult);
         }
         this.target.takeDamage(d, this);
         if(cr) Game.spawnParticle(this.target.pos.x, this.target.pos.y, '#e53e3e');
@@ -2374,6 +2385,8 @@ class Hero extends Unit {
                     if (oldItem.statBonus.tomeOfPower) { this.tomeOfPower = false; this.maxAttackCooldown /= 0.8; }
                     if (oldItem.statBonus.parryChance !== undefined) this.parryChance -= oldItem.statBonus.parryChance;
                     if (oldItem.statBonus.spawnerDamageMult !== undefined) this.spawnerDamageMult /= oldItem.statBonus.spawnerDamageMult;
+                    if (oldItem.statBonus.structureDamageChance !== undefined) this.structureDamageChance -= oldItem.statBonus.structureDamageChance;
+                    if (oldItem.statBonus.structureDamageMult !== undefined) this.structureDamageMult -= oldItem.statBonus.structureDamageMult;
                 }
             }
             
@@ -2392,6 +2405,8 @@ class Hero extends Unit {
                 if (item.statBonus.tomeOfPower) { this.tomeOfPower = true; this.maxAttackCooldown *= 0.8; }
                 if (item.statBonus.parryChance !== undefined) this.parryChance = (this.parryChance || 0) + item.statBonus.parryChance;
                 if (item.statBonus.spawnerDamageMult !== undefined) this.spawnerDamageMult = (this.spawnerDamageMult || 1) * item.statBonus.spawnerDamageMult;
+                if (item.statBonus.structureDamageChance !== undefined) this.structureDamageChance = (this.structureDamageChance || 0) + item.statBonus.structureDamageChance;
+                if (item.statBonus.structureDamageMult !== undefined) this.structureDamageMult = (this.structureDamageMult || 0) + item.statBonus.structureDamageMult;
             }
             
             Game.spawnParticle(this.pos.x, this.pos.y, item.color || '#f0e6d2');
@@ -2764,6 +2779,9 @@ class WizardHero extends Hero {
                 for (let i = 0; i < targetsToShoot; i++) {
                     let projDmg = d;
                     if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                    if (this.structureDamageChance && Math.random() < this.structureDamageChance && validEnemies[i] && (validEnemies[i].type === 'SPAWNER' || validEnemies[i].spawnerType === 'VOLCANO')) {
+                        projDmg += Math.floor(this.damage * this.structureDamageMult);
+                    }
                     Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, validEnemies[i], projDmg, this, 'MAGIC_MISSILE'));
                 }
                 if (targetsToShoot > 1) {
@@ -2774,12 +2792,18 @@ class WizardHero extends Hero {
             } else {
                 let projDmg = d;
                 if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+                if (this.structureDamageChance && Math.random() < this.structureDamageChance && this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO')) {
+                    projDmg += Math.floor(this.damage * this.structureDamageMult);
+                }
                 Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, this.target, projDmg, this, 'MAGIC_MISSILE'));
                 this.attackCooldown = this.maxAttackCooldown;
             }
         } else {
             let projDmg = d;
             if (this.tomeOfPower && Math.random() < 0.15) projDmg *= 1.25;
+            if (this.structureDamageChance && Math.random() < this.structureDamageChance && this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO')) {
+                projDmg += Math.floor(this.damage * this.structureDamageMult);
+            }
             Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, this.target, projDmg, this, 'MAGIC_MISSILE'));
             this.attackCooldown = this.maxAttackCooldown;
         }
