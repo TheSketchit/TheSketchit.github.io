@@ -33,6 +33,7 @@
             <span id="day-text" style="color: #ffcc00; font-weight: bold; text-shadow: 0 0 3px rgba(255,204,0,0.5);">Day 1:</span>
             <span id="day-timer-display" style="background: #1a1a1a; border: 1px solid #5a4b31; padding: 2px 8px; border-radius: 4px; color: #ffffff; font-family: 'Courier New', Courier, monospace; font-weight: bold; letter-spacing: 1px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); display: inline-block; min-width: 24px; text-align: center;">60</span>
         </span>
+        <button id="btn-mute" aria-label="Mute Audio" onclick="Engine.toggleMute()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #f0e6d2; padding: 0;">🔊</button>
         <button id="btn-pause" aria-label="Pause Game" onclick="Game.togglePause()" style="margin-left: 15px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: #f0e6d2; padding: 0;">⏸️</button>
     </div>
 
@@ -376,9 +377,18 @@ canvas.height = window.innerHeight;
 const WORLD_WIDTH = 1500;
 const WORLD_HEIGHT = 1000;
 
+function mtof(note) {
+    return 440 * Math.pow(2, (note - 69) / 12);
+}
+
 const Engine = {
     audioCtx: null,
     masterGain: null,
+    isMuted: false,
+    isAmbientPlaying: false,
+    nextAmbientTime: 0,
+    ambientMeasureCount: 0,
+    ambientTimerID: null,
     reverbNode: null,
     coinBuffer: null,
     fireballHitBuffer: null,
@@ -460,6 +470,8 @@ const Engine = {
 
         this.loadBuffer('assets/coin.wav', 'coinBuffer');
         this.loadBuffer('assets/fireball_hit.wav', 'fireballHitBuffer');
+
+        this.startAmbient();
     },
 
     playDoomStab(time, freq, duration) {
@@ -519,6 +531,159 @@ const Engine = {
         this.playDoomStab(startT, 43.65, 0.5);
         this.playDoomStab(startT + 0.4, 38.89, 0.5);
         this.playDoomStab(startT + 0.8, 36.71, 3.5);
+    },
+
+    playAmbientPad(note, time, duration) {
+        if (!this.audioCtx) return;
+        const osc1 = this.audioCtx.createOscillator();
+        const osc2 = this.audioCtx.createOscillator();
+        const filter = this.audioCtx.createBiquadFilter();
+        const gain = this.audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle'; // Mixed for a slightly warmer, breathy tone
+
+        const freq = mtof(note);
+        osc1.frequency.setValueAtTime(freq, time);
+        osc2.frequency.setValueAtTime(freq * 1.005, time); // Very subtle detune
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(450, time); // Lifted out of the mud
+
+        // Breath-like swell: fades in slowly, fades out completely, leaving silence
+        const maxVol = 0.012; // Extremely quiet
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(maxVol, time + duration * 0.4);
+        gain.gain.setValueAtTime(maxVol, time + duration * 0.6);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        // Send to reverb for a washed-out, distant sound
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain).connect(this.reverbNode);
+
+        osc1.start(time);
+        osc2.start(time);
+        osc1.stop(time + duration);
+        osc2.stop(time + duration);
+    },
+
+    playAmbientChime(note, time) {
+        if (!this.audioCtx) return;
+        const osc = this.audioCtx.createOscillator();
+        const filter = this.audioCtx.createBiquadFilter();
+        const gain = this.audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(mtof(note), time);
+
+        // Bandpass helps make the sine wave sound a bit more "glassy"
+        filter.type = 'bandpass';
+        filter.frequency.value = mtof(note);
+
+        // Very low volume, quick glassy attack, long ringing release
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.015, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 4.0);
+
+        // Route exclusively through reverb for massive spatial echoing
+        osc.connect(filter).connect(gain).connect(this.reverbNode);
+
+        osc.start(time);
+        osc.stop(time + 4.0);
+    },
+
+    nextAmbientMeasure() {
+        // Raised by an octave to avoid low-end drone.
+        // Spread out 3-note voicings for a lighter, airier feel.
+        const progressions = [
+            [57, 64, 71], // Am(add9) - A3, E4, B4
+            [53, 60, 69], // Fmaj7 - F3, C4, A4
+            [50, 57, 65], // Dm9 - D3, A3, F4
+            [55, 62, 71]  // G6 - G3, D4, B4
+        ];
+
+        // Pentatonic scale corresponding to each chord for the chimes to pull from softly
+        const chimeScales = [
+            [69, 71, 74, 76, 79, 81], // A minor pentatonic
+            [65, 69, 72, 74, 77, 81], // F major pentatonic
+            [62, 65, 69, 72, 74, 77], // D minor pentatonic
+            [67, 71, 74, 76, 79, 83]  // G major pentatonic
+        ];
+
+        const currentChord = progressions[this.ambientMeasureCount % 4];
+        const currentScale = chimeScales[this.ambientMeasureCount % 4];
+
+        // 1. Play light, breathy pads
+        // Measure is 12 seconds long, but pads only play for 7 seconds.
+        // This leaves 5 seconds of total silence/reverb-tails between chords!
+        currentChord.forEach(note => {
+            this.playAmbientPad(note, this.nextAmbientTime, 7.0);
+        });
+
+        // 2. Play sparse, random glassy chimes
+        // Only 1 to 3 chimes over the entire 12 second measure
+        const numChimes = Math.floor(Math.random() * 3) + 1;
+        for (let i = 0; i < numChimes; i++) {
+            // Randomly place them across the 12 second measure
+            const randomDelay = Math.random() * 10.0 + 1.0;
+            const randomNote = currentScale[Math.floor(Math.random() * currentScale.length)];
+
+            this.playAmbientChime(randomNote, this.nextAmbientTime + randomDelay);
+
+            // 30% chance for a quick "double strike" echo effect
+            if (Math.random() > 0.7) {
+                this.playAmbientChime(randomNote, this.nextAmbientTime + randomDelay + 0.25);
+            }
+        }
+
+        this.nextAmbientTime += 12.0; // Advance scheduler by 12 seconds
+        this.ambientMeasureCount++;
+    },
+
+    ambientScheduler() {
+        if (!this.isAmbientPlaying || !this.audioCtx) return;
+
+        // Sync fix: If the browser tab was backgrounded and fell asleep, catch up the time
+        if (this.nextAmbientTime < this.audioCtx.currentTime) {
+            this.nextAmbientTime = this.audioCtx.currentTime + 0.1;
+        }
+
+        // Schedule ahead by 1.0 seconds.
+        // The while loop guarantees seamless playback even if JS is slightly delayed.
+        while (this.nextAmbientTime < this.audioCtx.currentTime + 1.0) {
+            this.nextAmbientMeasure();
+        }
+
+        this.ambientTimerID = setTimeout(() => this.ambientScheduler(), 250);
+    },
+
+    startAmbient() {
+        if (this.isAmbientPlaying) return;
+        this.isAmbientPlaying = true;
+        this.nextAmbientTime = this.audioCtx.currentTime + 0.1;
+        this.ambientMeasureCount = 0;
+        this.ambientScheduler();
+    },
+
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+
+        // Ensure audio context is initialized if they click mute right away
+        this.initAudio();
+        if (this.audioCtx && this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+        }
+
+        const btn = document.getElementById('btn-mute');
+        if (btn) {
+            btn.textContent = this.isMuted ? '🔇' : '🔊';
+            btn.setAttribute('aria-label', this.isMuted ? 'Unmute Audio' : 'Mute Audio');
+        }
+
+        if (this.masterGain) {
+            this.masterGain.gain.value = this.isMuted ? 0 : 0.5;
+        }
     }
 };
 
