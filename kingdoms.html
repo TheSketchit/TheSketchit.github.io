@@ -855,7 +855,9 @@ window.addEventListener('keydown', e => {
             if (idx < rates.length - 1) Game.setTaxRate(rates[idx + 1]);
         }
         
-        if (Game.selectedEntity && Game.selectedEntity.active) {
+        if (Game.hoveredEntity && Game.hoveredEntity.active && Game.hoveredEntity.type.startsWith('FLAG_') && k === 'a') {
+            Game.abandonQuest(Game.hoveredEntity);
+        } else if (Game.selectedEntity && Game.selectedEntity.active) {
             const type = Game.selectedEntity.type;
             if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD' || type === 'WIZARD_GUILD') {
                 if (k === 't') Game.recruitHero();
@@ -872,8 +874,6 @@ window.addEventListener('keydown', e => {
             } else if (type === 'TEMPLE') {
                 if (k === 'r') Game.resurrectHighestLevelHero();
             }
-        } else if (Game.hoveredEntity && Game.hoveredEntity.active && Game.hoveredEntity.type.startsWith('FLAG_') && k === 'a') {
-            Game.abandonQuest(Game.hoveredEntity);
         }
         const buildMenuVisible = document.getElementById('menu-build').style.display !== 'none';
         const commandMenuVisible = document.getElementById('menu-command').style.display !== 'none';
@@ -4028,6 +4028,9 @@ const Game = window.Game = {
                 this.hideTooltip();
                 this.updateUI(true);
             }
+            if (this.hoveredEntity === e) {
+                this.hideTooltip();
+            }
         }
     },
     resurrectHighestLevelHero() {
@@ -4079,6 +4082,9 @@ const Game = window.Game = {
                 this.selectedEntity = null;
                 this.hideTooltip();
                 this.updateUI(true);
+            }
+            if (this.hoveredEntity === e) {
+                this.hideTooltip();
             }
         }
     },
@@ -4423,7 +4429,7 @@ canvas.addEventListener('mousedown', e => {
     if (Game.gameOver || Game.isPaused) return;
     if (e.button === 1 || e.button === 2) { isPanning = true; panStart = new Vec2(e.clientX, e.clientY); cameraStart = new Vec2(Camera.x, Camera.y); if(e.button===2) { if(Game.mode!=='NONE') setMode('NONE'); else { Game.selectedEntity=null; Game.updateUI(true); } } return; }
     const r = canvas.getBoundingClientRect(); const cp = screenToWorld(e.clientX-r.left, e.clientY-r.top);
-    let clE = null; for(let i=Game.entities.length-1;i>=0;i--) { const ent=Game.entities[i]; if(ent.faction==='ENEMY'&&ent.isVisible===false) continue; const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0); const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0); if((cp.x - hx)**2 + (cp.y - hy)**2 <= (ent.radius+10)**2) { clE=ent; break; } }
+    let clE = null; for(let i=Game.entities.length-1;i>=0;i--) { const ent=Game.entities[i]; if(ent.type.startsWith('FLAG_')) continue; if(ent.faction==='ENEMY'&&ent.isVisible===false) continue; const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0); const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0); if((cp.x - hx)**2 + (cp.y - hy)**2 <= (ent.radius+10)**2) { clE=ent; break; } }
     if (Game.mode === 'NONE') { Game.selectedEntity = clE; Game.updateUI(true); return; }
     const bM = {'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_WIZARD':'WIZARD_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
     if (bM[Game.mode]) {
@@ -4460,6 +4466,13 @@ canvas.addEventListener('mousemove', e => {
         const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0);
         if((wp.x - hx)**2 + (wp.y - hy)**2 <= (ent.radius+10)**2) { hE = ent; break; }
     }
+    if (Game.mode === 'NONE') {
+        if (hE && hE.type.startsWith('FLAG_')) {
+            Game.showTooltip(e, hE.name, '<span style="color:#ffcc00;">[Press (<span style="color:#3182ce;">A</span>) to Abandon]</span>');
+        } else if (Game.hoveredEntity && Game.hoveredEntity.type.startsWith('FLAG_') && (!hE || !hE.type.startsWith('FLAG_'))) {
+            Game.hideTooltip();
+        }
+    }
     Game.hoveredEntity = hE;
     canvas.style.cursor = Game.mode === 'REPAIR' ? 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' style=\'font-size: 24px\'><text y=\'24\'>🔨</text></svg>") 0 24, auto' : (isPanning ? 'grabbing' : 'auto');
 });
@@ -4472,7 +4485,7 @@ function loop(timestamp) {
     if (Game.gameOver) return; requestAnimationFrame(loop); if(!lastTimestamp) lastTimestamp=timestamp; let dt=timestamp-lastTimestamp; lastTimestamp=timestamp; if(Game.isPaused) return; if(dt>250) dt=250; accumulator+=dt; let updated=false;
     while (accumulator >= TIME_STEP) {
         Game.frames++; const dtS = TIME_STEP/1000; Game.timeMs+=TIME_STEP; Camera.zoom+=(Camera.targetZoom-Camera.zoom)*0.1;
-        if (!isPanning) { const ps=15/Camera.zoom; if(keys['w']||keys['arrowup']) Camera.y-=ps; if(keys['s']||keys['arrowdown']) Camera.y+=ps; if(keys['a']||keys['arrowleft']) Camera.x-=ps; if(keys['d']||keys['arrowright']) Camera.x+=ps; }
+        if (!isPanning) { const ps=15/Camera.zoom; if(keys['w']||keys['arrowup']) Camera.y-=ps; if(keys['s']||keys['arrowdown']) Camera.y+=ps; if((keys['a'] && !(Game.hoveredEntity && Game.hoveredEntity.type.startsWith('FLAG_'))) || keys['arrowleft']) Camera.x-=ps; if(keys['d']||keys['arrowright']) Camera.x+=ps; }
         Camera.x=Math.max(-800,Math.min(WORLD_WIDTH+800,Camera.x)); Camera.y=Math.max(-800,Math.min(WORLD_HEIGHT+800,Camera.y));
         Game.dayTimer-=dtS; if(Game.dayTimer<=0) { 
             if (Game.corridors.length === 4 && Game.corridors.every(c => c.volcanoDestroyed)) {
