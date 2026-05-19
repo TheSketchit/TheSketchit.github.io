@@ -29,6 +29,9 @@
             border-radius: 4px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0,0,0,0.5);
         }
+        .monster-icon-badge { display: inline-flex; justify-content: center; align-items: center; width: 24px; height: 24px; background: rgba(0,0,0,0.5); border: 1px solid #5a4b31; border-radius: 50%; font-size: 14px; }
+        .hp-text { color: white; font-weight: bold; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; position: absolute; width: 100%; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.85rem; }
+        .monster-bottom-row { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.9rem; margin-top: 8px; }
         #top-bar {
             top: 0;
             left: 0;
