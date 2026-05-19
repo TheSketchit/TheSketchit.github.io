@@ -24,7 +24,7 @@
             <button class="tax-btn active" id="btn-tax-50" onclick="Game.setTaxRate(0.5)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>Medium Tax (50%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">Medium Tax</button>
             <button class="tax-btn" id="btn-tax-75" onclick="Game.setTaxRate(0.75)" onmouseenter="Game.showTooltip(event, 'Tax Rate', '<span style=&quot;color:white;&quot;>High Tax (75%)</span> <span style=&quot;color:#ffcc00; font-style:italic;&quot;>of the gold that a hero obtains from killing monsters will go directly to the Kingdom\'s treasury.</span><br><br><span style=&quot;color:#aaaaaa;&quot;>[E] Decrease Tax Rate<br>[R] Increase Tax Rate</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">High Tax</button>
         </span>
-        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, 'Upkeep', '<span style=&quot;color:white;&quot;>Low (0–15 🫂):</span> 100% Income<br><span style=&quot;color:#ffcc00;&quot;>Medium (16–30 🫂):</span> 75% Income<br><span style=&quot;color:#f97316;&quot;>High (31–45 🫂):</span> 50% Income<br><span style=&quot;color:#ef4444;&quot;>Extreme (46–60 🫂):</span> 25% Income<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>Higher Upkeep levels diminish Kingdom efficiency, reducing gold earned from shops and the amount heroes earn from bounties.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+        <span id="upkeep-container" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,0.3); border: 1px solid #5a4b31; cursor: pointer;" onmouseenter="Game.showTooltip(event, 'Upkeep', '<span style=&quot;color:white;&quot;>Low Upkeep (0-20 pop):</span> 100% of gold<br><span style=&quot;color:#ffcc00;&quot;>Medium Upkeep (21-40 pop):</span> 75% of gold<br><span style=&quot;color:#f97316;&quot;>High Upkeep (41-80 pop):</span> 50% of gold<br><span style=&quot;color:#ef4444;&quot;>Extreme Upkeep (81+ pop):</span> 25% of gold<br><br><span style=&quot;color:#aaaaaa; font-style:italic;&quot;>High population kingdoms lose efficiency. Gold from shops is reduced.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
             <span id="upkeep-display" style="font-weight: bold; color: #22c55e;">Low Upkeep</span>
         </span>
         <span style="margin: 0 15px; margin-left: auto;">|</span>
@@ -1645,7 +1645,7 @@ class Monster extends Unit {
         
         Game.monstersKilled++; if (validAttackers.length > 0) {
             const conf = MONSTER_CONFIG[this.monsterType] || MONSTER_CONFIG['RAT'];
-            const gY = Math.floor(this.bounty * Game.getUpkeepInfo().rate);
+            const gY = this.bounty;
             
             const sharePerAttacker = gY / validAttackers.length;
             const towerShare = Math.floor(sharePerAttacker);
@@ -2801,27 +2801,18 @@ class Ruins extends Entity {
     }
     update(dtSec) {}
     draw(ctx) {
-        const c = BUILDING_CONFIG[this.originalType];
-        // Draw dirt patch normally
-        if (c && c.dirtRadius) {
-            ctx.fillStyle = 'rgba(60, 40, 20, 0.4)';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, c.dirtRadius, c.dirtRadius * 0.7, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        const conf = BUILDING_CONFIG[this.originalType];
+        if (conf) {
+            // Draw dirt patch normally
+            ctx.save(); ctx.fillStyle = '#3e2723'; ctx.beginPath(); ctx.ellipse(this.pos.x, this.pos.y + (conf.yOffset || 0), conf.foundationRx || 30, conf.foundationRy || 15, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
 
-        // Draw faded building
-        ctx.globalAlpha = 0.5;
-        const bConf = BUILDING_CONFIG[this.originalType];
-        if (bConf && bConf.icon) {
-            ctx.font = bConf.fontSize + ' Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            let bY = 0;
-            if (bConf.yOffset) bY += bConf.yOffset;
-            ctx.fillText(bConf.icon, 0, bY);
+            // Draw faded building
+            ctx.globalAlpha = 0.5;
+            const iconToDraw = conf.icon;
+            const sp = conf.imageSrc ? SpriteCache.getImage(conf.imageSrc, parseInt(conf.fontSize), true, true, null) : SpriteCache.get(iconToDraw, parseInt(conf.fontSize), true, true, null);
+            ctx.drawImage(sp.img, this.pos.x - sp.ox, this.pos.y - sp.oy);
+            ctx.globalAlpha = 1.0;
         }
-        ctx.globalAlpha = 1.0;
     }
 }
 
@@ -3259,7 +3250,7 @@ class Spawner extends Entity {
         });
         
         if (validAttackers.length > 0) {
-            const gY = Math.floor(this.bounty * Game.getUpkeepInfo().rate);
+            const gY = this.bounty;
             
             const sharePerAttacker = gY / validAttackers.length;
             const towerShare = Math.floor(sharePerAttacker);
@@ -3411,7 +3402,7 @@ class Volcano extends Entity {
         });
         
         if (validAttackers.length > 0) {
-            const gY = Math.floor(this.bounty * Game.getUpkeepInfo().rate);
+            const gY = this.bounty;
 
             const sharePerAttacker = gY / validAttackers.length;
             const towerShare = Math.floor(sharePerAttacker);
@@ -3626,9 +3617,9 @@ const Game = window.Game = {
 
     getUpkeepInfo() {
         const pop = this.getPopulation().cur;
-        if (pop < 16) return { text: 'Low Upkeep', color: '#22c55e', rate: 1.0, desc: '100 percent' };
-        if (pop < 31) return { text: 'Medium Upkeep', color: '#ffcc00', rate: 0.75, desc: '75 percent' };
-        if (pop < 46) return { text: 'High Upkeep', color: '#f97316', rate: 0.5, desc: '50 percent' };
+        if (pop < 21) return { text: 'Low Upkeep', color: '#22c55e', rate: 1.0, desc: '100 percent' };
+        if (pop < 41) return { text: 'Medium Upkeep', color: '#ffcc00', rate: 0.75, desc: '75 percent' };
+        if (pop < 81) return { text: 'High Upkeep', color: '#f97316', rate: 0.5, desc: '50 percent' };
         return { text: 'Extreme Upkeep', color: '#ef4444', rate: 0.25, desc: '25 percent' };
     },
 
@@ -3752,12 +3743,12 @@ const Game = window.Game = {
 
                     UI.setText('val-monster-xp', 10);
                     UI.setText('val-monster-dmg', e.damage);
-                    UI.setText('val-monster-gold', Math.floor((e.bounty || 0) * Game.getUpkeepInfo().rate));
+                    UI.setText('val-monster-gold', e.bounty || 0);
 
                 } else {
                     let bountyStr = '';
                     if (e.faction === 'ENEMY') {
-                        let gY = Math.floor((e.bounty || 50) * Game.getUpkeepInfo().rate);
+                        let gY = e.bounty || 50;
                         bountyStr = `<span style="color:#ffcc00; font-size:0.9rem;">🪙${gY}</span>`;
                     }
                     const hpStr = (e.faction === 'PLAYER' && e.classType) ? '' : ` <span style="font-size: 0.75rem; color: #aaaaaa;">[${Math.floor(e.hp)}/${e.maxHp} HP]</span>`;
