@@ -403,7 +403,7 @@
                 <div class="build-btn-icon">⚒️</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost" style="color: #f0e6d2;">Build</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-flag-explore" onclick="setMode('FLAG_EXPLORE')" onmouseenter="Game.showTooltip(event, 'Explore Quest', 'Send 1 Hero to explore a location.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>First Hero to reach the flag claims the bounty.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-flag-explore" onclick="setMode('FLAG_EXPLORE')" onmouseenter="Game.showTooltip(event, 'Explore Quest', 'Send 1 Hero to explore a location.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>First Hero to reach the flag claims the bounty. Halves Spawner HP if newly scouted.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">1</div><div class="build-btn-title">Explore</div></div>
                 <div class="build-btn-icon" style="color: #ffcc00; text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;">⚑</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙25</span></div>
@@ -3466,9 +3466,29 @@ class Spawner extends Entity {
         this.radius = this.baseRadius;
         this.spawnRate = conf.spawnRate;
         this.spawnTimer = Math.random() * this.spawnRate;
+        this.wasVisible = false;
     }
     getSpawnType() { return 'RAT'; }
     update(dtSec) { 
+        let currentlyVisible = !Game.fogOfWar || Game.isPosVisible(this.pos);
+        if (currentlyVisible && !this.wasVisible) {
+            let scoutedByExplore = false;
+            for (let i = 0; i < Game.activeHeroes.length; i++) {
+                const h = Game.activeHeroes[i];
+                if (h.currentQuest && h.currentQuest.type === 'FLAG_EXPLORE' && h.pos.distSq(this.pos) <= (h.getVisionRange() ** 2)) {
+                    scoutedByExplore = true;
+                    break;
+                }
+            }
+            if (scoutedByExplore) {
+                let drop = Math.floor(this.hp / 2);
+                this.hp -= drop;
+                Game.spawnParticle(this.pos.x, this.pos.y, '#ffcc00');
+                Game.spawnFloatingText(this.pos.x, this.pos.y, "-50% HP", "#ffcc00");
+            }
+        }
+        this.wasVisible = currentlyVisible;
+
         if (this.flashTimer > 0) this.flashTimer -= dtSec;
         const inBlackout = Game.dayTimer <= GAME_CONFIG.blackoutTimeSec;
         if (!inBlackout) {
