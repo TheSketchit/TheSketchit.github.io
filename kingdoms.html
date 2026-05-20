@@ -123,43 +123,43 @@
                     Select Item <button class="btn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="Game.shopActiveSlot = null; Game.hideTooltip(); Game.updateUI(true)">Cancel</button>
                 </h4>
                 <div class="shop-item-grid">
-                    <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showTooltip(event, 'Health Potion', 'Restores 50 HP when health drops below 30%')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showItemTooltip(event, &apos;Health Potion&apos;, &apos;Restores 50 HP when health drops below 30%&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚🧙💂</span>
                     </button>
-                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 125)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 125)" onmouseenter="Game.showItemTooltip(event, &apos;Sword&apos;, &apos;Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⚔️</span><span class="item-cost">125g</span><span class="item-classes">🧌</span>
                     </button>
-                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 100)" onmouseenter="Game.showTooltip(event, 'Dagger', 'Increases attack damage by 3. 5% chance to deal double damage.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 100)" onmouseenter="Game.showItemTooltip(event, &apos;Dagger&apos;, &apos;Increases attack damage by 3. 5% chance to deal double damage.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🗡️</span><span class="item-cost">100g</span><span class="item-classes">🥷</span>
                     </button>
-                    <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showTooltip(event, 'Wand', 'Increases attack damage by 8 and attack range by 25%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showItemTooltip(event, &apos;Wand&apos;, &apos;Increases attack damage by 8 and attack range by 25%.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
-                    <button id="btn-shop-CASTERS_TUNIC" class="shop-item-btn" onclick="Game.buyShopItem('CASTERS_TUNIC', 120)" onmouseenter="Game.showTooltip(event, 'Caster\'s Tunic', 'Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-CASTERS_TUNIC" class="shop-item-btn" onclick="Game.buyShopItem('CASTERS_TUNIC', 120)" onmouseenter="Game.showItemTooltip(event, &apos;Caster\&apos;s Tunic&apos;, &apos;Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">👕</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
-                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 10%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showItemTooltip(event, &apos;Leather Armor&apos;, &apos;Increases max HP by 50 and reduces damage taken by 10%.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷💂</span>
                     </button>
-                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showItemTooltip(event, &apos;Chainmail&apos;, &apos;Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌💂</span>
                     </button>
-                    <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showTooltip(event, 'Robe of Life', 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\'s Tunic.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showItemTooltip(event, &apos;Robe of Life&apos;, &apos;When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\&apos;s Tunic.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">👘</span><span class="item-cost">200g</span><span class="item-classes">🧚</span>
                     </button>
-                    <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showTooltip(event, 'Rogue\'s Disguise', 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showItemTooltip(event, &apos;Rogue\&apos;s Disguise&apos;, &apos;Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🕵️‍♂️</span><span class="item-cost">250g</span><span class="item-classes">🥷</span>
                     </button>
-                    <button id="btn-shop-ROBE_OF_MAGI" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_MAGI', 250)" onmouseenter="Game.showTooltip(event, 'Robes of Magi', 'Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\'s Tunic.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROBE_OF_MAGI" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_MAGI', 250)" onmouseenter="Game.showItemTooltip(event, &apos;Robes of Magi&apos;, &apos;Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\&apos;s Tunic.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🥻</span><span class="item-cost">250g</span><span class="item-classes">🧙</span>
                     </button>
-                    <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showTooltip(event, 'Tome of Power', 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showItemTooltip(event, &apos;Tome of Power&apos;, &apos;The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">📖</span><span class="item-cost">300g</span><span class="item-classes">🧙</span>
                     </button>
-                    <button id="btn-shop-HAMMER_OF_JUSTICE" class="shop-item-btn" onclick="Game.buyShopItem('HAMMER_OF_JUSTICE', 150)" onmouseenter="Game.showTooltip(event, 'Hammer of Justice', 'Increases attack by 20, slows attack to 2.5. 50% chance on hit to stun.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-HAMMER_OF_JUSTICE" class="shop-item-btn" onclick="Game.buyShopItem('HAMMER_OF_JUSTICE', 150)" onmouseenter="Game.showItemTooltip(event, &apos;Hammer of Justice&apos;, &apos;Increases attack by 20, slows attack to 2.5. 50% chance on hit to stun.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🔨</span><span class="item-cost">150g</span><span class="item-classes">💂</span>
                     </button>
-                    <button id="btn-shop-TOME_OF_RETRIBUTION" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_RETRIBUTION', 150)" onmouseenter="Game.showTooltip(event, 'Tome of Retribution', '25% chance on hit to heal the paladin and nearby allies for the damage dealt.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-TOME_OF_RETRIBUTION" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_RETRIBUTION', 150)" onmouseenter="Game.showItemTooltip(event, &apos;Tome of Retribution&apos;, &apos;25% chance on hit to heal the paladin and nearby allies for the damage dealt.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">📜</span><span class="item-cost">150g</span><span class="item-classes">💂</span>
                     </button>
                 </div>
@@ -193,7 +193,7 @@
                     Select Training <button class="btn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="Game.guildActiveSlot = null; Game.hideTooltip(); Game.updateUI(true)">Cancel</button>
                 </h4>
                 <div class="panel-btn-grid">
-                    <button id="btn-upg-CHARGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CHARGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Charge', 'Warriors will charge at distant enemies, dealing damage and stunning them.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-CHARGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CHARGE')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Charge&apos;, &apos;Warriors will charge at distant enemies, dealing damage and stunning them.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Charge</div>
@@ -201,7 +201,7 @@
                         <div class="build-btn-icon">⚡</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-TRAP" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('TRAP')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Trap', 'Upon killing a monster, the rogue places down a trap. Rats are instantly killed, all other monsters lose 60% of their health.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-TRAP" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('TRAP')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Trap&apos;, &apos;Upon killing a monster, the rogue places down a trap. Rats are instantly killed, all other monsters lose 60% of their health.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Trap</div>
@@ -209,7 +209,7 @@
                         <div class="build-btn-icon">🪤</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-REGROWTH" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('REGROWTH')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Regrowth', 'Druids occasionally cast a powerful healing spell on heavily injured allies.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-REGROWTH" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('REGROWTH')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Regrowth&apos;, &apos;Druids occasionally cast a powerful healing spell on heavily injured allies.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Regrowth</div>
@@ -217,7 +217,7 @@
                         <div class="build-btn-icon">🌱</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-MARK_OF_THE_WILD" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('MARK_OF_THE_WILD')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Mark of the Wild', 'Every 30 seconds, the druid casts mark of the wild on themselves and one nearby ally for 20. If they are in a group, they will cast it on all group members instead. Mark of the Wild increase health, damage, and damage resistance by 10 percent.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-MARK_OF_THE_WILD" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('MARK_OF_THE_WILD')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Mark of the Wild&apos;, &apos;Every 30 seconds, the druid casts mark of the wild on themselves and one nearby ally for 20. If they are in a group, they will cast it on all group members instead. Mark of the Wild increase health, damage, and damage resistance by 10 percent.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Mark of the Wild</div>
@@ -225,7 +225,7 @@
                         <div class="build-btn-icon">🍁</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-CHEAP_SHOT" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CHEAP_SHOT')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Cheap Shot', 'The rogue\'s melee attack will have a 25 percent chance to stun the enemy for 3 seconds.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-CHEAP_SHOT" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CHEAP_SHOT')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Cheap Shot&apos;, &apos;The rogue\&apos;s melee attack will have a 25 percent chance to stun the enemy for 3 seconds.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Cheap Shot</div>
@@ -233,7 +233,7 @@
                         <div class="build-btn-icon">🤜</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-TAUNT" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('TAUNT')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Taunt', 'The warrior shouts at the monster that they are attacking, forcing it to attack the warrior.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-TAUNT" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('TAUNT')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Taunt&apos;, &apos;The warrior shouts at the monster that they are attacking, forcing it to attack the warrior.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Taunt</div>
@@ -241,7 +241,7 @@
                         <div class="build-btn-icon">🤬</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
-                    <button id="btn-upg-DEVOTION_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('DEVOTION_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Devotion Aura', 'The Paladin and nearby allies take 20% reduced damage')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-DEVOTION_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('DEVOTION_AURA')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Devotion Aura&apos;, &apos;The Paladin and nearby allies take 20% reduced damage&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Devotion Aura</div>
@@ -249,7 +249,7 @@
                         <div class="build-btn-icon">🙏</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙115</span></div>
                     </button>
-                    <button id="btn-upg-CRUSADER_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CRUSADER_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Crusader Aura', 'The Paladin and nearby allies move and attack 25% percent faster')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-CRUSADER_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CRUSADER_AURA')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Crusader Aura&apos;, &apos;The Paladin and nearby allies move and attack 25% percent faster&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Crusader Aura</div>
@@ -257,7 +257,7 @@
                         <div class="build-btn-icon">⚜️</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙120</span></div>
                     </button>
-                    <button id="btn-upg-ARCANE_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('ARCANE_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Arcane Aura', 'Heroes near the wizard gain 15% more experience. If the wizard is in a group, only group members are affected, no matter their distance. Buff stacks when grouped with another wizard.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-ARCANE_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('ARCANE_AURA')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Arcane Aura&apos;, &apos;Heroes near the wizard gain 15% more experience. If the wizard is in a group, only group members are affected, no matter their distance. Buff stacks when grouped with another wizard.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Arcane Aura</div>
@@ -265,7 +265,7 @@
                         <div class="build-btn-icon">🔮</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙115</span></div>
                     </button>
-                    <button id="btn-upg-MAGICAL_BARRAGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('MAGICAL_BARRAGE')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Magical Barrage', 'The wizard\'s magical prowess allows them to shoot at up to 3 enemies at once, at the cost of a slower attack speed. If the wizard is only shooting at one enemy, their attack speed goes back to normal.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-upg-MAGICAL_BARRAGE" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('MAGICAL_BARRAGE')" style="display: none;" onmouseenter="Game.showItemTooltip(event, &apos;Magical Barrage&apos;, &apos;The wizard\&apos;s magical prowess allows them to shoot at up to 3 enemies at once, at the cost of a slower attack speed. If the wizard is only shooting at one enemy, their attack speed goes back to normal.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
                             <div class="build-btn-title">Magical Barrage</div>
@@ -3991,7 +3991,22 @@ const Game = window.Game = {
                     else if (s === 'MAGICAL_BARRAGE') iStr = '✨';
                     else if (s === 'DEVOTION_AURA') iStr = '🙏';
                     else if (s === 'CRUSADER_AURA') iStr = '🙏';
-                    return `<span style="font-size: 1.1rem;" title="${s}">${iStr}</span>`;
+                    const abilityInfo = {
+                        'CHARGE': { name: 'Charge', desc: 'Warriors will charge at distant enemies, dealing damage and stunning them.' },
+                        'TRAP': { name: 'Trap', desc: 'Upon killing a monster, the rogue places down a trap. Rats are instantly killed, all other monsters lose 60% of their health.' },
+                        'REGROWTH': { name: 'Regrowth', desc: 'Druids occasionally cast a powerful healing spell on heavily injured allies.' },
+                        'MARK_OF_THE_WILD': { name: 'Mark of the Wild', desc: 'Every 30 seconds, the druid casts mark of the wild on themselves and one nearby ally for 20. If they are in a group, they will cast it on all group members instead. Mark of the Wild increase health, damage, and damage resistance by 10 percent.' },
+                        'CHEAP_SHOT': { name: 'Cheap Shot', desc: 'The rogue\'s melee attack will have a 25 percent chance to stun the enemy for 3 seconds.' },
+                        'TAUNT': { name: 'Taunt', desc: 'The warrior shouts at the monster that they are attacking, forcing it to attack the warrior.' },
+                        'DEVOTION_AURA': { name: 'Devotion Aura', desc: 'The Paladin and nearby allies take 20% reduced damage' },
+                        'CRUSADER_AURA': { name: 'Crusader Aura', desc: 'The Paladin and nearby allies move and attack 25% percent faster' },
+                        'ARCANE_AURA': { name: 'Arcane Aura', desc: 'Heroes near the wizard gain 15% more experience. If the wizard is in a group, only group members are affected, no matter their distance. Buff stacks when grouped with another wizard.' },
+                        'MAGICAL_BARRAGE': { name: 'Magical Barrage', desc: 'The wizard\'s magical prowess allows them to shoot at up to 3 enemies at once, at the cost of a slower attack speed. If the wizard is only shooting at one enemy, their attack speed goes back to normal.' }
+                    };
+                    const info = abilityInfo[s] || { name: s, desc: '' };
+                    const safeName = info.name.replace(/'/g, "\\'");
+                    const safeDesc = info.desc.replace(/'/g, "\\'");
+                    return `<span style="cursor:help; font-size:1.1rem; margin-right: 2px;" onmouseenter="Game.showItemTooltip(event, &apos;${safeName}&apos;, &apos;${safeDesc}&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${iStr}</span>`;
                 }).join('') : '<span style="color:#aaaaaa; font-style:italic;">None</span>';
                 UI.setHTML('val-hero-abilities-list', abilitiesHTML);
 
@@ -4003,7 +4018,7 @@ const Game = window.Game = {
                     const item = ITEM_CONFIG[i];
                     const safeName = item.name.replace(/'/g, "\\'");
                     const safeDesc = item.desc.replace(/'/g, "\\'");
-                    return `<span style="cursor:help; font-size:1.1rem;" onmouseenter="Game.showTooltip(event, '${safeName}', '${safeDesc}')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${item.icon}</span>`;
+                    return `<span style="cursor:help; font-size:1.1rem;" onmouseenter="Game.showItemTooltip(event, &apos;${safeName}&apos;, &apos;${safeDesc}&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">${item.icon}</span>`;
                 }).join(' ') : '<span style="color:#aaaaaa; font-style:italic; font-size: 0.8rem;">None</span>');
 
                 ['stat-hero-hp', 'stat-hero-xp', 'stat-hero-abilities', 'stat-hero-bottom'].forEach(id => toggle(id, true));
@@ -4490,6 +4505,11 @@ const Game = window.Game = {
             life: life,
             maxLife: life
         });
+    },
+    showItemTooltip(e, t, d) {
+        let formattedDesc = d.replace(/(\d+(?:\.\d+)?(?:\s*%|\s+percent)?)/gi, '<span style="color:white;">$1</span>');
+        formattedDesc = `<span style="color:#ffcc00;">${formattedDesc}</span>`;
+        this.showTooltip(e, t, formattedDesc, true);
     },
     showHeroTooltip(e, heroId) {
         const g = this.selectedEntity;
