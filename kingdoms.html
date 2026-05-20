@@ -1616,11 +1616,12 @@ class Monster extends Unit {
         let nD = Infinity, nT = null;
         if (this.lastAttacker && this.lastAttacker.active && this.lastAttacker.faction === 'PLAYER') {
             if (this.lastAttacker.classType !== undefined || this.lastAttacker.type === 'TOWER') {
-                let ds = this.pos.distSq(this.lastAttacker.pos); if (ds < 90000) { nT = this.lastAttacker; nD = ds; } else this.lastAttacker = null;
+                let ds = this.pos.distSq(this.lastAttacker.pos); if (ds < 90000 && !this.lastAttacker.isHealingAt) { nT = this.lastAttacker; nD = ds; } else this.lastAttacker = null;
             }
         }
         if (!nT) {
             Grid.getNearby(this.pos, 22500, (targ, ds) => {
+                if (targ.isHealingAt) return;
                 if (targ.stealth === true && !this.attackers.has(targ)) return;
 
                 if (this.findCustomTarget(targ, ds)) { nT=targ; nD=ds; } // Note: can't break early easily, so just overwrite
@@ -1720,10 +1721,10 @@ class Monster extends Unit {
             const gY = this.bounty;
             
             const sharePerAttacker = gY / validAttackers.length;
-            const towerShare = Math.floor(sharePerAttacker);
-            const heroSharePreTax = Math.floor(sharePerAttacker);
-            const heroTax = Math.floor(heroSharePreTax * Game.taxRate);
-            const heroSharePostTax = heroSharePreTax - heroTax;
+            const towerShare = Math.round(sharePerAttacker * 10) / 10;
+            const heroSharePreTax = Math.round(sharePerAttacker * 10) / 10;
+            const heroTax = Math.round((heroSharePreTax * Game.taxRate) * 10) / 10;
+            const heroSharePostTax = Math.round((heroSharePreTax - heroTax) * 10) / 10;
 
             const sharedXpBase = Math.floor((hasTowerAttacker ? 0.5 : 1) * (10 / validAttackers.length)) || 1;
 
@@ -1746,7 +1747,7 @@ class Monster extends Unit {
             for (let i = 0; i < Game.activeFlags.length; i++) {
                 const f = Game.activeFlags[i];
                 if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type) && f.targetEntity === this) {
-                    const bountyShare = Math.floor(f.bounty / validAttackers.length);
+                    const bountyShare = Math.round((f.bounty / validAttackers.length) * 10) / 10;
                     for (let j = 0; j < validAttackers.length; j++) {
                         if (validAttackers[j].type !== 'TOWER') {
                             validAttackers[j].personalGold += bountyShare;
@@ -2126,7 +2127,7 @@ class Hero extends Unit {
                     if(this.hp >= this.maxHp*0.9 && this.state==='FLEE') this.state = 'IDLE';
                 }
             } else if (this.state==='FLEE' && this.target === Game.base && this.pos.distSq(Game.base.pos) < (Game.base.radius+15)**2) {
-                if (this.hp < this.maxHp) { this.isHealingAt = Game.base; const healAmt = (this.maxHp*0.1)*dtSec, cost = 20*dtSec; this.hp = Math.min(this.maxHp, this.hp+healAmt); this.personalGold -= cost; Game.emergencyMedicalCosts += cost; if(this.hp===this.maxHp) this.state='IDLE'; }
+                if (this.hp < this.maxHp) { this.isHealingAt = Game.base; const healAmt = (this.maxHp*0.1)*dtSec, cost = Math.round((20*dtSec) * 10) / 10; this.hp = Math.min(this.maxHp, this.hp+healAmt); this.personalGold -= cost; Game.emergencyMedicalCosts += cost; if(this.hp===this.maxHp) this.state='IDLE'; }
             }
         }
 
@@ -2172,6 +2173,8 @@ class Hero extends Unit {
             let aggroSq = (this.classType === 'WIZARD' || this.classType === 'DRUID') ? 40000 : 10000;
             let foundTarget = false;
 
+            const isAttackQuestAtTarget = this.currentQuest && ['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(this.currentQuest.type) && this.questPhase === 'AT_TARGET';
+
             const isEngagedWithMonster = (this.state === 'ATTACK' || this.state === 'MOVE') && this.target && this.target.faction === 'ENEMY' && this.target.type !== 'SPAWNER' && this.target.spawnerType !== 'VOLCANO';
 
             if (!isEngagedWithMonster || this.classType === 'DRUID' || this.classType === 'WARRIOR') {
@@ -2199,18 +2202,42 @@ class Hero extends Unit {
                 }
 
                 if (!foundTarget) {
-                    Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
-                        if ((enemy.isVisible || distSq <= 22500)) {
-                            if (this.currentQuest && this.questPhase !== 'AT_TARGET') {
-                                if (enemy.type === 'SPAWNER' || enemy.spawnerType === 'VOLCANO') return false;
-                                if (enemy.target !== this && (!enemy.target || enemy.target.currentQuest !== this.currentQuest)) return false;
+                    if (isAttackQuestAtTarget) {
+                        let bestTarget = null;
+                        let bestScore = -1;
+                        let flagPos = this.currentQuest.targetEntity ? this.currentQuest.targetEntity.pos : this.currentQuest.pos;
+                        Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
+                            if (enemy.isVisible || distSq <= 22500) {
+                                let distToFlag = enemy.pos.distSq(flagPos);
+                                let score = 1000000 / Math.max(1, distToFlag);
+                                if (enemy.spawnerType === 'VOLCANO' && distToFlag <= 40000) {
+                                    score += 10000000;
+                                }
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestTarget = enemy;
+                                }
                             }
-                            this.target = enemy;
+                        }, 'ENEMY');
+                        if (bestTarget) {
+                            this.target = bestTarget;
                             if (this.state !== 'ATTACK') this.state = 'MOVE';
                             foundTarget = true;
-                            return true;
                         }
-                    }, 'ENEMY');
+                    } else {
+                        Grid.getNearby(this.pos, aggroSq, (enemy, distSq) => {
+                            if ((enemy.isVisible || distSq <= 22500)) {
+                                if (this.currentQuest && this.questPhase !== 'AT_TARGET') {
+                                    if (enemy.type === 'SPAWNER' || enemy.spawnerType === 'VOLCANO') return false;
+                                    if (enemy.target !== this && (!enemy.target || enemy.target.currentQuest !== this.currentQuest)) return false;
+                                }
+                                this.target = enemy;
+                                if (this.state !== 'ATTACK') this.state = 'MOVE';
+                                foundTarget = true;
+                                return true;
+                            }
+                        }, 'ENEMY');
+                    }
                 }
             }
         }
@@ -2803,6 +2830,10 @@ class RogueHero extends Hero {
     getFlagScoreMult(f, d, s) { return s * 3; }
     getDrawOffset() {
         let dX = 0, dY = 0, rot = 0;
+        if (['MOVE', 'FLEE'].includes(this.state)) {
+            dY += Math.abs(Math.sin(Game.timeMs * 0.01)) * -4;
+            rot = Math.cos(Game.timeMs * 0.01) * 0.1;
+        }
         if (this.state === 'ATTACK' && this.attackCooldown > this.maxAttackCooldown - 0.25) {
             dX += Math.sin(this.attackCooldown * 90) * 5;
         }
@@ -2917,6 +2948,14 @@ class DruidHero extends Hero {
 
 class PaladinHero extends Hero {
     getClassName() { return 'Paladin'; }
+    getDrawOffset() {
+        let dX = 0, dY = 0, rot = 0;
+        if (['MOVE', 'FLEE'].includes(this.state)) {
+            dY += Math.abs(Math.sin(Game.timeMs * 0.01)) * -4;
+            rot = Math.cos(Game.timeMs * 0.01) * 0.1;
+        }
+        return { dX, dY, rot };
+    }
     performAttack(d, cr) {
         super.performAttack(d, cr);
 
@@ -2984,7 +3023,16 @@ class WizardHero extends Hero {
             this.attackCooldown = this.maxAttackCooldown;
         }
     }
-    getDrawOffset() { return { dX: 0, dY: Math.sin(Game.timeMs * 0.006) * 3, rot: 0 }; }
+    getDrawOffset() {
+        let dX = 0, dY = 0, rot = 0;
+        if (['MOVE', 'FLEE'].includes(this.state)) {
+            dY += Math.abs(Math.sin(Game.timeMs * 0.01)) * -4;
+            rot = Math.cos(Game.timeMs * 0.01) * 0.1;
+        } else {
+            dY = Math.sin(Game.timeMs * 0.006) * 3;
+        }
+        return { dX, dY, rot };
+    }
 }
 
 class Ruins extends Entity {
@@ -3451,10 +3499,10 @@ class Spawner extends Entity {
             const gY = this.bounty;
             
             const sharePerAttacker = gY / validAttackers.length;
-            const towerShare = Math.floor(sharePerAttacker);
-            const heroSharePreTax = Math.floor(sharePerAttacker);
-            const heroTax = Math.floor(heroSharePreTax * Game.taxRate);
-            const heroSharePostTax = heroSharePreTax - heroTax;
+            const towerShare = Math.round(sharePerAttacker * 10) / 10;
+            const heroSharePreTax = Math.round(sharePerAttacker * 10) / 10;
+            const heroTax = Math.round((heroSharePreTax * Game.taxRate) * 10) / 10;
+            const heroSharePostTax = Math.round((heroSharePreTax - heroTax) * 10) / 10;
 
             const sharedXpBase = Math.floor((hasTowerAttacker ? 0.5 : 1) * (this.bounty / validAttackers.length)) || 1;
 
@@ -3475,7 +3523,7 @@ class Spawner extends Entity {
             for (let i = 0; i < Game.activeFlags.length; i++) {
                 const f = Game.activeFlags[i];
                 if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type) && f.targetEntity === this) {
-                    const bountyShare = Math.floor(f.bounty / validAttackers.length);
+                    const bountyShare = Math.round((f.bounty / validAttackers.length) * 10) / 10;
                     for (let j = 0; j < validAttackers.length; j++) {
                         if (validAttackers[j].type !== 'TOWER') {
                             validAttackers[j].personalGold += bountyShare;
@@ -3614,10 +3662,10 @@ class Volcano extends Entity {
             const gY = this.bounty;
 
             const sharePerAttacker = gY / validAttackers.length;
-            const towerShare = Math.floor(sharePerAttacker);
-            const heroSharePreTax = Math.floor(sharePerAttacker);
-            const heroTax = Math.floor(heroSharePreTax * Game.taxRate);
-            const heroSharePostTax = heroSharePreTax - heroTax;
+            const towerShare = Math.round(sharePerAttacker * 10) / 10;
+            const heroSharePreTax = Math.round(sharePerAttacker * 10) / 10;
+            const heroTax = Math.round((heroSharePreTax * Game.taxRate) * 10) / 10;
+            const heroSharePostTax = Math.round((heroSharePreTax - heroTax) * 10) / 10;
 
             const sharedXpBase = Math.floor((hasTowerAttacker ? 0.5 : 1) * (this.bounty / validAttackers.length)) || 1;
 
@@ -3637,7 +3685,7 @@ class Volcano extends Entity {
             for (let i = 0; i < Game.activeFlags.length; i++) {
                 const f = Game.activeFlags[i];
                 if (['FLAG_ATTACK', 'FLAG_GROUP_ATTACK'].includes(f.type) && f.targetEntity === this) {
-                    const bountyShare = Math.floor(f.bounty / validAttackers.length);
+                    const bountyShare = Math.round((f.bounty / validAttackers.length) * 10) / 10;
                     for (let j = 0; j < validAttackers.length; j++) {
                         if (validAttackers[j].type !== 'TOWER') {
                             validAttackers[j].personalGold += bountyShare;
@@ -3865,7 +3913,7 @@ const Game = window.Game = {
     },
     updateUI(force = false) {
         if (!force && this.frames % 15 !== 0) return;
-        UI.setText('gold-display', Math.floor(this.gold));
+        UI.setText('gold-display', typeof this.gold === 'number' && !Number.isInteger(this.gold) ? this.gold.toFixed(1) : this.gold);
         let secs = Math.ceil(this.dayTimer); UI.setText('day-timer-display', secs.toString().padStart(2, '0'));
         UI.setText('day-text', `Day ${this.day}:`);
         
@@ -4013,7 +4061,7 @@ const Game = window.Game = {
                 UI.setHTML('val-hero-abilities-list', abilitiesHTML);
 
                 UI.setText('val-hero-dmg', (typeof e.damage === 'number' && !Number.isInteger(e.damage) ? e.damage.toFixed(1) : e.damage));
-                UI.setText('val-hero-gold', `${Math.floor(e.personalGold)}`);
+                UI.setText('val-hero-gold', `${typeof e.personalGold === 'number' && !Number.isInteger(e.personalGold) ? e.personalGold.toFixed(1) : e.personalGold}`);
                 UI.setColor('val-hero-gold', e.personalGold < 0 ? '#e53e3e' : '#ffcc00');
 
                 UI.setHTML('val-hero-items', e.items.length > 0 ? e.items.map(i => {
@@ -4574,7 +4622,7 @@ const Game = window.Game = {
             const hpPct = Math.max(0, h.hp / h.maxHp) * 100;
             const hpBar = `<div style="width: 100%; height: 6px; background-color: #e53e3e; margin-top: 4px; border-radius: 2px; overflow: hidden;"><div style="width: ${hpPct}%; height: 100%; background-color: #48bb78;"></div></div>`;
             const items = h.items && h.items.length > 0 ? h.items.map(i => ITEM_CONFIG[i].icon).join(' ') : 'None';
-            const desc = `<span style="color:#ffcc00;">Currently ${h.getDisplayState()}</span><br><span style="color:#ffcc00; font-style:italic;">Level ${h.level}</span><br><span style="color:#ffcc00;">Gold: 🪙${h.personalGold}</span><br><span style="color:#ffcc00;">Items: ${items}</span>${hpBar}`;
+            const desc = `<span style="color:#ffcc00;">Currently ${h.getDisplayState()}</span><br><span style="color:#ffcc00; font-style:italic;">Level ${h.level}</span><br><span style="color:#ffcc00;">Gold: 🪙${typeof h.personalGold === 'number' && !Number.isInteger(h.personalGold) ? h.personalGold.toFixed(1) : h.personalGold}</span><br><span style="color:#ffcc00;">Items: ${items}</span>${hpBar}`;
             this.showTooltip(e, h.name, desc);
         }
     },
