@@ -235,6 +235,22 @@
                         <div class="build-btn-icon">🤬</div>
                         <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
                     </button>
+                    <button id="btn-upg-DEVOTION_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('DEVOTION_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Devotion Aura', 'The Paladin and nearby allies take 20% reduced damage')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <div class="build-btn-header">
+                            <div class="build-btn-hotkey"></div>
+                            <div class="build-btn-title">Devotion Aura</div>
+                        </div>
+                        <div class="build-btn-icon">🙏</div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙115</span></div>
+                    </button>
+                    <button id="btn-upg-CRUSADER_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('CRUSADER_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Crusader Aura', 'The Paladin and nearby allies move and attack 25% percent faster')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <div class="build-btn-header">
+                            <div class="build-btn-hotkey"></div>
+                            <div class="build-btn-title">Crusader Aura</div>
+                        </div>
+                        <div class="build-btn-icon">🙏</div>
+                        <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙120</span></div>
+                    </button>
                     <button id="btn-upg-ARCANE_AURA" class="menu-btn build-btn" onclick="Game.buyGuildUpgrade('ARCANE_AURA')" style="display: none;" onmouseenter="Game.showTooltip(event, 'Arcane Aura', 'Heroes near the wizard gain 15% more experience. If the wizard is in a group, only group members are affected, no matter their distance. Buff stacks when grouped with another wizard.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <div class="build-btn-header">
                             <div class="build-btn-hotkey"></div>
@@ -343,29 +359,34 @@
                 <div class="build-btn-icon">🏯</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
+            <button class="menu-btn build-btn" id="btn-paladin-guild" onclick="setMode('BUILD_PALADIN')" onmouseenter="Game.showTooltip(event, 'Paladin Guild', 'Recruit up to 3 Paladins per guild hall.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Paladins are holy warriors.</span>', true, '<i>+100🪙 per ⛪</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                <div class="build-btn-header"><div class="build-btn-hotkey">5</div><div class="build-btn-title">Paladins</div></div>
+                <div class="build-btn-icon">⛪</div>
+                <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙170</span></div>
+            </button>
             <button class="menu-btn build-btn" id="btn-shop" onclick="setMode('BUILD_SHOP')" onmouseenter="Game.showTooltip(event, 'Shop', 'Enables Heroes to purchase items.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>All Gold spent by Heroes for items goes directly back to the Kingdom\'s treasury.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                <div class="build-btn-header"><div class="build-btn-hotkey">5</div><div class="build-btn-title">Shop</div></div>
+                <div class="build-btn-header"><div class="build-btn-hotkey">6</div><div class="build-btn-title">Shop</div></div>
                 <div class="build-btn-icon">🏦</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙100</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-farm" onclick="setMode('BUILD_FARM')" onmouseenter="Game.showTooltip(event, 'Farm', 'Expand your <span class=&quot;pop-icon-glow&quot;>🫂</span> by 3.', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                <div class="build-btn-header"><div class="build-btn-hotkey">6</div><div class="build-btn-title">Farm</div></div>
+                <div class="build-btn-header"><div class="build-btn-hotkey">7</div><div class="build-btn-title">Farm</div></div>
                 <div class="build-btn-icon">🏡</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙150</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-tower" onclick="setMode('BUILD_TOWER')" onmouseenter="Game.showTooltip(event, 'Tower', 'A defensive structure that shoots magic missiles at oncoming enemies.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Reduces hero EXP from kills it helps with by 50%.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                <div class="build-btn-header"><div class="build-btn-hotkey">7</div><div class="build-btn-title">Tower</div></div>
+                <div class="build-btn-header"><div class="build-btn-hotkey">8</div><div class="build-btn-title">Tower</div></div>
                 <div class="build-btn-icon" style="font-size: 1.5rem; line-height: 1.1; margin-top: -2px;">🖲️<br>🔲</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙250 | 1 🫂</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-tavern" onclick="setMode('BUILD_TAVERN')" onmouseenter="Game.showTooltip(event, 'Tavern', '<span style=&quot;color:#ffcc00;&quot;>Enables groups of heroes to be formed. Hero groups will operate out of the Tavern, rather than their guild hall to heal.</span><br><span style=&quot;color:white;&quot;>Group quests can be issued from here.</span>', true, '<i>+200🪙 per 🎪</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                <div class="build-btn-header"><div class="build-btn-hotkey">8</div><div class="build-btn-title">Tavern</div></div>
+                <div class="build-btn-header"><div class="build-btn-hotkey">9</div><div class="build-btn-title">Tavern</div></div>
                 <div class="build-btn-icon">🎪</div>
                 <div style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); font-size: 1.2rem;">🍻</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙200</span></div>
             </button>
             <button class="menu-btn build-btn" id="btn-temple" onclick="setMode('BUILD_TEMPLE')" onmouseenter="Game.showTooltip(event, 'Temple', 'Allows heroes below 50% health to heal to full once per day.', true, '<i>+200🪙 per 🕍</i>')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                <div class="build-btn-header"><div class="build-btn-hotkey">9</div><div class="build-btn-title">Temple</div></div>
+                <div class="build-btn-header"><div class="build-btn-hotkey">0</div><div class="build-btn-title">Temple</div></div>
                 <div class="build-btn-icon">🕍</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙250</span></div>
             </button>
@@ -865,7 +886,7 @@ window.addEventListener('keydown', e => {
             Game.abandonQuest(Game.hoveredEntity);
         } else if (Game.selectedEntity && Game.selectedEntity.active) {
             const type = Game.selectedEntity.type;
-            if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD' || type === 'WIZARD_GUILD') {
+            if (type === 'WARRIOR_GUILD' || type === 'ROGUE_GUILD' || type === 'DRUID_GUILD' || type === 'WIZARD_GUILD' || type === 'PALADIN_GUILD') {
                 if (k === 't') Game.recruitHero();
                 else if (k === 'r') {
                     let upg = type === 'WARRIOR_GUILD' ? 'CHARGE' : (type === 'ROGUE_GUILD' ? 'TRAP' : (type === 'DRUID_GUILD' ? 'REGROWTH' : ''));
@@ -884,7 +905,7 @@ window.addEventListener('keydown', e => {
         const buildMenuVisible = document.getElementById('menu-build').style.display !== 'none';
         const commandMenuVisible = document.getElementById('menu-command').style.display !== 'none';
         if (buildMenuVisible) {
-            let btnId = k === '1' ? 'btn-warrior-guild' : (k === '2' ? 'btn-rogue-guild' : (k === '3' ? 'btn-druid-guild' : (k === '4' ? 'btn-wizard-guild' : (k === '5' ? 'btn-shop' : (k === '6' ? 'btn-farm' : (k === '7' ? 'btn-tower' : (k === '8' ? 'btn-tavern' : (k === '9' ? 'btn-temple' : null))))))));
+            let btnId = k === '1' ? 'btn-warrior-guild' : (k === '2' ? 'btn-rogue-guild' : (k === '3' ? 'btn-druid-guild' : (k === '4' ? 'btn-wizard-guild' : (k === '5' ? 'btn-paladin-guild' : (k === '6' ? 'btn-shop' : (k === '7' ? 'btn-farm' : (k === '8' ? 'btn-tower' : (k === '9' ? 'btn-tavern' : (k === '0' ? 'btn-temple' : null)))))))));
             if (btnId) { const btn = document.getElementById(btnId); if (btn && !btn.disabled) btn.click(); }
         } else if (commandMenuVisible) {
             let btnId = k === '1' ? 'btn-flag-explore' : (k === '2' ? 'btn-flag-defend' : (k === '3' ? 'btn-flag-attack' : (k === '4' ? 'btn-flag-group-attack' : null)));
@@ -1197,13 +1218,13 @@ const QUEST_CONFIG = {
 };
 
 const ITEM_CONFIG = {
-    POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID', 'WIZARD'], color: '#48bb78', icon: '🧪', name: 'Health Potion', desc: 'Restores 50 HP when health drops below 30%' },
+    POTION: { cost: 50, classes: ['WARRIOR', 'ROGUE', 'DRUID', 'WIZARD', 'PALADIN'], color: '#48bb78', icon: '🧪', name: 'Health Potion', desc: 'Restores 50 HP when health drops below 30%' },
     SWORD: { cost: 125, classes: ['WARRIOR'], color: '#f0e6d2', statBonus: { damage: 5, parryChance: 0.15, spawnerDamageMult: 1.50 }, icon: '⚔️', name: 'Sword', desc: 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.' },
     DAGGER: { cost: 100, classes: ['ROGUE'], color: '#f0e6d2', statBonus: { damage: 3, critChance: 0.05, critMult: 2.0 }, icon: '🗡️', name: 'Dagger', desc: 'Increases attack damage by 3. 5% chance to deal double damage.' },
     WAND: { cost: 120, classes: ['DRUID', 'WIZARD'], color: '#f0e6d2', statBonus: { damage: 8, attackRange: 25 }, icon: '🪄', name: 'Wand', desc: 'Increases attack damage by 8 and attack range by 25%.' },
     CASTERS_TUNIC: { cost: 120, classes: ['DRUID', 'WIZARD'], color: '#aaaaaa', statBonus: { maxHp: 25, hp: 25, damageReductionPercent: 0.05, damage: 5 }, downgradeOf: ['ROBE_OF_LIFE', 'ROBE_OF_MAGI'], icon: '👕', name: 'Caster\'s Tunic', desc: 'Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.' },
-    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReductionPercent: 0.1 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 10%.' },
-    CHAINMAIL: { cost: 200, classes: ['WARRIOR'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReductionPercent: 0.5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.' },
+    ARMOR: { cost: 100, classes: ['WARRIOR', 'ROGUE', 'PALADIN'], color: '#aaaaaa', statBonus: { maxHp: 50, hp: 50, damageReductionPercent: 0.1 }, downgradeOf: ['CHAINMAIL', 'ROBE_OF_THORNS', 'ROGUES_DISGUISE'], icon: '🧥', name: 'Leather Armor', desc: 'Increases max HP by 50 and reduces damage taken by 10%.' },
+    CHAINMAIL: { cost: 200, classes: ['WARRIOR', 'PALADIN'], color: '#cbd5e0', statBonus: { maxHp: 100, hp: 100, damageReductionPercent: 0.5 }, replaces: 'ARMOR', icon: '⛓️', name: 'Chainmail', desc: 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.' },
     ROBE_OF_LIFE: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { lifeSteal: true }, replaces: 'CASTERS_TUNIC', icon: '👘', name: 'Robe of Life', desc: 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\'s Tunic.' },
     ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#5a4b31', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
     ROBE_OF_MAGI: { cost: 250, classes: ['WIZARD'], color: '#8a2be2', statBonus: { damage: 6, structureDamageChance: 0.25, structureDamageMult: 0.5 }, replaces: 'CASTERS_TUNIC', icon: '🥻', name: 'Robes of Magi', desc: 'Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\'s Tunic.' },
@@ -1214,10 +1235,13 @@ const HERO_CONFIG = {
     WARRIOR: { maxHp: 175, speed: 1.1, damage: 15, maxAttackCooldown: 0.9, radius: 12, icon: '🧌', imageSrc: 'assets/warrior.png', recruitCost: 100, requiredItems: ['POTION', 'SWORD', 'CHAINMAIL'] },
     ROGUE: { maxHp: 90, speed: 1.32, damage: 16, maxAttackCooldown: 0.8, radius: 10, icon: '🥷', recruitCost: 85, requiredItems: ['POTION', 'DAGGER', 'ROGUES_DISGUISE'] },
     DRUID: { maxHp: 70, speed: 1.5, damage: 10, maxAttackCooldown: 1.3, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 85, requiredItems: ['POTION', 'WAND', 'ROBE_OF_LIFE'] },
-    WIZARD: { maxHp: 65, speed: 1.2, damage: 20, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 125, requiredItems: ['POTION', 'WAND', 'ROBE_OF_MAGI', 'TOME_OF_POWER'] }
+    WIZARD: { maxHp: 65, speed: 1.2, damage: 20, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 125, requiredItems: ['POTION', 'WAND', 'ROBE_OF_MAGI', 'TOME_OF_POWER'] },
+    PALADIN: { maxHp: 100, speed: 1.3, damage: 17, maxAttackCooldown: 1.5, radius: 12, icon: '💂', recruitCost: 115, requiredItems: ['POTION', 'ARMOR', 'CHAINMAIL'] }
 };
 
 const UPGRADE_CONFIG = {
+    DEVOTION_AURA: { cost: 115 },
+    CRUSADER_AURA: { cost: 120 },
     ARCANE_AURA: { cost: 115 },
     MAGICAL_BARRAGE: { cost: 215 },
     CHARGE: { cost: 100 },
@@ -1234,6 +1258,7 @@ const BUILDING_CONFIG = {
     ROGUE_GUILD: { baseCost: 175, hp: 300, radius: 30, icon: '🏚️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Rogue Guild', isGuild: true, heroClass: 'ROGUE' },
     DRUID_GUILD: { baseCost: 125, hp: 250, radius: 30, icon: '🪵', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: "Druid's Guild", isGuild: true, heroClass: 'DRUID' },
     WIZARD_GUILD: { baseCost: 150, hp: 250, radius: 30, icon: '🏯', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Wizard Guild', isGuild: true, heroClass: 'WIZARD' },
+    PALADIN_GUILD: { baseCost: 170, hp: 250, radius: 30, icon: '⛪', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Paladin Guild', isGuild: true, heroClass: 'PALADIN' },
     SHOP: { baseCost: 100, hp: 250, radius: 25, icon: '🏦', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Shop', isGuild: false },
     TEMPLE: { baseCost: 250, hp: 600, radius: 30, icon: '🕍', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Temple', isGuild: false, costIncrement: 200 },
     FARM: { baseCost: 125, hp: 150, radius: 25, icon: '🏡', upgradedIcon: '🏘️', fontSize: '60px', foundationRx: 35, foundationRy: 12, yOffset: 25, vision: 200, name: 'Farm', isGuild: false, popProvided: 3, upgradedPopProvided: 6 },
@@ -1295,13 +1320,14 @@ class Unit extends Entity {
     constructor(x,y) { super(x,y); this.speed=1; this.target=null; this.attackRange=15; this.damage=5; this.attackCooldown=0; this.maxAttackCooldown=1.0; } 
     moveTowards(tp) { 
         const dx = tp.x - this.pos.x, dy = tp.y - this.pos.y, d = Math.sqrt(dx*dx + dy*dy);
-        if (d <= this.speed) {
+        const effectiveSpeed = this.speed * (this.hasCrusaderAura && this.hasCrusaderAura() ? 1.25 : 1.0);
+        if (d <= effectiveSpeed) {
             this.pos.x = tp.x; this.pos.y = tp.y; return true;
         }
 
         if (d > 0) {
-            let vx = (dx/d)*this.speed;
-            let vy = (dy/d)*this.speed;
+            let vx = (dx/d)*effectiveSpeed;
+            let vy = (dy/d)*effectiveSpeed;
 
             let nextX = this.pos.x + vx;
             let nextY = this.pos.y + vy;
@@ -1768,6 +1794,7 @@ class Hero extends Unit {
             if (cT === 'ROGUE') return new RogueHero(x, y, cT, g);
             if (cT === 'DRUID') return new DruidHero(x, y, cT, g);
             if (cT === 'WIZARD') return new WizardHero(x, y, cT, g);
+            if (cT === 'PALADIN') return new PaladinHero(x, y, cT, g);
         }
         super(x, y); this.faction = 'PLAYER'; this.classType = cT; this.guild = g; this.state = 'IDLE'; this.wanderAngle = Math.random()*Math.PI*2; this.stateTimer = 0;
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.trapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
@@ -1853,6 +1880,7 @@ class Hero extends Unit {
         let redPercent = this.damageReductionPercent || 0;
         let final = Math.max(1, Math.floor((amt - red) * (1 - redPercent)));
         if (this.markOfTheWildTimer > 0) final = Math.max(1, Math.floor(final * 0.9));
+        if (this.hasDevotionAura()) final = Math.max(1, Math.floor(final * 0.8));
         super.takeDamage(final, src); 
         
         if (this.active && src && src.faction==='ENEMY' && this.state !== 'FLEE') {
@@ -1861,6 +1889,28 @@ class Hero extends Unit {
                 this.state = 'ATTACK';
             }
         }
+    }
+    hasDevotionAura() {
+        for (let i = 0; i < Game.playerEntities.length; i++) {
+            const p = Game.playerEntities[i];
+            if (p.active && p.classType === 'PALADIN' && p.skills && p.skills.includes('DEVOTION_AURA')) {
+                if (this === p) return true;
+                if (this.pos.distSq(p.pos) <= p.getVisionRange() ** 2) return true;
+            }
+        }
+        return false;
+    }
+    hasCrusaderAura() {
+        for (let i = 0; i < Game.playerEntities.length; i++) {
+            const p = Game.playerEntities[i];
+            if (p.active && p.classType === 'PALADIN' && p.skills && p.skills.includes('CRUSADER_AURA')) {
+                if (this === p) return true;
+                let dx = this.pos.x - p.pos.x;
+                let dy = this.pos.y - p.pos.y;
+                if ((dx * dx + dy * dy) <= p.getVisionRange() ** 2) return true;
+            }
+        }
+        return false;
     }
     getArcaneAuraCount() {
         let count = 0;
@@ -1948,7 +1998,9 @@ class Hero extends Unit {
         }
 
         if (this.attackCooldown > 0) {
-            this.attackCooldown -= this.inAsh ? (dtSec * 0.5) : dtSec;
+            let acAmt = this.inAsh ? (dtSec * 0.5) : dtSec;
+            if (this.hasCrusaderAura()) acAmt *= 1.25;
+            this.attackCooldown -= acAmt;
         }
 
         let myBase = null;
@@ -2146,7 +2198,7 @@ class Hero extends Unit {
                     }
                 }
                 if (this.target.type === 'SHOP' && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); this.state='IDLE'; }
-                if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
+                if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(this.target.type) && (reached || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; }
                 if (this.isValidAttackTarget(this.target)) { const ds = this.pos.distSq(this.target.pos), ar = (this.attackRange + this.target.radius)**2; if(ds<=ar) this.state='ATTACK'; else { this.onMoveToAttackTarget(dtSec, ds); } }
                 else if (this.shouldStopAttack(this.target)) { this.state = 'IDLE'; }
                 if (this.stateTimer <= 0) { this.evaluateGoals(myBase, hasHeal); this.stateTimer = 1.0; }
@@ -2166,7 +2218,7 @@ class Hero extends Unit {
                 if (this.isHealingAt) { this.pos.x = this.isHealingAt.pos.x; this.pos.y = this.isHealingAt.pos.y; break; }
                 if (this.target === Game.base && hasHeal) this.target = myBase;
                 if (!this.target || !this.target.active) this.target = fallbackBase;
-                if (this.target && this.target.active) { const r = this.moveTowards(this.target.pos); if(this.target.type==='SHOP' && (r || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); if(this.hp<this.maxHp*0.4 && !this.items.includes('POTION')) this.target = fallbackBase; else this.state='IDLE'; } else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.target.type) && (r || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; } if(r || this.pos.distSq(this.target.pos)<(this.target.radius+15)**2) { this.pos.x += Math.cos(this.wanderAngle)*0.2; this.pos.y += Math.sin(this.wanderAngle)*0.2; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); if(this.target===myBase && hasHeal) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.target===Game.base) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.hp>=this.maxHp*0.6) this.state='IDLE'; } }
+                if (this.target && this.target.active) { const r = this.moveTowards(this.target.pos); if(this.target.type==='SHOP' && (r || this.pos.distSq(this.target.pos)<625)) { this.buyFromShop(this.target); if(this.hp<this.maxHp*0.4 && !this.items.includes('POTION')) this.target = fallbackBase; else this.state='IDLE'; } else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(this.target.type) && (r || this.pos.distSq(this.target.pos)<625)) { this.buyTraining(this.target); this.state='IDLE'; } if(r || this.pos.distSq(this.target.pos)<(this.target.radius+15)**2) { this.pos.x += Math.cos(this.wanderAngle)*0.2; this.pos.y += Math.sin(this.wanderAngle)*0.2; if(Math.random()<0.05) this.wanderAngle+=(Math.random()-0.5); if(this.target===myBase && hasHeal) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.target===Game.base) { if(this.hp>=this.maxHp) this.state='IDLE'; } else if(this.hp>=this.maxHp*0.6) this.state='IDLE'; } }
                 else this.state='IDLE';
                 break;
         }
@@ -2450,6 +2502,32 @@ class Hero extends Unit {
         if (this.isHealingAt) return;
         if (this.getArcaneAuraCount() > 0) {
             ctx.save(); ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; ctx.beginPath(); ctx.ellipse(this.pos.x, this.pos.y+5, 12, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        }
+        if (this.classType === 'PALADIN' && this.skills && this.skills.includes('DEVOTION_AURA')) {
+            const vR = this.getVisionRange();
+            const pulse = 0.2 + 0.15 * Math.sin(Game.timeMs * 0.003);
+            const grad = ctx.createRadialGradient(this.pos.x, this.pos.y, 0, this.pos.x, this.pos.y, vR);
+            grad.addColorStop(0, `rgba(135, 206, 250, ${pulse})`);
+            grad.addColorStop(1, 'rgba(135, 206, 250, 0)');
+            ctx.save();
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(this.pos.x, this.pos.y, vR, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+        if (this.classType === 'PALADIN' && this.skills && this.skills.includes('CRUSADER_AURA')) {
+            const vR = this.getVisionRange();
+            const pulse = 0.2 + 0.15 * Math.sin(Game.timeMs * 0.003);
+            const grad = ctx.createRadialGradient(this.pos.x, this.pos.y, 0, this.pos.x, this.pos.y, vR);
+            grad.addColorStop(0, `rgba(255, 215, 0, ${pulse})`); // Gold color
+            grad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            ctx.save();
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(this.pos.x, this.pos.y, vR, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
         }
         const conf = HERO_CONFIG[this.classType];
         const e = conf.icon; let dX=this.pos.x, dY=this.pos.y, rot=0;
@@ -2772,6 +2850,10 @@ class DruidHero extends Hero {
     getDrawOffset() { return { dX: 0, dY: Math.sin(Game.timeMs * 0.006) * 3, rot: 0 }; }
 }
 
+class PaladinHero extends Hero {
+    getClassName() { return 'Paladin'; }
+}
+
 class WizardHero extends Hero {
     getClassName() { return 'Wizard'; }
     performAttack(d, cr) {
@@ -2855,7 +2937,7 @@ class Building extends Entity {
     constructor(x, y, t) {
         super(x, y); this.isStatic = true; this.faction = 'PLAYER'; this.type = t; this.heroes = []; this.maxHeroes = 3; const c = BUILDING_CONFIG[t]; this.hp = this.maxHp = c ? c.hp : 100; this.radius = c ? c.radius : 25;
         this.isRepairing = false; this.repairTimer = 0; this.fireTimer = 0;
-        if (t === 'SHOP') this.slots = ['NONE', 'NONE', 'NONE']; else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(t)) this.slots = ['NONE']; else if (t === 'TOWER') { this.attackRange = 250; this.attackCooldown = 0; this.target = null; this.kills = 0; } else if (t === 'TAVERN') { this.groups = [null, null]; }
+        if (t === 'SHOP') this.slots = ['NONE', 'NONE', 'NONE']; else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(t)) this.slots = ['NONE']; else if (t === 'TOWER') { this.attackRange = 250; this.attackCooldown = 0; this.target = null; this.kills = 0; } else if (t === 'TAVERN') { this.groups = [null, null]; }
         this.isUpgraded = false;
         
         if (c && c.yOffset) {
@@ -3107,7 +3189,7 @@ class Flag extends Entity {
                     });
 
                     while (ass.length < maxReq && av.length > 0) { 
-                        let classCounts = { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0 };
+                        let classCounts = { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0, PALADIN: 0 };
                         ass.forEach(a => classCounts[a.classType]++);
 
                         let chosenIndex = -1;
@@ -3497,7 +3579,7 @@ const Game = window.Game = {
     shopActiveSlot: null, guildActiveSlot: null, tavernActiveSlot: null, tavernDraftGroup: [], entities: [], playerEntities: [], enemyEntities: [], flags: [], shops: [], particles: [], projectiles: [], floatingTexts: [], ashPits: [], trees: null,
     renderStatic: [], renderDynamic: [], staticDirty: true,
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
-    guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false, gameWon: false,
+    guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0, PALADIN: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false, gameWon: false,
     centralSpawnerDeductions: { 'RAT_HOLE': 0, 'WEB': 0, 'SNAKE_NEST': 0 },
     heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
@@ -3735,7 +3817,7 @@ const Game = window.Game = {
                 }
             }
         };
-        ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-wizard-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, this.getBuildingCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_'))));
+        ['btn-warrior-guild','btn-rogue-guild','btn-druid-guild','btn-wizard-guild','btn-paladin-guild','btn-shop','btn-farm','btn-tower','btn-tavern','btn-temple'].forEach(id => updateBtn(id, this.getBuildingCost(id.replace('btn-', '').toUpperCase().replace(/-/g,'_'))));
         ['btn-flag-explore','btn-flag-defend','btn-flag-attack', 'btn-flag-group-attack'].forEach(id => updateBtn(id, QUEST_CONFIG[id.replace('btn-', '').toUpperCase().replace(/-/g,'_')].cost));
 
         const panel = document.getElementById('info-panel');
@@ -3788,7 +3870,7 @@ const Game = window.Game = {
                 }
             }
             if (e.faction === 'PLAYER' && e.classType) {
-                const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard' };
+                const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard', 'PALADIN': 'Paladin' };
                 const icon = HERO_CONFIG[e.classType] ? HERO_CONFIG[e.classType].icon : '🦸';
                 UI.setHTML('info-name', `
                     <span style="width:100%; display:flex; justify-content:space-between; align-items: center;">
@@ -3814,6 +3896,8 @@ const Game = window.Game = {
                     else if (s === 'TAUNT') iStr = '🤬';
                     else if (s === 'ARCANE_AURA') iStr = '🔮';
                     else if (s === 'MAGICAL_BARRAGE') iStr = '✨';
+                    else if (s === 'DEVOTION_AURA') iStr = '🙏';
+                    else if (s === 'CRUSADER_AURA') iStr = '🙏';
                     return `<span style="font-size: 1.1rem;" title="${s}">${iStr}</span>`;
                 }).join('') : '<span style="color:#aaaaaa; font-style:italic;">None</span>';
                 UI.setHTML('val-hero-abilities-list', abilitiesHTML);
@@ -3881,7 +3965,7 @@ const Game = window.Game = {
                 UI.setDisplay('shop-config', 'block');
                 if (Game.shopActiveSlot !== null) { UI.setDisplay('shop-select-ui', 'block'); UI.setDisplay('shop-slots-ui', 'none'); Object.keys(ITEM_CONFIG).forEach(id => { UI.setDisabled(`btn-shop-${id}`, this.gold < ITEM_CONFIG[id].cost); }); }
                 else { UI.setDisplay('shop-select-ui', 'none'); UI.setDisplay('shop-slots-ui', 'block'); for(let i=0;i<3;i++) { UI.setHTML(`shop-slot-${i}`, e.slots[i] === 'NONE' ? 'Empty' : `<span style="font-size:1.5rem">${ITEM_CONFIG[e.slots[i]].icon}</span>`); } }
-            } else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(e.type)) {
+            } else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(e.type)) {
                 UI.setDisplay('guild-config', 'block'); const br = document.getElementById('btn-recruit');
                 const hClass = BUILDING_CONFIG[e.type].heroClass; const hConf = HERO_CONFIG[hClass];
                 
@@ -3915,7 +3999,7 @@ const Game = window.Game = {
                     UI.setDisplay('guild-select-ui', 'block');
                     UI.setDisplay('guild-slots-ui', 'none');
 
-                    const upgs = ['CHARGE','TRAP','REGROWTH','MARK_OF_THE_WILD','CHEAP_SHOT','TAUNT','ARCANE_AURA','MAGICAL_BARRAGE'];
+                    const upgs = ['CHARGE','TRAP','REGROWTH','MARK_OF_THE_WILD','CHEAP_SHOT','TAUNT','ARCANE_AURA','MAGICAL_BARRAGE','DEVOTION_AURA','CRUSADER_AURA'];
                     upgs.forEach(u => UI.setDisplay(`btn-upg-${u}`, 'none'));
 
                     const showUpg = (u) => {
@@ -3929,6 +4013,7 @@ const Game = window.Game = {
                     else if (hClass === 'ROGUE') { showUpg('TRAP'); showUpg('CHEAP_SHOT'); }
                     else if (hClass === 'DRUID') { showUpg('REGROWTH'); showUpg('MARK_OF_THE_WILD'); }
                     else if (hClass === 'WIZARD') { showUpg('ARCANE_AURA'); showUpg('MAGICAL_BARRAGE'); }
+                    else if (hClass === 'PALADIN') { showUpg('DEVOTION_AURA'); showUpg('CRUSADER_AURA'); }
                 } else {
                     UI.setDisplay('guild-select-ui', 'none');
                     UI.setDisplay('guild-slots-ui', 'block');
@@ -3946,6 +4031,8 @@ const Game = window.Game = {
                         else if (e.slots[0] === 'TAUNT') { iStr = '🤬'; title = 'Taunt'; desc = 'The warrior shouts at the monster that they are attacking, forcing it to attack the warrior.'; }
                         else if (e.slots[0] === 'ARCANE_AURA') { iStr = '🔮'; title = 'Arcane Aura'; desc = 'Heroes near the wizard gain 15% more experience. If the wizard is in a group, only group members are affected, no matter their distance. Buff stacks when grouped with another wizard.'; }
                         else if (e.slots[0] === 'MAGICAL_BARRAGE') { iStr = '✨'; title = 'Magical Barrage'; desc = 'The wizard\'s magical prowess allows them to shoot at up to 3 enemies at once, at the cost of a slower attack speed. If the wizard is only shooting at one enemy, their attack speed goes back to normal.'; }
+                        else if (e.slots[0] === 'DEVOTION_AURA') { iStr = '🙏'; title = 'Devotion Aura'; desc = 'The Paladin and nearby allies take 20% reduced damage'; }
+                        else if (e.slots[0] === 'CRUSADER_AURA') { iStr = '🙏'; title = 'Crusader Aura'; desc = 'The Paladin and nearby allies move and attack 25% percent faster'; }
 
                         slotBtn.classList.add('menu-btn', 'build-btn');
                         slotBtn.classList.remove('shop-slot-btn');
@@ -4188,7 +4275,7 @@ const Game = window.Game = {
         }
     },
     recruitHero() {
-        if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.selectedEntity.type)) {
+        if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(this.selectedEntity.type)) {
             const g = this.selectedEntity; 
             const hClass = BUILDING_CONFIG[g.type].heroClass; const cost = HERO_CONFIG[hClass].recruitCost;
             
@@ -4203,7 +4290,7 @@ const Game = window.Game = {
     },
 
     buyShopItem(id, c) { if (this.selectedEntity && this.selectedEntity.type === 'SHOP' && this.shopActiveSlot !== null && this.gold >= ITEM_CONFIG[id].cost) { this.gold -= ITEM_CONFIG[id].cost; this.selectedEntity.slots[this.shopActiveSlot] = id; this.shopActiveSlot = null; this.hideTooltip(); this.updateUI(true); } },
-    buyGuildUpgrade(id) { if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD'].includes(this.selectedEntity.type) && this.guildActiveSlot !== null && this.gold >= UPGRADE_CONFIG[id].cost) { this.gold -= UPGRADE_CONFIG[id].cost; this.selectedEntity.slots[this.guildActiveSlot] = id; this.guildActiveSlot = null; this.hideTooltip(); this.updateUI(true); } },
+    buyGuildUpgrade(id) { if (this.selectedEntity && ['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(this.selectedEntity.type) && this.guildActiveSlot !== null && this.gold >= UPGRADE_CONFIG[id].cost) { this.gold -= UPGRADE_CONFIG[id].cost; this.selectedEntity.slots[this.guildActiveSlot] = id; this.guildActiveSlot = null; this.hideTooltip(); this.updateUI(true); } },
     togglePause() { 
         this.isPaused = !this.isPaused; 
         UI.setText('btn-pause', this.isPaused ? '▶️' : '⏸️');
@@ -4403,7 +4490,7 @@ const Game = window.Game = {
 
         let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div><div class="score-grid">`;
         html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('revives', 'Revives')}</tr>`;
-        const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard' };
+        const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard', 'PALADIN': 'Paladin' };
         top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${h.revives || 0}</td></tr>`);
         html += `</table></div></div>`;
                 html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Accolades & Score Details</h3>`;
@@ -4482,7 +4569,7 @@ function setMode(m) {
     Game.mode = m; 
     if (m !== 'NONE' && Game.selectedEntity) { Game.selectedEntity = null; Game.hideTooltip(); Game.updateUI(true); }
     document.querySelectorAll('#bottom-bar button').forEach(b => UI.setClass(b, 'active', false)); 
-    const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_WIZARD':'btn-wizard-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','BUILD_TEMPLE':'btn-temple','FLAG_EXPLORE':'btn-flag-explore','FLAG_DEFEND':'btn-flag-defend','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack', 'REPAIR': 'btn-repair-mode'}[m];
+    const id = {'BUILD_WARRIOR':'btn-warrior-guild','BUILD_ROGUE':'btn-rogue-guild','BUILD_DRUID':'btn-druid-guild','BUILD_WIZARD':'btn-wizard-guild','BUILD_PALADIN':'btn-paladin-guild','BUILD_SHOP':'btn-shop','BUILD_FARM':'btn-farm','BUILD_TOWER':'btn-tower','BUILD_TAVERN':'btn-tavern','BUILD_TEMPLE':'btn-temple','FLAG_EXPLORE':'btn-flag-explore','FLAG_DEFEND':'btn-flag-defend','FLAG_ATTACK':'btn-flag-attack','FLAG_GROUP_ATTACK':'btn-flag-group-attack', 'REPAIR': 'btn-repair-mode'}[m];
     if(id) UI.setClass(id, 'active', true); 
     // ⚡ Bolt Optimization: Update cursor immediately instead of waiting for next mousemove
     // This prevents a perceived delay when users use hotkeys to switch to/from repair mode
@@ -4501,7 +4588,7 @@ canvas.addEventListener('mousedown', e => {
     const r = canvas.getBoundingClientRect(); const cp = screenToWorld(e.clientX-r.left, e.clientY-r.top);
     let clE = null; for(let i=Game.entities.length-1;i>=0;i--) { const ent=Game.entities[i]; if(ent.type.startsWith('FLAG_') || ent.type === 'RUINS') continue; if(ent.faction==='ENEMY'&&ent.isVisible===false) continue; const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0); const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0); if((cp.x - hx)**2 + (cp.y - hy)**2 <= (ent.radius+10)**2) { clE=ent; break; } }
     if (Game.mode === 'NONE') { Game.selectedEntity = clE; Game.updateUI(true); return; }
-    const bM = {'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_WIZARD':'WIZARD_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
+    const bM = {'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_WIZARD':'WIZARD_GUILD','BUILD_PALADIN':'PALADIN_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
     if (bM[Game.mode]) {
         const bt = bM[Game.mode], cnf = BUILDING_CONFIG[bt], c = Game.getBuildingCost(bt);
         const pop = Game.getPopulation();
@@ -4668,7 +4755,7 @@ function loop(timestamp) {
             for(let i=0;i<Math.max(0, finalTargetSpidersMain-eSpiders);i++) Game.spawnHole('WEB', false);
             for(let i=0;i<Math.max(0, finalTargetSnakesMain-eSnakes);i++) Game.spawnHole('SNAKE_NEST', false);
         }
-        Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=GAME_CONFIG.passiveGoldInterval; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
+        Game.passiveGoldTimer-=dtS; if(Game.passiveGoldTimer<=0){Game.passiveGoldTimer+=GAME_CONFIG.passiveGoldInterval; if(Game.day===1){let gain=0; Game.playerEntities.forEach(e=>{if(e.type==='CASTLE')gain+=25;else if(['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','PALADIN_GUILD','FARM'].includes(e.type))gain+=10;}); Game.gold+=gain;}}
         
         let updateStatic = Game.staticDirty;
         if (updateStatic) Game.renderStatic.length = 0;
@@ -4788,7 +4875,7 @@ function loop(timestamp) {
     
     ctx.globalAlpha=1.0;
     if (Game.mode!=='NONE'){
-        const bM={'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_WIZARD':'WIZARD_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
+        const bM={'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_WIZARD':'WIZARD_GUILD','BUILD_PALADIN':'PALADIN_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
         if(bM[Game.mode]){
             const bt=bM[Game.mode],cnf=BUILDING_CONFIG[bt]; 
             let canP=Game.canPlaceBuilding(mousePos.x,mousePos.y,cnf.radius); 
