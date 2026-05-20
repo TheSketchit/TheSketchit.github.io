@@ -869,6 +869,10 @@ const keys = {};
 
 window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
+    if ((e.code === 'Space' || e.key === ' ') && !Game.gameOver) {
+        e.preventDefault();
+        Game.togglePause();
+    }
     if (!Game.isPaused && !Game.gameOver) {
         const k = e.key.toLowerCase();
         if (k === 'escape') { Game.selectedEntity = null; setMode('NONE'); Game.updateUI(true); }
@@ -1244,7 +1248,7 @@ const HERO_CONFIG = {
     ROGUE: { maxHp: 90, speed: 1.32, damage: 16, maxAttackCooldown: 0.8, radius: 10, icon: '🥷', recruitCost: 85, requiredItems: ['POTION', 'DAGGER', 'ROGUES_DISGUISE'] },
     DRUID: { maxHp: 70, speed: 1.5, damage: 8, maxAttackCooldown: 1.3, radius: 10, attackRange: 100, icon: '🧚', recruitCost: 85, requiredItems: ['POTION', 'WAND', 'ROBE_OF_LIFE'] },
     WIZARD: { maxHp: 65, speed: 1.2, damage: 20, maxAttackCooldown: 1.5, radius: 10, attackRange: 150, icon: '🧙', recruitCost: 125, requiredItems: ['POTION', 'WAND', 'ROBE_OF_MAGI', 'TOME_OF_POWER'] },
-    PALADIN: { maxHp: 110, speed: 1.3, damage: 15, maxAttackCooldown: 1.5, radius: 12, icon: '💂', recruitCost: 115, requiredItems: ['POTION', 'ARMOR', 'CHAINMAIL'] }
+    PALADIN: { maxHp: 110, speed: 1.3, damage: 15, maxAttackCooldown: 1.5, radius: 12, icon: '💂', recruitCost: 115, requiredItems: ['POTION', 'ARMOR', 'CHAINMAIL', 'HAMMER_OF_JUSTICE', 'TOME_OF_RETRIBUTION'] }
 };
 
 const UPGRADE_CONFIG = {
@@ -1862,13 +1866,21 @@ class Hero extends Unit {
         if (this.retributionHealChance && Math.random() < this.retributionHealChance) {
             let healAmt = damageDealt;
             if (healAmt > 0) {
+                let actualHealPaladin = Math.min(this.maxHp - this.hp, healAmt);
                 this.hp = Math.min(this.maxHp, this.hp + healAmt);
                 Game.spawnFloatingText(this.pos.x, this.pos.y, `+${Math.floor(healAmt)}`, '#ffcc00', 1.0, 16);
+                if (actualHealPaladin > 0) {
+                    Game.spawnParticle(this.pos.x, this.pos.y, '#ffcc00');
+                }
                 for (let i = 0; i < Game.activeHeroes.length; i++) {
                     const h = Game.activeHeroes[i];
                     if (h !== this && this.pos.distSq(h.pos) <= 10000) {
+                        let actualHealAlly = Math.min(h.maxHp - h.hp, healAmt);
                         h.hp = Math.min(h.maxHp, h.hp + healAmt);
                         Game.spawnFloatingText(h.pos.x, h.pos.y, `+${Math.floor(healAmt)}`, '#ffcc00', 1.0, 16);
+                        if (actualHealAlly > 0) {
+                            Game.spawnParticle(h.pos.x, h.pos.y, '#ffcc00');
+                        }
                     }
                 }
             }
@@ -2356,13 +2368,16 @@ class Hero extends Unit {
                 // Check if sO has a potion the hero wants to bump priority over training
                 let wantPotion = false;
                 let wantSword = false;
+                let wantPaladinItem = false;
                 for(let itemId of sO.slots) {
                     if(itemId === 'POTION' && !this.items.includes('POTION') && this.personalGold >= ITEM_CONFIG['POTION'].cost) wantPotion = true;
                     if(this.classType === 'WARRIOR' && itemId === 'SWORD' && !this.items.includes('SWORD') && this.personalGold >= ITEM_CONFIG['SWORD'].cost) wantSword = true;
+                    if(this.classType === 'PALADIN' && itemId === 'HAMMER_OF_JUSTICE' && !this.items.includes('HAMMER_OF_JUSTICE') && this.personalGold >= ITEM_CONFIG['HAMMER_OF_JUSTICE'].cost) wantPaladinItem = true;
+                    if(this.classType === 'PALADIN' && itemId === 'TOME_OF_RETRIBUTION' && !this.items.includes('TOME_OF_RETRIBUTION') && this.personalGold >= ITEM_CONFIG['TOME_OF_RETRIBUTION'].cost) wantPaladinItem = true;
                 }
                 if (wantPotion) {
                     s*=100;
-                } else if (wantSword) {
+                } else if (wantSword || wantPaladinItem) {
                     s*=50;
                 }
                 
@@ -2395,6 +2410,12 @@ class Hero extends Unit {
                     sc *= 100;
                 } else if (this.classType === 'WARRIOR' && !this.items.includes('SWORD') && this.personalGold >= ITEM_CONFIG['SWORD'].cost) {
                     if (s.slots.includes('SWORD')) sc *= 50;
+                } else if (this.classType === 'PALADIN') {
+                    if (!this.items.includes('HAMMER_OF_JUSTICE') && this.personalGold >= ITEM_CONFIG['HAMMER_OF_JUSTICE'].cost && s.slots.includes('HAMMER_OF_JUSTICE')) {
+                        sc *= 50;
+                    } else if (!this.items.includes('TOME_OF_RETRIBUTION') && this.personalGold >= ITEM_CONFIG['TOME_OF_RETRIBUTION'].cost && s.slots.includes('TOME_OF_RETRIBUTION')) {
+                        sc *= 50;
+                    }
                 }
                 if(sc>bSc) { bSc=sc; bS=s; } 
             }
@@ -2650,7 +2671,12 @@ class WarriorHero extends Hero {
     }
     onAttackTick() {
         if (this.skills.includes('TAUNT') && this.tauntCooldown <= 0 && this.target && this.target.faction === 'ENEMY') {
-            this.target.target = this;
+            const vrSq = this.getVisionRange() ** 2;
+            Grid.getNearby(this.pos, vrSq, (e, distSq) => {
+                if (e.faction === 'ENEMY' && e.type !== 'SPAWNER' && e.spawnerType !== 'VOLCANO') {
+                    e.target = this;
+                }
+            }, 'ENEMY');
             this.tauntCooldown = 10.0;
             this.tauntVfxTimer = 1.0;
         }
@@ -2667,7 +2693,12 @@ class WarriorHero extends Hero {
                 if (allyIsAttacked && h.lastAttacker && h.lastAttacker.active && h.lastAttacker.faction === 'ENEMY' && h.lastAttacker.type !== 'SPAWNER' && h.lastAttacker.spawnerType !== 'VOLCANO') {
                     // Try to taunt if available
                     if (this.skills.includes('TAUNT') && this.tauntCooldown <= 0) {
-                        h.lastAttacker.target = this;
+                        const vrSq = this.getVisionRange() ** 2;
+                        Grid.getNearby(this.pos, vrSq, (e, distSq) => {
+                            if (e.faction === 'ENEMY' && e.type !== 'SPAWNER' && e.spawnerType !== 'VOLCANO') {
+                                e.target = this;
+                            }
+                        }, 'ENEMY');
                         this.tauntCooldown = 10.0;
                         this.tauntVfxTimer = 1.0;
                     }
@@ -3128,7 +3159,7 @@ class Building extends Entity {
 
 class Flag extends Entity {
     constructor(x, y, t, tE = null, sourceTav = null) { 
-        super(x, y); this.isStatic = true; this.type = t;
+        super(x, y); this.isStatic = true; this.type = t; this.zOffset = 10000;
         const qConf = QUEST_CONFIG[t];
         this.bounty = qConf ? qConf.bounty : 25; this.targetEntity = tE; this.maxTimer = qConf ? qConf.duration : 20.0; this.defendTimer = qConf ? qConf.duration : 20.0;
         this.name = qConf ? qConf.name : 'Quest ⚑';
@@ -3496,11 +3527,22 @@ class Volcano extends Entity {
             }
         }
         if (targets.length > 0) {
-            const hitCount = Math.max(3, targets.length);
-            for (let i = 0; i < hitCount; i++) {
-                const target = targets[i % targets.length];
-                const dmg = Math.floor(target.maxHp * 0.25);
-                Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, target, dmg, this, 'FIREBALL'));
+            const numTargets = targets.length;
+            const targetDmgFraction = 0.80 / numTargets;
+
+            for (let i = 0; i < numTargets; i++) {
+                const target = targets[i];
+                const totalDmg = Math.floor(target.maxHp * targetDmgFraction);
+
+                let projsForTarget = 1;
+                if (numTargets === 1) projsForTarget = 3;
+                else if (numTargets === 2) projsForTarget = 2;
+
+                const dmgPerProj = Math.floor(totalDmg / projsForTarget);
+
+                for (let j = 0; j < projsForTarget; j++) {
+                    Game.projectiles.push(new Projectile(this.pos.x + (Math.random()-0.5)*40, this.pos.y - 40 + (Math.random()-0.5)*40, target, dmgPerProj, this, 'FIREBALL'));
+                }
             }
             Game.spawnFloatingText(this.pos.x, this.pos.y - 60, "ERUPTION!", "#e53e3e", 2.0, 24);
         }
@@ -4638,7 +4680,21 @@ canvas.addEventListener('mousedown', e => {
     if (Game.gameOver || Game.isPaused) return;
     if (e.button === 1 || e.button === 2) { isPanning = true; panStart = new Vec2(e.clientX, e.clientY); cameraStart = new Vec2(Camera.x, Camera.y); if(e.button===2) { if(Game.mode!=='NONE') setMode('NONE'); else { Game.selectedEntity=null; Game.updateUI(true); } } return; }
     const r = canvas.getBoundingClientRect(); const cp = screenToWorld(e.clientX-r.left, e.clientY-r.top);
-    let clE = null; for(let i=Game.entities.length-1;i>=0;i--) { const ent=Game.entities[i]; if(ent.type.startsWith('FLAG_') || ent.type === 'RUINS') continue; if(ent.faction==='ENEMY'&&ent.isVisible===false) continue; const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0); const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0); if((cp.x - hx)**2 + (cp.y - hy)**2 <= (ent.radius+10)**2) { clE=ent; break; } }
+    let clE = null; let maxZ = -Infinity;
+    for(let i=Game.entities.length-1;i>=0;i--) {
+        const ent=Game.entities[i];
+        if(ent.type.startsWith('FLAG_') || ent.type === 'RUINS') continue;
+        if(ent.faction==='ENEMY'&&ent.isVisible===false) continue;
+        const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0);
+        const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0);
+        if((cp.x - hx)**2 + (cp.y - hy)**2 <= (ent.radius+10)**2) {
+            let z = ent.pos.y + (ent.zOffset || 0);
+            if (z > maxZ) {
+                clE = ent;
+                maxZ = z;
+            }
+        }
+    }
     if (Game.mode === 'NONE') { Game.selectedEntity = clE; Game.updateUI(true); return; }
     const bM = {'BUILD_WARRIOR':'WARRIOR_GUILD','BUILD_ROGUE':'ROGUE_GUILD','BUILD_DRUID':'DRUID_GUILD','BUILD_WIZARD':'WIZARD_GUILD','BUILD_PALADIN':'PALADIN_GUILD','BUILD_SHOP':'SHOP','BUILD_FARM':'FARM','BUILD_TOWER':'TOWER','BUILD_TAVERN':'TAVERN','BUILD_TEMPLE':'TEMPLE'};
     if (bM[Game.mode]) {
@@ -4667,13 +4723,20 @@ canvas.addEventListener('mousemove', e => {
     if(isPanning){const dx=(e.clientX-panStart.x)/Camera.zoom,dy=(e.clientY-panStart.y)/Camera.zoom; Camera.x=cameraStart.x-dx; Camera.y=cameraStart.y-dy;} 
     const wp=screenToWorld(screenMousePos.x,screenMousePos.y); mousePos.x=wp.x; mousePos.y=wp.y; 
     let hE = null;
+    let maxZ = -Infinity;
     for(let i=Game.entities.length-1;i>=0;i--) {
         const ent=Game.entities[i];
         if(ent.faction==='ENEMY'&&ent.isVisible===false) continue;
         if(Game.mode === 'REPAIR' && (ent.faction !== 'PLAYER' || !BUILDING_CONFIG[ent.type])) continue;
         const hx = ent.pos.x + (ent.hitboxOffset ? ent.hitboxOffset.x : 0);
         const hy = ent.pos.y + (ent.hitboxOffset ? ent.hitboxOffset.y : 0);
-        if((wp.x - hx)**2 + (wp.y - hy)**2 <= (ent.radius+10)**2) { hE = ent; break; }
+        if((wp.x - hx)**2 + (wp.y - hy)**2 <= (ent.radius+10)**2) {
+            let z = ent.pos.y + (ent.zOffset || 0);
+            if (z > maxZ) {
+                hE = ent;
+                maxZ = z;
+            }
+        }
     }
     if (Game.mode === 'NONE') {
         if (hE && hE.type.startsWith('FLAG_')) {
@@ -4840,10 +4903,10 @@ function loop(timestamp) {
         }
         
         if (updateStatic) {
-            Game.renderStatic.sort((a,b) => a.pos.y - b.pos.y);
+            Game.renderStatic.sort((a,b) => (a.pos.y + (a.zOffset || 0)) - (b.pos.y + (b.zOffset || 0)));
             Game.staticDirty = false;
         }
-        Game.renderDynamic.sort((a,b) => a.pos.y - b.pos.y);
+        Game.renderDynamic.sort((a,b) => (a.pos.y + (a.zOffset || 0)) - (b.pos.y + (b.zOffset || 0)));
 
         Game.updateUI(); for(let i=0; i<Game.entities.length; i++) Game.entities[i].update(dtS); 
         Game.projectiles.forEach(p=>p.update(dtS)); 
@@ -4910,7 +4973,7 @@ function loop(timestamp) {
         if (!sEnt && !dEnt) break;
 
         if (sEnt && dEnt) {
-            if (sEnt.pos.y <= dEnt.pos.y) {
+            if (sEnt.pos.y + (sEnt.zOffset || 0) <= dEnt.pos.y + (dEnt.zOffset || 0)) {
                 sEnt.draw(ctx); sIdx++;
             } else {
                 dEnt.draw(ctx); dIdx++;
