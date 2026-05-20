@@ -123,43 +123,43 @@
                     Select Item <button class="btn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="Game.shopActiveSlot = null; Game.hideTooltip(); Game.updateUI(true)">Cancel</button>
                 </h4>
                 <div class="shop-item-grid">
-                    <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showItemTooltip(event, &apos;Health Potion&apos;, &apos;Restores 50 HP when health drops below 30%&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showItemTooltip(event, &apos;Health Potion&apos;, &apos;Restores 50 HP when health drops below 30%&apos;, 'POTION')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚🧙💂</span>
                     </button>
-                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 125)" onmouseenter="Game.showItemTooltip(event, &apos;Sword&apos;, &apos;Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 125)" onmouseenter="Game.showItemTooltip(event, &apos;Sword&apos;, &apos;Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.&apos;, 'SWORD')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⚔️</span><span class="item-cost">125g</span><span class="item-classes">🧌</span>
                     </button>
-                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 100)" onmouseenter="Game.showItemTooltip(event, &apos;Dagger&apos;, &apos;Increases attack damage by 3. 5% chance to deal double damage.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-DAGGER" class="shop-item-btn" onclick="Game.buyShopItem('DAGGER', 100)" onmouseenter="Game.showItemTooltip(event, &apos;Dagger&apos;, &apos;Increases attack damage by 3. 5% chance to deal double damage.&apos;, 'DAGGER')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🗡️</span><span class="item-cost">100g</span><span class="item-classes">🥷</span>
                     </button>
-                    <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showItemTooltip(event, &apos;Wand&apos;, &apos;Increases attack damage by 8 and attack range by 25%.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-WAND" class="shop-item-btn" onclick="Game.buyShopItem('WAND', 120)" onmouseenter="Game.showItemTooltip(event, &apos;Wand&apos;, &apos;Increases attack damage by 8 and attack range by 25%.&apos;, 'WAND')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🪄</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
-                    <button id="btn-shop-CASTERS_TUNIC" class="shop-item-btn" onclick="Game.buyShopItem('CASTERS_TUNIC', 120)" onmouseenter="Game.showItemTooltip(event, &apos;Caster\&apos;s Tunic&apos;, &apos;Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-CASTERS_TUNIC" class="shop-item-btn" onclick="Game.buyShopItem('CASTERS_TUNIC', 120)" onmouseenter="Game.showItemTooltip(event, &apos;Caster\&apos;s Tunic&apos;, &apos;Reduces damage received by 5%. Increases HP by 25. Increases damage by 5.&apos;, 'CASTERS_TUNIC')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">👕</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
-                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showItemTooltip(event, &apos;Leather Armor&apos;, &apos;Increases max HP by 50 and reduces damage taken by 10%.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showItemTooltip(event, &apos;Leather Armor&apos;, &apos;Increases max HP by 50 and reduces damage taken by 10%.&apos;, 'ARMOR')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷💂</span>
                     </button>
-                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showItemTooltip(event, &apos;Chainmail&apos;, &apos;Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showItemTooltip(event, &apos;Chainmail&apos;, &apos;Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.&apos;, 'CHAINMAIL')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌💂</span>
                     </button>
-                    <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showItemTooltip(event, &apos;Robe of Life&apos;, &apos;When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\&apos;s Tunic.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showItemTooltip(event, &apos;Robe of Life&apos;, &apos;When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\&apos;s Tunic.&apos;, 'ROBE_OF_LIFE')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">👘</span><span class="item-cost">200g</span><span class="item-classes">🧚</span>
                     </button>
-                    <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showItemTooltip(event, &apos;Rogue\&apos;s Disguise&apos;, &apos;Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROGUES_DISGUISE" class="shop-item-btn" onclick="Game.buyShopItem('ROGUES_DISGUISE', 250)" onmouseenter="Game.showItemTooltip(event, &apos;Rogue\&apos;s Disguise&apos;, &apos;Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.&apos;, 'ROGUES_DISGUISE')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🕵️‍♂️</span><span class="item-cost">250g</span><span class="item-classes">🥷</span>
                     </button>
-                    <button id="btn-shop-ROBE_OF_MAGI" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_MAGI', 250)" onmouseenter="Game.showItemTooltip(event, &apos;Robes of Magi&apos;, &apos;Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\&apos;s Tunic.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-ROBE_OF_MAGI" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_MAGI', 250)" onmouseenter="Game.showItemTooltip(event, &apos;Robes of Magi&apos;, &apos;Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\&apos;s Tunic.&apos;, 'ROBE_OF_MAGI')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🥻</span><span class="item-cost">250g</span><span class="item-classes">🧙</span>
                     </button>
-                    <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showItemTooltip(event, &apos;Tome of Power&apos;, &apos;The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showItemTooltip(event, &apos;Tome of Power&apos;, &apos;The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)&apos;, 'TOME_OF_POWER')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">📖</span><span class="item-cost">300g</span><span class="item-classes">🧙</span>
                     </button>
-                    <button id="btn-shop-HAMMER_OF_JUSTICE" class="shop-item-btn" onclick="Game.buyShopItem('HAMMER_OF_JUSTICE', 150)" onmouseenter="Game.showItemTooltip(event, &apos;Hammer of Justice&apos;, &apos;Increases attack by 20, slows attack to 2.5. 50% chance on hit to stun.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-HAMMER_OF_JUSTICE" class="shop-item-btn" onclick="Game.buyShopItem('HAMMER_OF_JUSTICE', 150)" onmouseenter="Game.showItemTooltip(event, &apos;Hammer of Justice&apos;, &apos;Increases attack by 20, slows attack to 2.5. 50% chance on hit to stun.&apos;, 'HAMMER_OF_JUSTICE')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">🔨</span><span class="item-cost">150g</span><span class="item-classes">💂</span>
                     </button>
-                    <button id="btn-shop-TOME_OF_RETRIBUTION" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_RETRIBUTION', 150)" onmouseenter="Game.showItemTooltip(event, &apos;Tome of Retribution&apos;, &apos;25% chance on hit to heal the paladin and nearby allies for the damage dealt.&apos;)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                    <button id="btn-shop-TOME_OF_RETRIBUTION" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_RETRIBUTION', 150)" onmouseenter="Game.showItemTooltip(event, &apos;Tome of Retribution&apos;, &apos;25% chance on hit to heal the paladin and nearby allies for the damage dealt.&apos;, 'TOME_OF_RETRIBUTION')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">📜</span><span class="item-cost">150g</span><span class="item-classes">💂</span>
                     </button>
                 </div>
@@ -2487,7 +2487,8 @@ class Hero extends Unit {
             if (this.items.some(u => ITEM_CONFIG[u] && ITEM_CONFIG[u].replaces === itemId)) continue;
             
             this.personalGold -= item.cost; 
-            Game.gold += Math.floor(item.cost * Game.getUpkeepInfo().rate); Game.itemsPurchased++;
+            Game.gold += Math.floor(item.cost * Game.getUpkeepInfo().rate); Game.goldLostToUpkeep += (item.cost - Math.floor(item.cost * Game.getUpkeepInfo().rate)); Game.itemsPurchased++;
+            if (itemId === 'POTION') Game.potionsBought++;
             
             Engine.playSound(Engine.coinBuffer, s.pos.x, s.pos.y, 1.0, 'visible');
 
@@ -3041,6 +3042,7 @@ class Building extends Entity {
                     this.repairTimer = 0;
                     if (Game.gold >= 10) {
                         Game.gold -= 10;
+                        Game.goldSpentOnRepairs += 10;
                         this.hp = Math.min(this.maxHp, this.hp + 30);
                         Game.spawnFloatingText(this.pos.x - 15, this.pos.y - 40, "-10g", "#e53e3e");
                         Game.spawnFloatingText(this.pos.x + 15, this.pos.y - 40, "+30 HP", "#48bb78");
@@ -3674,7 +3676,7 @@ const Game = window.Game = {
     activeHeroes: [], activeShops: [], activeFlags: [], activeSpawners: [], activeTemples: [], corridors: [], bgBounds: {x: 0, y: 0},
     guildBanks: { WARRIOR: 0, ROGUE: 0, DRUID: 0, WIZARD: 0, PALADIN: 0 }, base: null, selectedEntity: null, hoveredEntity: null, gameOver: false, gameWon: false,
     centralSpawnerDeductions: { 'RAT_HOLE': 0, 'WEB': 0, 'SNAKE_NEST': 0 },
-    heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
+    heroDeaths: 0, buildingDeaths: 0, spawnersKilled: 0, emergencyMedicalCosts: 0, questsCompleted: 0, questsAbandoned: 0, goldSpentOnRepairs: 0, potionsBought: 0, goldLostToUpkeep: 0, heroesRecruited: 0, heroesRevived: 0, totalTaxCollected: 0, itemsPurchased: 0, monstersKilled: 0, hallOfFame: [], selectedTavernForGroupQuest: null,
 
     addEntity(ent) {
         this.entities.push(ent);
@@ -4071,7 +4073,33 @@ const Game = window.Game = {
 
             if (e.type === 'SHOP') {
                 UI.setDisplay('shop-config', 'block');
-                if (Game.shopActiveSlot !== null) { UI.setDisplay('shop-select-ui', 'block'); UI.setDisplay('shop-slots-ui', 'none'); Object.keys(ITEM_CONFIG).forEach(id => { UI.setDisabled(`btn-shop-${id}`, this.gold < ITEM_CONFIG[id].cost); }); }
+                if (Game.shopActiveSlot !== null) {
+                    UI.setDisplay('shop-select-ui', 'block');
+                    UI.setDisplay('shop-slots-ui', 'none');
+
+                    let currentlySoldItems = new Set();
+                    Game.entities.forEach(ent => {
+                        if (ent.type === 'SHOP') {
+                            ent.slots.forEach(slot => {
+                                if (slot !== 'NONE') currentlySoldItems.add(slot);
+                            });
+                        }
+                    });
+
+                    Object.keys(ITEM_CONFIG).forEach(id => {
+                        const btn = document.getElementById(`btn-shop-${id}`);
+                        if (btn) {
+                            UI.setDisabled(btn, this.gold < ITEM_CONFIG[id].cost);
+                            if (currentlySoldItems.has(id)) {
+                                btn.style.border = '2px solid navy';
+                                btn.style.boxShadow = '2px 2px 5px rgba(0,0,128,0.5)';
+                            } else {
+                                btn.style.border = '';
+                                btn.style.boxShadow = '';
+                            }
+                        }
+                    });
+                }
                 else { UI.setDisplay('shop-select-ui', 'none'); UI.setDisplay('shop-slots-ui', 'block'); for(let i=0;i<3;i++) { UI.setHTML(`shop-slot-${i}`, e.slots[i] === 'NONE' ? 'Empty' : `<span style="font-size:1.5rem">${ITEM_CONFIG[e.slots[i]].icon}</span>`); } }
             } else if (['WARRIOR_GUILD','ROGUE_GUILD','DRUID_GUILD','WIZARD_GUILD','PALADIN_GUILD'].includes(e.type)) {
                 UI.setDisplay('guild-config', 'block'); const br = document.getElementById('btn-recruit');
@@ -4326,6 +4354,7 @@ const Game = window.Game = {
             h.currentQuest = null;
             h.questPhase = 'NONE';
             h.timesRevived++;
+            this.heroesRevived++;
             h.isHealingAt = null;
 
             // Need to add hero back to active arrays.
@@ -4345,6 +4374,7 @@ const Game = window.Game = {
         const e = entityToAbandon;
         if (e && e.type.startsWith('FLAG_')) {
             e.active = false;
+            this.questsAbandoned++;
             if (this.selectedEntity === e) {
                 this.selectedEntity = null;
                 this.hideTooltip();
@@ -4392,7 +4422,7 @@ const Game = window.Game = {
                 this.gold -= cost; 
                 let h = new Hero(g.pos.x, g.pos.y + 40, hClass, g);
                 if (Game.guildBanks[hClass] > 0) { const amt = Math.min(Game.guildBanks[hClass], 250); h.personalGold += amt; Game.guildBanks[hClass] -= amt; }
-                g.heroes.push(h); this.addEntity(h); this.updateUI(true);
+                g.heroes.push(h); this.addEntity(h); this.heroesRecruited++; this.updateUI(true);
             }
         }
     },
@@ -4506,9 +4536,24 @@ const Game = window.Game = {
             maxLife: life
         });
     },
-    showItemTooltip(e, t, d) {
+    showItemTooltip(e, t, d, itemId = null) {
         let formattedDesc = d.replace(/(\d+(?:\.\d+)?(?:\s*%|\s+percent)?)/gi, '<span style="color:white;">$1</span>');
         formattedDesc = `<span style="color:#ffcc00;">${formattedDesc}</span>`;
+
+        if (itemId && Game.shopActiveSlot !== null) {
+            let isCurrentlySold = false;
+            for (let i = 0; i < Game.entities.length; i++) {
+                const ent = Game.entities[i];
+                if (ent.type === 'SHOP' && ent.slots.includes(itemId)) {
+                    isCurrentlySold = true;
+                    break;
+                }
+            }
+            if (isCurrentlySold) {
+                formattedDesc += '<br><br><span style="color:#ffcc00; font-style:italic;">This item is currently being sold</span>';
+            }
+        }
+
         this.showTooltip(e, t, formattedDesc, true);
     },
     showHeroTooltip(e, heroId) {
@@ -4602,12 +4647,46 @@ const Game = window.Game = {
             return `<th style="cursor:pointer; user-select:none;" onclick="Game.sortStats('${col}')">${text}${arrow}</th>`;
         };
 
-        let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div><div class="score-grid">`;
-        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('healingDealt', 'Healing Done')}${th('revives', 'Revives')}</tr>`;
-        const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard', 'PALADIN': 'Paladin' };
-        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${Math.floor(h.healingDealt || 0)}</td><td>${h.revives || 0}</td></tr>`);
-        html += `</table></div></div>`;
-                html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Accolades & Score Details</h3>`;
+        let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <button class="btn ${this.activeStatsTab !== 'other' ? 'active' : ''}" onclick="Game.activeStatsTab = 'heroes'; Game.showStatsScreen(${isGameOver});">Top Heroes</button>
+            <button class="btn ${this.activeStatsTab === 'other' ? 'active' : ''}" onclick="Game.activeStatsTab = 'other'; Game.showStatsScreen(${isGameOver});">Other Stats</button>
+        </div>
+
+        <div class="score-grid">`;
+
+        if (this.activeStatsTab === 'other') {
+            html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Other Stats</h3><div class="go-table-container"><table class="go-table" style="width: 100%; text-align: left;">
+                <tr>
+                    <td>Quests Completed</td><td>${this.questsCompleted}</td>
+                    <td>Quests Abandoned</td><td>${this.questsAbandoned}</td>
+                </tr>
+                <tr>
+                    <td>Buildings Lost</td><td>${this.buildingDeaths}</td>
+                    <td>Heroes Killed</td><td>${this.heroDeaths}</td>
+                </tr>
+                <tr>
+                    <td>Heroes Recruited</td><td>${this.heroesRecruited}</td>
+                    <td>Heroes Revived</td><td>${this.heroesRevived}</td>
+                </tr>
+                <tr>
+                    <td>Gold Spent on Repairs</td><td>${this.goldSpentOnRepairs}g</td>
+                    <td># of Potions Bought</td><td>${this.potionsBought}</td>
+                </tr>
+                <tr>
+                    <td>Gold Lost From Upkeep</td><td>${this.goldLostToUpkeep}g</td>
+                    <td></td><td></td>
+                </tr>
+            </table></div></div>`;
+        } else {
+            html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('healingDealt', 'Healing Done')}${th('revives', 'Revives')}</tr>`;
+            const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard', 'PALADIN': 'Paladin' };
+            top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${Math.floor(h.healingDealt || 0)}</td><td>${h.revives || 0}</td></tr>`);
+            html += `</table></div></div>`;
+        }
+
+        html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Accolades & Score Details</h3>`;
 
         const taxes = Math.floor(this.totalTaxCollected);
         const unspentGold = Math.floor(this.gold);
