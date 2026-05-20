@@ -1391,6 +1391,9 @@ class Projectile {
                 appliedHealAmt = Math.min(this.damage, this.target.maxHp - this.target.hp);
                 if (appliedHealAmt > 0) {
                     this.target.hp += appliedHealAmt;
+                    if (this.source && this.source.classType && (this.source.classType === 'DRUID' || this.source.classType === 'PALADIN')) {
+                        this.source.healingDealt = (this.source.healingDealt || 0) + appliedHealAmt;
+                    }
                     const healColor = this.projType === 'PALADIN_HEAL' ? '#ffcc00' : '#48bb78';
                     Game.spawnFloatingText(this.target.pos.x, this.target.pos.y, `+${Math.floor(appliedHealAmt)}`, healColor, 1.0, 16);
                 }
@@ -1507,6 +1510,7 @@ class Monster extends Unit {
         super(x, y); this.type = 'MONSTER'; this.monsterType = mT; this.faction = 'ENEMY';
 
         const conf = MONSTER_CONFIG[mT] || MONSTER_CONFIG['RAT'];
+        this.name = conf.name;
         
         const mainB = GameBounds.getMain();
         const inCorridor = (x < mainB.x1 || x > mainB.x2 || y < mainB.y1 || y > mainB.y2);
@@ -1515,16 +1519,27 @@ class Monster extends Unit {
         
         this.buffStacks = bS + (inCorridor ? 2 : 0);
 
-        this.name = bS > 0 ? `Level ${bS + 1} ${conf.name}` : conf.name;
+        let effectiveDay = 1 + bS;
+        let hpMult = 1.0;
+        let dmgMult = 1.0;
 
-        let hpMult = Math.pow(1.25, bS);
-        let dmgMult = Math.pow(1.25, bS);
+        if (effectiveDay <= 5) {
+            hpMult = 1.0 + (effectiveDay - 1) * 0.08;
+            dmgMult = 1.0 + (effectiveDay - 1) * 0.08;
+        } else {
+            hpMult = 1.32 * Math.pow(1.08, effectiveDay - 5);
+            dmgMult = 1.32 * Math.pow(1.08, effectiveDay - 5);
+        }
 
         if (inCorridor) {
             let toughness = 1.0 + (Game.corridors.length * 0.05);
             hpMult *= 1.15 * toughness;
             dmgMult *= 1.15 * toughness;
         }
+
+        let survivorMult = Math.pow(1.03, bS);
+        hpMult *= survivorMult;
+        dmgMult *= survivorMult;
 
         let corridorDaysOpenHp = 0;
         if (inCorridor) {
@@ -1546,7 +1561,7 @@ class Monster extends Unit {
         this.hp = this.maxHp;
 
         let bountyMult = this.inCorridor ? 0.6 : 2.0;
-        this.bounty = Math.floor(conf.bounty * Math.pow(1.25, bS) * bountyMult);
+        this.bounty = Math.floor(conf.bounty * Math.pow(1.5, bS) * bountyMult);
         
         this.baseFontSize = Math.floor(24 * (1 + (hpMult - 1) * 0.05));
         this.cachedDefaultTarget = Game.base;
@@ -1801,7 +1816,7 @@ class Hero extends Unit {
         this.chargeCooldown = 0; this.chargeVfxTimer = 0; this.trapCooldown = 0; this.regrowthCooldown = 0; this.regrowthCastVfxTimer = 0; this.regrowthHealVfxTimer = 0;
         this.markOfTheWildTimer = 0; this.markOfTheWildCooldown = 0; this.tauntCooldown = 0; this.tauntVfxTimer = 0; this.motwHpBuff = 0; this.motwDmgBuff = 0;
         this.purchasedItemVfxTimer = 0; this.purchasedItemIcon = ''; this.levelUpVfxTimer = 0;
-        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0;
+        this.questPhase = 'NONE'; this.isHealingAt = null; this.level = 1; this.xp = 0; this.kills = 0; this.personalGold = 0; this.lifetimeGold = 0; this.timesRevived = 0; this.items = []; this.skills = []; this.checkThreatTimer = 0; this.damageDealt = 0; this.healingDealt = 0;
         this.isDead = false; this.tombstoneEntity = null; this.groupId = null; this.tavern = null; this.tavernHealCooldowns = {}; this.templeHealCooldowns = {};
         
         this.damageReduction = 0; this.damageReductionPercent = 0; this.stealth = false; this.critChance = 0; this.critMult = 1.0;
@@ -1975,7 +1990,7 @@ class Hero extends Unit {
         super.die(); 
         this.isDead = true;
         Game.heroDeaths++; 
-        Game.hallOfFame.push({ id: this.id, name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, damageDealt: this.damageDealt });
+        Game.hallOfFame.push({ id: this.id, name: this.name, classType: this.classType, level: this.level, kills: this.kills, gold: this.lifetimeGold, revives: this.timesRevived, damageDealt: this.damageDealt, healingDealt: this.healingDealt });
         let gN = this.getClassName();
         this.tombstoneEntity = new Tombstone(this.pos.x, this.pos.y, this.name, gN, this.level, this.kills);
         this.tombstoneEntity.heroRef = this;
@@ -2779,6 +2794,7 @@ class DruidHero extends Hero {
                 }
             }
             if (bestA) {
+                this.healingDealt = (this.healingDealt || 0) + (bestA.maxHp - bestA.hp);
                 bestA.hp = bestA.maxHp;
                 this.regrowthCooldown = 30.0;
                 this.regrowthCastVfxTimer = 1.5;
@@ -4483,7 +4499,7 @@ const Game = window.Game = {
     showStatsScreen(isGameOver) {
         if (!this.statsSort) this.statsSort = { column: 'level', desc: true };
 
-        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, damageDealt: h.damageDealt || 0 }))];
+        const hall = [...this.hallOfFame, ...this.playerEntities.filter(e => e.classType).map(h => ({ name: h.name, classType: h.classType, level: h.level, kills: h.kills, gold: h.lifetimeGold, revives: h.timesRevived || 0, damageDealt: h.damageDealt || 0, healingDealt: h.healingDealt || 0 }))];
         hall.sort((a,b) => {
             let valA, valB;
             switch(this.statsSort.column) {
@@ -4493,6 +4509,7 @@ const Game = window.Game = {
                 case 'gold': valA = a.gold; valB = b.gold; break;
                 case 'revives': valA = a.revives; valB = b.revives; break;
                 case 'damageDealt': valA = a.damageDealt; valB = b.damageDealt; break;
+                case 'healingDealt': valA = a.healingDealt; valB = b.healingDealt; break;
                 case 'level': default: valA = a.level; valB = b.level; break;
             }
             if (typeof valA === 'string') {
@@ -4525,9 +4542,9 @@ const Game = window.Game = {
         };
 
         let html = `<div class="go-title" style="color: ${themeColor}; border-bottom-color: ${themeColor};">${titleText}</div><div class="score-grid">`;
-        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('revives', 'Revives')}</tr>`;
+        html += `<div class="stat-box" style="flex-grow:1;"><h3 style="margin-top: 0; margin-bottom: 5px;">Top 10 Heroes</h3><div class="go-table-container"><table class="go-table"><tr>${th('name', 'Hero')}${th('classType', 'Class')}${th('level', 'Level')}${th('kills', 'Monsters Killed')}${th('gold', 'Gold Generated')}${th('damageDealt', 'Damage Dealt')}${th('healingDealt', 'Healing Done')}${th('revives', 'Revives')}</tr>`;
         const classNames = { 'WARRIOR': 'Warrior', 'ROGUE': 'Rogue', 'DRUID': 'Druid', 'WIZARD': 'Wizard', 'PALADIN': 'Paladin' };
-        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${h.revives || 0}</td></tr>`);
+        top10.forEach(h => html += `<tr><td>${h.name}</td><td>${classNames[h.classType] || h.classType}</td><td>${h.level}</td><td>${h.kills}</td><td>${Math.floor(h.gold)}g</td><td>${Math.floor(h.damageDealt)}</td><td>${Math.floor(h.healingDealt || 0)}</td><td>${h.revives || 0}</td></tr>`);
         html += `</table></div></div>`;
                 html += `<div class="stat-box"><h3 style="margin-top: 0; margin-bottom: 5px;">Kingdom Accolades & Score Details</h3>`;
 
@@ -4698,17 +4715,15 @@ function loop(timestamp) {
                 e.daysSurvived = (e.daysSurvived || 0) + 1;
                 if(e.spawnerType !== 'VOLCANO'){
                     e.radius=e.baseRadius+(e.daysSurvived*2);
-                    let hpInc = Math.floor(e.maxHp * 0.25);
+                    let hpInc = e.inCorridor ? Math.max(100, 300 - (e.daysSurvived * 30)) : Math.max(50, 100 - (e.daysSurvived * 10));
                     e.maxHp += hpInc; e.hp += hpInc;
-                    e.bounty = Math.floor(e.bounty * 1.25);
                     if (e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
                         if(e.spawnerType==='RAT_HOLE') eRats++; else if(e.spawnerType==='WEB') eSpiders++; else if(e.spawnerType==='SNAKE_NEST') eSnakes++;
                     }
                 } else {
-                    let hpInc = Math.floor(e.maxHp * 0.25);
+                    let hpInc = 200;
                     e.maxHp += hpInc; e.hp += hpInc;
-                    e.towerDamage = Math.floor(e.towerDamage * 1.25);
-                    e.bounty = Math.floor(e.bounty * 1.25);
+                    e.towerDamage += 5;
                     e.dailyEruption();
                 }
             }); 
