@@ -408,7 +408,7 @@
                 <div class="build-btn-icon" style="color: #ffcc00; text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;">⚑</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙25</span></div>
             </button>
-            <button class="menu-btn build-btn" id="btn-flag-defend" onclick="setMode('FLAG_DEFEND')" onmouseenter="Game.showTooltip(event, 'Defend Quest', 'Send up to 3 Heroes to defend a building.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Defend for 20 seconds to split the bounty among defenders. Max 1 Druid.</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+            <button class="menu-btn build-btn" id="btn-flag-defend" onclick="setMode('FLAG_DEFEND')" onmouseenter="Game.showTooltip(event, 'Defend Quest', 'Send up to 3 Heroes to defend a building.<br><span style=&quot;color:#ffcc00; font-style:italic;&quot;>Defend for 20 seconds to split the bounty among defenders. Max 1 Druid. Building takes no damage while actively defended!</span>', true)" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                 <div class="build-btn-header"><div class="build-btn-hotkey">2</div><div class="build-btn-title">Defend</div></div>
                 <div class="build-btn-icon" style="color: #3a2e1d; text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;">⚑</div>
                 <div class="build-btn-cost-badge"><span class="build-btn-cost">🪙50</span></div>
@@ -1303,6 +1303,25 @@ class Entity {
     takeDamage(amt, source) {
         if (!this.active) return;
         if (this.faction === 'PLAYER' && this.classType && this.isHealingAt) return;
+
+        if (this.faction === 'PLAYER' && !this.classType && this.isStatic) {
+            let isBeingDefended = false;
+            for (let i = 0; i < Game.activeFlags.length; i++) {
+                const flag = Game.activeFlags[i];
+                if (flag.type === 'FLAG_DEFEND' && flag.targetEntity === this) {
+                    for (let j = 0; j < Game.activeHeroes.length; j++) {
+                        const h = Game.activeHeroes[j];
+                        if (h.currentQuest === flag && h.pos.distSq(this.pos) < 2500) {
+                            isBeingDefended = true;
+                            break;
+                        }
+                    }
+                }
+                if (isBeingDefended) break;
+            }
+            if (isBeingDefended) return;
+        }
+
         this.lastDamagedTime = Game.timeMs;
         if (source && source.classType !== undefined) { source.damageDealt += Math.max(0, Math.min(this.hp, amt)); }
         this.hp -= amt;
