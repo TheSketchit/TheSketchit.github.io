@@ -124,7 +124,7 @@
                 </h4>
                 <div class="shop-item-grid">
                     <button id="btn-shop-POTION" class="shop-item-btn" onclick="Game.buyShopItem('POTION', 50)" onmouseenter="Game.showTooltip(event, 'Health Potion', 'Restores 50 HP when health drops below 30%')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚🧙</span>
+                        <span class="item-icon">🧪</span><span class="item-cost">50g</span><span class="item-classes">🧌🥷🧚🧙💂</span>
                     </button>
                     <button id="btn-shop-SWORD" class="shop-item-btn" onclick="Game.buyShopItem('SWORD', 125)" onmouseenter="Game.showTooltip(event, 'Sword', 'Increases attack damage by 5. Gives a 15% chance to parry attacks. Increases damage done to Monster Spawners by 50%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">⚔️</span><span class="item-cost">125g</span><span class="item-classes">🧌</span>
@@ -139,10 +139,10 @@
                         <span class="item-icon">👕</span><span class="item-cost">120g</span><span class="item-classes">🧚🧙</span>
                     </button>
                     <button id="btn-shop-ARMOR" class="shop-item-btn" onclick="Game.buyShopItem('ARMOR', 100)" onmouseenter="Game.showTooltip(event, 'Leather Armor', 'Increases max HP by 50 and reduces damage taken by 10%.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷</span>
+                        <span class="item-icon">🧥</span><span class="item-cost">100g</span><span class="item-classes">🧌🥷💂</span>
                     </button>
                     <button id="btn-shop-CHAINMAIL" class="shop-item-btn" onclick="Game.buyShopItem('CHAINMAIL', 200)" onmouseenter="Game.showTooltip(event, 'Chainmail', 'Increases max HP by 100 and reduces damage taken by 50%. Replaces Leather Armor.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
-                        <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌</span>
+                        <span class="item-icon">⛓️</span><span class="item-cost">200g</span><span class="item-classes">🧌💂</span>
                     </button>
                     <button id="btn-shop-ROBE_OF_LIFE" class="shop-item-btn" onclick="Game.buyShopItem('ROBE_OF_LIFE', 200)" onmouseenter="Game.showTooltip(event, 'Robe of Life', 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\'s Tunic.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">👘</span><span class="item-cost">200g</span><span class="item-classes">🧚</span>
@@ -155,6 +155,12 @@
                     </button>
                     <button id="btn-shop-TOME_OF_POWER" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_POWER', 300)" onmouseenter="Game.showTooltip(event, 'Tome of Power', 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
                         <span class="item-icon">📖</span><span class="item-cost">300g</span><span class="item-classes">🧙</span>
+                    </button>
+                    <button id="btn-shop-HAMMER_OF_JUSTICE" class="shop-item-btn" onclick="Game.buyShopItem('HAMMER_OF_JUSTICE', 150)" onmouseenter="Game.showTooltip(event, 'Hammer of Justice', 'Increases attack by 20, slows attack to 2.5. 50% chance on hit to stun.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">🔨</span><span class="item-cost">150g</span><span class="item-classes">💂</span>
+                    </button>
+                    <button id="btn-shop-TOME_OF_RETRIBUTION" class="shop-item-btn" onclick="Game.buyShopItem('TOME_OF_RETRIBUTION', 150)" onmouseenter="Game.showTooltip(event, 'Tome of Retribution', '25% chance on hit to heal the paladin and nearby allies for the damage dealt.')" onmousemove="Game.moveTooltip(event)" onmouseleave="Game.hideTooltip()">
+                        <span class="item-icon">📜</span><span class="item-cost">150g</span><span class="item-classes">💂</span>
                     </button>
                 </div>
             </div>
@@ -1228,7 +1234,9 @@ const ITEM_CONFIG = {
     ROBE_OF_LIFE: { cost: 200, classes: ['DRUID'], color: '#48bb78', statBonus: { lifeSteal: true }, replaces: 'CASTERS_TUNIC', icon: '👘', name: 'Robe of Life', desc: 'When the druid attacks an enemy or heals an ally, the druid is healed for the same amount. Replaces Caster\'s Tunic.' },
     ROGUES_DISGUISE: { cost: 250, classes: ['ROGUE'], color: '#5a4b31', statBonus: { maxHp: 50, hp: 50, damageReduction: 2, stealth: true }, replaces: 'ARMOR', icon: '🕵️‍♂️', name: 'Rogue\'s Disguise', desc: 'Increases max HP by 50 and reduces damage taken by 2. Monsters ignore the wearer until attacked. Replaces Leather Armor.' },
     ROBE_OF_MAGI: { cost: 250, classes: ['WIZARD'], color: '#8a2be2', statBonus: { damage: 6, structureDamageChance: 0.25, structureDamageMult: 0.5 }, replaces: 'CASTERS_TUNIC', icon: '🥻', name: 'Robes of Magi', desc: 'Increases damage by 6. Grants the Wizard 25% chance to deal 50% damage to enemy structures. Replaces Caster\'s Tunic.' },
-    TOME_OF_POWER: { cost: 300, classes: ['WIZARD'], color: '#f0e6d2', statBonus: { tomeOfPower: true }, icon: '📖', name: 'Tome of Power', desc: 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)' }
+    TOME_OF_POWER: { cost: 300, classes: ['WIZARD'], color: '#f0e6d2', statBonus: { tomeOfPower: true }, icon: '📖', name: 'Tome of Power', desc: 'The wizard attacks 20% faster. 15 percent chance on hit to deal 25% percent more damage. (Multi-cast attacks proc individually)' },
+    HAMMER_OF_JUSTICE: { cost: 150, classes: ['PALADIN'], color: '#f0e6d2', statBonus: { damage: 20, maxAttackCooldownOverride: 2.5, stunChance: 0.5 }, icon: '🔨', name: 'Hammer of Justice', desc: 'Increases attack by 20, slows attack to 2.5. 50% chance on hit to stun.' },
+    TOME_OF_RETRIBUTION: { cost: 150, classes: ['PALADIN'], color: '#f0e6d2', statBonus: { retributionHealChance: 0.25 }, icon: '📜', name: 'Tome of Retribution', desc: '25% chance on hit to heal the paladin and nearby allies for the damage dealt.' }
 };
 
 const HERO_CONFIG = {
@@ -1372,18 +1380,19 @@ class Unit extends Entity {
 class Projectile {
     constructor(x, y, t, d, s, pT = 'MAGIC') { 
         this.pos = new Vec2(x, y); this.target = t; this.damage = d; this.source = s; 
-        this.speed = pT === 'FIREBALL' ? 4 : (pT === 'ARROW' ? 8 : (pT === 'DRUID_MAGIC' ? 6 : (pT === 'MAGIC_MISSILE' ? 6 : (pT === 'LAVA_ROCK' ? 6 : (pT === 'HEAL' ? 6 : 5)))));
+        this.speed = pT === 'FIREBALL' ? 4 : (pT === 'ARROW' ? 8 : (pT === 'DRUID_MAGIC' ? 6 : (pT === 'MAGIC_MISSILE' ? 6 : (pT === 'LAVA_ROCK' ? 6 : (pT === 'HEAL' || pT === 'PALADIN_HEAL' ? 6 : 5)))));
         this.active = true; this.projType = pT; 
     }
     update(dtSec) { 
         if (!this.target.active) { this.active = false; return; } 
         if (this.pos.distSq(this.target.pos) <= (this.speed*2)**2) { 
             let appliedHealAmt = 0;
-            if (this.projType === 'HEAL') {
+            if (this.projType === 'HEAL' || this.projType === 'PALADIN_HEAL') {
                 appliedHealAmt = Math.min(this.damage, this.target.maxHp - this.target.hp);
                 if (appliedHealAmt > 0) {
                     this.target.hp += appliedHealAmt;
-                    Game.spawnFloatingText(this.target.pos.x, this.target.pos.y, `+${Math.floor(appliedHealAmt)}`, '#48bb78', 1.0, 16);
+                    const healColor = this.projType === 'PALADIN_HEAL' ? '#ffcc00' : '#48bb78';
+                    Game.spawnFloatingText(this.target.pos.x, this.target.pos.y, `+${Math.floor(appliedHealAmt)}`, healColor, 1.0, 16);
                 }
                 if (this.target.state === 'FLEE') {
                     this.target.state = 'IDLE';
@@ -1416,6 +1425,7 @@ class Projectile {
             if (this.projType === 'FIREBALL' && true) Game.spawnParticle(this.pos.x, this.pos.y, '#e53e3e');
             if (this.projType === 'DRUID_MAGIC' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#48bb78');
             if (this.projType === 'HEAL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#48bb78');
+            if (this.projType === 'PALADIN_HEAL' && Game.frames % 2 === 0) Game.spawnParticle(this.pos.x, this.pos.y, '#ffcc00');
         } 
     }
     draw(ctx) { 
@@ -1433,6 +1443,9 @@ class Projectile {
         } else if (this.projType === 'HEAL') {
             ctx.fillStyle = '#a7f3d0'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 8, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = '#48bb78'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 4, 0, Math.PI*2); ctx.fill();
+        } else if (this.projType === 'PALADIN_HEAL') {
+            ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 8, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 4, 0, Math.PI*2); ctx.fill();
         } else if (this.projType === 'DRUID_MAGIC') {
             ctx.fillStyle = '#48bb78'; ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, 6, 0, Math.PI*2); ctx.fill();
         } else { 
@@ -1494,7 +1507,6 @@ class Monster extends Unit {
         super(x, y); this.type = 'MONSTER'; this.monsterType = mT; this.faction = 'ENEMY';
 
         const conf = MONSTER_CONFIG[mT] || MONSTER_CONFIG['RAT'];
-        this.name = conf.name;
         
         const mainB = GameBounds.getMain();
         const inCorridor = (x < mainB.x1 || x > mainB.x2 || y < mainB.y1 || y > mainB.y2);
@@ -1503,27 +1515,16 @@ class Monster extends Unit {
         
         this.buffStacks = bS + (inCorridor ? 2 : 0);
 
-        let effectiveDay = 1 + bS;
-        let hpMult = 1.0;
-        let dmgMult = 1.0;
+        this.name = bS > 0 ? `Level ${bS + 1} ${conf.name}` : conf.name;
 
-        if (effectiveDay <= 5) {
-            hpMult = 1.0 + (effectiveDay - 1) * 0.08;
-            dmgMult = 1.0 + (effectiveDay - 1) * 0.08;
-        } else {
-            hpMult = 1.32 * Math.pow(1.08, effectiveDay - 5);
-            dmgMult = 1.32 * Math.pow(1.08, effectiveDay - 5);
-        }
+        let hpMult = Math.pow(1.25, bS);
+        let dmgMult = Math.pow(1.25, bS);
 
         if (inCorridor) {
             let toughness = 1.0 + (Game.corridors.length * 0.05);
             hpMult *= 1.15 * toughness;
             dmgMult *= 1.15 * toughness;
         }
-
-        let survivorMult = Math.pow(1.03, bS);
-        hpMult *= survivorMult;
-        dmgMult *= survivorMult;
 
         let corridorDaysOpenHp = 0;
         if (inCorridor) {
@@ -1545,7 +1546,7 @@ class Monster extends Unit {
         this.hp = this.maxHp;
 
         let bountyMult = this.inCorridor ? 0.6 : 2.0;
-        this.bounty = Math.floor(conf.bounty * Math.pow(1.5, bS) * bountyMult);
+        this.bounty = Math.floor(conf.bounty * Math.pow(1.25, bS) * bountyMult);
         
         this.baseFontSize = Math.floor(24 * (1 + (hpMult - 1) * 0.05));
         this.cachedDefaultTarget = Game.base;
@@ -1834,8 +1835,28 @@ class Hero extends Unit {
         if (this.structureDamageChance && Math.random() < this.structureDamageChance && this.target && (this.target.type === 'SPAWNER' || this.target.spawnerType === 'VOLCANO')) {
             d += Math.floor(this.damage * this.structureDamageMult);
         }
+
+        let damageDealt = Math.min(this.target.hp, d);
         this.target.takeDamage(d, this);
         if(cr) Game.spawnParticle(this.target.pos.x, this.target.pos.y, '#e53e3e');
+
+        if (this.stunChance && Math.random() < this.stunChance) {
+            this.target.stunTimer = 2.0;
+        }
+        if (this.retributionHealChance && Math.random() < this.retributionHealChance) {
+            let healAmt = damageDealt;
+            if (healAmt > 0) {
+                this.hp = Math.min(this.maxHp, this.hp + healAmt);
+                Game.spawnFloatingText(this.pos.x, this.pos.y, `+${Math.floor(healAmt)}`, '#ffcc00', 1.0, 16);
+                for (let i = 0; i < Game.activeHeroes.length; i++) {
+                    const h = Game.activeHeroes[i];
+                    if (h !== this && this.pos.distSq(h.pos) <= 10000) {
+                        h.hp = Math.min(h.maxHp, h.hp + healAmt);
+                        Game.spawnFloatingText(h.pos.x, h.pos.y, `+${Math.floor(healAmt)}`, '#ffcc00', 1.0, 16);
+                    }
+                }
+            }
+        }
         this.attackCooldown = this.maxAttackCooldown;
     }
     evaluateCustomGoals(bS, bT) { return null; }
@@ -2470,6 +2491,9 @@ class Hero extends Unit {
                 if (item.statBonus.spawnerDamageMult !== undefined) this.spawnerDamageMult = (this.spawnerDamageMult || 1) * item.statBonus.spawnerDamageMult;
                 if (item.statBonus.structureDamageChance !== undefined) this.structureDamageChance = (this.structureDamageChance || 0) + item.statBonus.structureDamageChance;
                 if (item.statBonus.structureDamageMult !== undefined) this.structureDamageMult = (this.structureDamageMult || 0) + item.statBonus.structureDamageMult;
+                if (item.statBonus.maxAttackCooldownOverride !== undefined) this.maxAttackCooldown = item.statBonus.maxAttackCooldownOverride;
+                if (item.statBonus.stunChance !== undefined) this.stunChance = (this.stunChance || 0) + item.statBonus.stunChance;
+                if (item.statBonus.retributionHealChance !== undefined) this.retributionHealChance = (this.retributionHealChance || 0) + item.statBonus.retributionHealChance;
             }
             
             Game.spawnParticle(this.pos.x, this.pos.y, item.color || '#f0e6d2');
@@ -2504,29 +2528,23 @@ class Hero extends Unit {
             ctx.save(); ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; ctx.beginPath(); ctx.ellipse(this.pos.x, this.pos.y+5, 12, 6, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
         }
         if (this.classType === 'PALADIN' && this.skills && this.skills.includes('DEVOTION_AURA')) {
-            const vR = this.getVisionRange();
-            const pulse = 0.2 + 0.15 * Math.sin(Game.timeMs * 0.003);
-            const grad = ctx.createRadialGradient(this.pos.x, this.pos.y, 0, this.pos.x, this.pos.y, vR);
-            grad.addColorStop(0, `rgba(135, 206, 250, ${pulse})`);
-            grad.addColorStop(1, 'rgba(135, 206, 250, 0)');
+            const pulse = 0.3 + 0.2 * Math.sin(Game.timeMs * 0.003);
             ctx.save();
-            ctx.fillStyle = grad;
+            ctx.fillStyle = `rgba(135, 206, 250, ${pulse})`;
             ctx.beginPath();
-            ctx.arc(this.pos.x, this.pos.y, vR, 0, Math.PI*2);
+            ctx.ellipse(this.pos.x, this.pos.y + 15, 12, 4, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
         if (this.classType === 'PALADIN' && this.skills && this.skills.includes('CRUSADER_AURA')) {
             const vR = this.getVisionRange();
-            const pulse = 0.2 + 0.15 * Math.sin(Game.timeMs * 0.003);
-            const grad = ctx.createRadialGradient(this.pos.x, this.pos.y, 0, this.pos.x, this.pos.y, vR);
-            grad.addColorStop(0, `rgba(255, 215, 0, ${pulse})`); // Gold color
-            grad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            const pulse = 0.3 + 0.3 * Math.sin(Game.timeMs * 0.003);
             ctx.save();
-            ctx.fillStyle = grad;
+            ctx.strokeStyle = `rgba(255, 200, 0, ${pulse})`;
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(this.pos.x, this.pos.y, vR, 0, Math.PI*2);
-            ctx.fill();
+            ctx.stroke();
             ctx.restore();
         }
         const conf = HERO_CONFIG[this.classType];
@@ -2852,6 +2870,24 @@ class DruidHero extends Hero {
 
 class PaladinHero extends Hero {
     getClassName() { return 'Paladin'; }
+    performAttack(d, cr) {
+        super.performAttack(d, cr);
+
+        let bestA = null, low = 1.0;
+        const vrSq = this.getVisionRange() ** 2;
+        for (let i = 0; i < Game.activeHeroes.length; i++) {
+            const e = Game.activeHeroes[i];
+            if (e.hp < e.maxHp && this.pos.distSq(e.pos) <= vrSq) {
+                if (e.hp / e.maxHp < low) {
+                    low = e.hp / e.maxHp;
+                    bestA = e;
+                }
+            }
+        }
+        if (bestA) {
+            Game.projectiles.push(new Projectile(this.pos.x, this.pos.y, bestA, d / 2, this, 'PALADIN_HEAL'));
+        }
+    }
 }
 
 class WizardHero extends Hero {
@@ -4662,15 +4698,17 @@ function loop(timestamp) {
                 e.daysSurvived = (e.daysSurvived || 0) + 1;
                 if(e.spawnerType !== 'VOLCANO'){
                     e.radius=e.baseRadius+(e.daysSurvived*2);
-                    let hpInc = e.inCorridor ? Math.max(100, 300 - (e.daysSurvived * 30)) : Math.max(50, 100 - (e.daysSurvived * 10));
+                    let hpInc = Math.floor(e.maxHp * 0.25);
                     e.maxHp += hpInc; e.hp += hpInc;
+                    e.bounty = Math.floor(e.bounty * 1.25);
                     if (e.pos.x >= mainB.x1 && e.pos.x <= mainB.x2 && e.pos.y >= mainB.y1 && e.pos.y <= mainB.y2) {
                         if(e.spawnerType==='RAT_HOLE') eRats++; else if(e.spawnerType==='WEB') eSpiders++; else if(e.spawnerType==='SNAKE_NEST') eSnakes++;
                     }
                 } else {
-                    let hpInc = 200;
+                    let hpInc = Math.floor(e.maxHp * 0.25);
                     e.maxHp += hpInc; e.hp += hpInc;
-                    e.towerDamage += 5;
+                    e.towerDamage = Math.floor(e.towerDamage * 1.25);
+                    e.bounty = Math.floor(e.bounty * 1.25);
                     e.dailyEruption();
                 }
             }); 
